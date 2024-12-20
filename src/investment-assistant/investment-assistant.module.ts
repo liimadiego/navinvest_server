@@ -5,5 +5,6 @@ import { InvestmentAssistantController } from './investment-assistant.controller
 @Module({
   controllers: [InvestmentAssistantController],
   providers: [InvestmentAssistantService],
+  exports: [InvestmentAssistantService]
 })
 export class InvestmentAssistantModule { }
