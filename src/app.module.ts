@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InvestmentAssistantModule } from './investment-assistant/investment-assistant.module';
 import { ConfigModule } from '@nestjs/config';
+import { BacktestModule } from './backtest/backtest.module';
 import { InvestTrackModule } from './invest-track/invest-track.module';
 
 @Module({
@@ -13,6 +14,7 @@ import { InvestTrackModule } from './invest-track/invest-track.module';
       isGlobal: true,
     }),
     InvestmentAssistantModule,
+    BacktestModule,
     InvestTrackModule
   ],
 })
