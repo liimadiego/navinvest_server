@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InvestmentAssistantModule } from './investment-assistant/investment-assistant.module';
 import { ConfigModule } from '@nestjs/config';
+import { BacktestModule } from './backtest/backtest.module';
 
 @Module({
   controllers: [AppController],
@@ -11,7 +12,8 @@ import { ConfigModule } from '@nestjs/config';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    InvestmentAssistantModule
+    InvestmentAssistantModule,
+    BacktestModule
   ],
 })
 export class AppModule { }
