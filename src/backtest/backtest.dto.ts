@@ -5,7 +5,7 @@ class PortfolioItem {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[A-Z0-9]+$/, {
-    message: 'Ticker must contain only uppercase letters and numbers.',
+    message: 'O ticker deve conter apenas letras maiúsculas e números.',
   })
   ticker: string;
 
