@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import OpenAI from 'openai';
 import { PromptsService } from '../Utils/prompts';
-import { MessageHistoric } from './investment-interface';
+import { MessageHistoric } from './investment-assistant-interface';
 
 @Injectable()
 export class InvestmentAssistantService {
@@ -26,7 +26,6 @@ export class InvestmentAssistantService {
                 model: 'gpt-3.5-turbo',
                 messages: [
                     { role: 'system', content: this.getPrompt("ia_assistant_context") },
-                    { role: 'developer', content: this.getPrompt("ia_assistant_context") },
                     ...messageHistoric,
                     { role: 'user', content: message }
                 ],

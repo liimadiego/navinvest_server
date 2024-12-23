@@ -1,6 +1,6 @@
 import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { InvestmentAssistantService } from './investment-assistant.service';
-import { MessageHistoric } from './investment-interface';
+import { MessageHistoric } from './investment-assistant-interface';
 
 @Controller('investment-assistant')
 export class InvestmentAssistantController {
