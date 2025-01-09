@@ -5,6 +5,7 @@ import { InvestmentAssistantModule } from './investment-assistant/investment-ass
 import { ConfigModule } from '@nestjs/config';
 import { BacktestModule } from './backtest/backtest.module';
 import { InvestTrackModule } from './invest-track/invest-track.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   controllers: [AppController],
@@ -15,7 +16,8 @@ import { InvestTrackModule } from './invest-track/invest-track.module';
     }),
     InvestmentAssistantModule,
     BacktestModule,
-    InvestTrackModule
+    InvestTrackModule,
+    NotificationModule
   ],
 })
 export class AppModule { }
