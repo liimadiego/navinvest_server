@@ -1,22 +1,22 @@
 import { Controller, Post, Body, Get, Param } from '@nestjs/common';
-import { NotificationsService } from './notification.service';
+import { NotificationService } from './notification.service';
 
 @Controller('notifications')
-export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) { }
+export class NotificationController {
+  constructor(private readonly NotificationService: NotificationService) { }
 
   @Post('subscribe')
   async subscribe(@Body() { userId, assetName }: { userId: string; assetName: string }) {
-    return this.notificationsService.subscribeToAsset(userId, assetName);
+    return this.NotificationService.subscribeToAsset(userId, assetName);
   }
 
   @Post('send')
   async sendNotification(@Body() { userId, message }: { userId: string; message: string }) {
-    return this.notificationsService.sendNotification(userId, message);
+    return this.NotificationService.sendNotification(userId, message);
   }
 
   @Get(':userId')
   async getNotifications(@Param('userId') userId: string) {
-    return this.notificationsService.getUserNotifications(userId);
+    return this.NotificationService.getUserNotifications(userId);
   }
 }

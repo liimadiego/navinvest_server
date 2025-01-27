@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity('notifications')
-export class Notification {
+export class NotificationEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 

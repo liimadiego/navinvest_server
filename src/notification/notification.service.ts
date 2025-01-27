@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MonitoredAsset } from '../entities/monitored-asset.entity';
-import { Notification } from '../entities/notification.entity';
+import { MonitoredAssetEntity } from '../entities/monitored-asset.entity';
+import { NotificationEntity } from '../entities/notification.entity';
 
 @Injectable()
-export class NotificationsService {
+export class NotificationService {
     constructor(
-        @InjectRepository(MonitoredAsset)
-        private MonitoredAssetRepository: Repository<MonitoredAsset>,
-        @InjectRepository(Notification)
-        private notificationRepository: Repository<Notification>,
+        @InjectRepository(MonitoredAssetEntity)
+        private MonitoredAssetRepository: Repository<MonitoredAssetEntity>,
+        @InjectRepository(NotificationEntity)
+        private notificationRepository: Repository<NotificationEntity>,
     ) { }
 
     async subscribeToAsset(userId: string, assetName: string) {
