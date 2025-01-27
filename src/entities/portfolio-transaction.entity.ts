@@ -1,13 +1,13 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { InvestmentPortfolio } from './investment-portfolio.entity';
+import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 
 @Entity('portfolio_transactions')
-export class PortfolioTransaction {
+export class PortfolioTransactionEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @ManyToOne(() => InvestmentPortfolio, (portfolio) => portfolio.transactions, { onDelete: 'CASCADE' })
-    portfolio: InvestmentPortfolio;
+    @ManyToOne(() => InvestmentPortfolioEntity, (portfolio) => portfolio.transactions, { onDelete: 'CASCADE' })
+    portfolio: InvestmentPortfolioEntity;
 
     @Column({ type: 'varchar', length: 20 })
     transactionType: string;

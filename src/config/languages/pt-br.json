@@ -1,0 +1,7 @@
+{
+    "GENERAL_ERROR": "Algo deu errado!",
+    "MISSING_REQUIRED_PARAMETERS": "Parâmetros obrigatórios faltando",
+    "SUBSCRIBE_ASSET_ERROR": "Ocorreu um erro ao tentar se inscrever no ativo",
+    "CREATE_NOTIFICATION_ERROR": "Ocorreu um erro ao tentar criar a notificação",
+    "GET_NOTIFICATIONS_ERROR": "Ocorreu um erro ao tentar obter as notificações"
+}

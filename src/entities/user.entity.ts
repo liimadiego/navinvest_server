@@ -1,10 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, OneToMany } from 'typeorm';
-import { UserProfile } from './user-profile.entity';
-import { UserSettings } from './user-setting.entity';
-import { InvestmentPortfolio } from './investment-portfolio.entity';
+import { UserProfileEntity } from './user-profile.entity';
+import { UserSettingsEntity } from './user-setting.entity';
+import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 
 @Entity('users')
-export class User {
+export class UserEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
@@ -32,12 +32,12 @@ export class User {
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     updatedAt: Date;
 
-    @OneToOne(() => UserProfile, (profile) => profile.user, { cascade: true })
-    profile: UserProfile;
+    @OneToOne(() => UserProfileEntity, (profile) => profile.user, { cascade: true })
+    profile: UserProfileEntity;
 
-    @OneToOne(() => UserSettings, (settings) => settings.user, { cascade: true })
-    settings: UserSettings;
+    @OneToOne(() => UserSettingsEntity, (settings) => settings.user, { cascade: true })
+    settings: UserSettingsEntity;
 
-    @OneToMany(() => InvestmentPortfolio, (portfolio) => portfolio.user, { cascade: true })
-    portfolios: InvestmentPortfolio[];
+    @OneToMany(() => InvestmentPortfolioEntity, (portfolio) => portfolio.user, { cascade: true })
+    portfolios: InvestmentPortfolioEntity[];
 }

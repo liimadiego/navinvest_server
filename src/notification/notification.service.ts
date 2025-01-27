@@ -14,11 +14,15 @@ export class NotificationService {
     ) { }
 
     async subscribeToAsset(userId: string, assetName: string) {
-        const subscription = this.MonitoredAssetRepository.create({ user: { id: userId }, assetName });
-        return this.MonitoredAssetRepository.save(subscription);
+        try {
+            const subscription = this.MonitoredAssetRepository.create({ user: { id: userId }, assetName });
+            return this.MonitoredAssetRepository.save(subscription);
+        } catch (error) {
+
+        }
     }
 
-    async sendNotification(userId: string, message: string) {
+    async createNotification(userId: string, message: string) {
         const notification = this.notificationRepository.create({ user: { id: userId }, message });
         return this.notificationRepository.save(notification);
     }

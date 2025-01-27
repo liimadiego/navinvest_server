@@ -4,6 +4,7 @@ import { NotificationController } from './notification.controller';
 import { MonitoredAssetEntity } from '../entities/monitored-asset.entity';
 import { NotificationEntity } from 'src/entities/notification.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { LanguagesService } from 'src/utils/language';
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ])
   ],
   controllers: [NotificationController],
-  providers: [NotificationService],
+  providers: [NotificationService, LanguagesService],
 })
 export class NotificationModule { }

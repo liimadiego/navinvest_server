@@ -20,7 +20,7 @@ import { TypeOrmConfig } from './config/database';
     InvestmentAssistantModule,
     BacktestModule,
     InvestTrackModule,
-    NotificationModule
+    NotificationModule,
   ],
 })
 export class AppModule { }

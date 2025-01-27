@@ -1,14 +1,14 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
-import { User } from './user.entity';
-import { PortfolioTransaction } from './portfolio-transaction.entity';
+import { UserEntity } from './user.entity';
+import { PortfolioTransactionEntity } from './portfolio-transaction.entity';
 
 @Entity('investment_portfolios')
-export class InvestmentPortfolio {
+export class InvestmentPortfolioEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @ManyToOne(() => User, (user) => user.portfolios, { onDelete: 'CASCADE' })
-    user: User;
+    @ManyToOne(() => UserEntity, (user) => user.portfolios, { onDelete: 'CASCADE' })
+    user: UserEntity;
 
     @Column({ type: 'varchar', length: 255 })
     name: string;
@@ -19,6 +19,6 @@ export class InvestmentPortfolio {
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     updatedAt: Date;
 
-    @OneToMany(() => PortfolioTransaction, (transaction) => transaction.portfolio, { cascade: true })
-    transactions: PortfolioTransaction[];
+    @OneToMany(() => PortfolioTransactionEntity, (transaction) => transaction.portfolio, { cascade: true })
+    transactions: PortfolioTransactionEntity[];
 }

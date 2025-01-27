@@ -1,5 +1,13 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as dotenv from 'dotenv';
+import { NotificationEntity } from 'src/entities/notification.entity';
+import { UserEntity } from 'src/entities/user.entity';
+import { UserProfileEntity } from 'src/entities/user-profile.entity';
+import { UserSettingsEntity } from 'src/entities/user-setting.entity';
+import { PortfolioTransactionEntity } from 'src/entities/portfolio-transaction.entity';
+import { InvestmentPortfolioEntity } from 'src/entities/investment-portfolio.entity';
+import { MonitoredAssetEntity } from 'src/entities/monitored-asset.entity';
+
 dotenv.config();
 
 export const TypeOrmConfig = () =>
@@ -15,5 +23,13 @@ export const TypeOrmConfig = () =>
         extra: {
             connectionLimit: 10,
         },
-        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+        entities: [
+            NotificationEntity,
+            UserEntity,
+            UserProfileEntity,
+            UserSettingsEntity,
+            PortfolioTransactionEntity,
+            InvestmentPortfolioEntity,
+            MonitoredAssetEntity
+        ],
     }) as TypeOrmModuleOptions;

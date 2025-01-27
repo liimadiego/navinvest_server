@@ -1,0 +1,7 @@
+{
+    "GENERAL_ERROR": "Something went wrong!",
+    "MISSING_REQUIRED_PARAMETERS": "Missing required parameters",
+    "SUBSCRIBE_ASSET_ERROR": "An error occurred while trying to subscribe to the asset",
+    "CREATE_NOTIFICATION_ERROR": "An error occurred while trying to create the notification",
+    "GET_NOTIFICATIONS_ERROR": "An error occurred while trying to get the notifications"
+}

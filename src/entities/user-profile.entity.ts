@@ -1,14 +1,14 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
-import { User } from './user.entity';
+import { UserEntity } from './user.entity';
 
 @Entity('user_profiles')
-export class UserProfile {
+export class UserProfileEntity {
     @PrimaryGeneratedColumn('uuid')
     userId: string;
 
-    @OneToOne(() => User, (user) => user.profile, { onDelete: 'CASCADE' })
+    @OneToOne(() => UserEntity, (user) => user.profile, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'user_id' })
-    user: User;
+    user: UserEntity;
 
     @Column({ type: 'date', nullable: true })
     dateOfBirth?: Date;
