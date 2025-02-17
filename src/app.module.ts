@@ -5,13 +5,15 @@ import { InvestmentAssistantModule } from './investment-assistant/investment-ass
 import { ConfigModule } from '@nestjs/config';
 import { BacktestModule } from './backtest/backtest.module';
 import { InvestTrackModule } from './invest-track/invest-track.module';
-import { NotificationModule } from './notification/notification.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TypeOrmConfig } from './config/database';
+import { NewsModule } from './news/news.module';
+import { CronNewsService } from './cron-news/cron-news.service';
+import { TickerModule } from './ticker/ticker.module';
 
 @Module({
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, CronNewsService],
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig()),
     ConfigModule.forRoot({
@@ -20,7 +22,8 @@ import { TypeOrmConfig } from './config/database';
     InvestmentAssistantModule,
     BacktestModule,
     InvestTrackModule,
-    NotificationModule,
+    NewsModule,
+    TickerModule,
   ],
 })
 export class AppModule { }
