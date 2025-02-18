@@ -45,7 +45,6 @@ export class InvestorProfileService {
 
         const profile = this.determineInvestorProfile(investorProfile);
 
-        //verifica se ja existe um perfil para o usuario
         const existingProfile = await this.investorProfileRepository.createQueryBuilder('investor_profile')
             .where('investor_profile.user_id = :user_id', { user_id })
             .getOne();

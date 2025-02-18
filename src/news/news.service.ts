@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NewsEntity } from 'src/entities/news.entity';
-import { TickersEntity } from 'src/entities/tickers.entity';
 import { UserEntity } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
 
@@ -10,8 +9,6 @@ export class NewsService {
     constructor(
         @InjectRepository(NewsEntity)
         private readonly newsRepository: Repository<NewsEntity>,
-        @InjectRepository(TickersEntity)
-        private readonly tickerRepository: Repository<TickersEntity>,
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
     ) { }
@@ -47,9 +44,9 @@ export class NewsService {
             .createQueryBuilder("u")
             .select([
                 "u.id",
-                "u.fullName",
+                "u.full_name",
                 "u.email",
-                "u.phoneNumber",
+                "u.phone_number",
                 "n.*",
                 "t.id",
                 "t.ticker",
