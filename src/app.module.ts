@@ -10,6 +10,7 @@ import { TypeOrmConfig } from './config/database';
 import { NewsModule } from './news/news.module';
 import { CronNewsService } from './cron-news/cron-news.service';
 import { TickerModule } from './ticker/ticker.module';
+import { InvestorProfileModule } from './investor-profile/investor-profile.module';
 
 @Module({
   controllers: [AppController],
@@ -24,6 +25,7 @@ import { TickerModule } from './ticker/ticker.module';
     InvestTrackModule,
     NewsModule,
     TickerModule,
+    InvestorProfileModule,
   ],
 })
 export class AppModule { }

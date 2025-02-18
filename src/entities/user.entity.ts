@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, OneToMany } from 'typeorm';
 import { UserProfileEntity } from './user-profile.entity';
 import { UserSettingsEntity } from './user-setting.entity';
+import { InvestorProfileEntity } from './investor-profile.entity';
 import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 
 @Entity('users')
@@ -40,4 +41,7 @@ export class UserEntity {
 
     @OneToMany(() => InvestmentPortfolioEntity, (portfolio) => portfolio.user, { cascade: true })
     portfolios: InvestmentPortfolioEntity[];
+
+    @OneToMany(() => InvestorProfileEntity, (profile) => profile.user, { cascade: true })
+    investorProfiles: InvestorProfileEntity[];
 }
