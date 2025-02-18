@@ -16,35 +16,12 @@ export class CronNewsService implements OnModuleInit {
     }
 
     private async startCronJob() {
-        this.sendNewsToSubscribers();
         // cron.schedule('* * * * *', async () => {
-        // this.saveNewsInDatabase();
+        //      this.saveNewsInDatabase();
+        //      this.sendNewsToSubscribers();
         // });
 
         console.log('Cron job agendada.');
-    }
-
-    async saveNewsInDatabase() {
-        const searchedCompanyNames = new Set<string>();
-        const tickers = await this.tickerService.getTickersToSearchNews(20);
-
-        for (const ticker of tickers) {
-            console.log(`Buscando notícias para o ticker ${ticker.ticker}`);
-            const tickerEntity = await this.tickerService.getTickerById(ticker.id);
-            const companyName = tickerEntity.name;
-
-            await this.fetchAndSaveNews(ticker.ticker, tickerEntity);
-
-            if (!searchedCompanyNames.has(companyName)) {
-                console.log(`Buscando notícias para a empresa ${companyName}`);
-
-                await this.fetchAndSaveNews(companyName, tickerEntity);
-
-                searchedCompanyNames.add(companyName);
-            }
-
-            await this.tickerService.updateLatestSearchNews(ticker);
-        }
     }
 
     private async fetchAndSaveNews(searchTerm: string, ticker: any) {
@@ -78,7 +55,30 @@ export class CronNewsService implements OnModuleInit {
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    async sendNewsToSubscribers() {
+    private async saveNewsInDatabase() {
+        const searchedCompanyNames = new Set<string>();
+        const tickers = await this.tickerService.getTickersToSearchNews(20);
+
+        for (const ticker of tickers) {
+            console.log(`Buscando notícias para o ticker ${ticker.ticker}`);
+            const tickerEntity = await this.tickerService.getTickerById(ticker.id);
+            const companyName = tickerEntity.name;
+
+            await this.fetchAndSaveNews(ticker.ticker, tickerEntity);
+
+            if (!searchedCompanyNames.has(companyName)) {
+                console.log(`Buscando notícias para a empresa ${companyName}`);
+
+                await this.fetchAndSaveNews(companyName, tickerEntity);
+
+                searchedCompanyNames.add(companyName);
+            }
+
+            await this.tickerService.updateLatestSearchNews(ticker);
+        }
+    }
+
+    private async sendNewsToSubscribers() {
         const news: any = await this.newsService.getNewsToSendToSubscribers(50);
 
         for (const newsItem of news) {
