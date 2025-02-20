@@ -11,6 +11,7 @@ import { NewsModule } from './news/news.module';
 import { CronNewsService } from './cron-news/cron-news.service';
 import { TickerModule } from './ticker/ticker.module';
 import { InvestorProfileModule } from './investor-profile/investor-profile.module';
+import { TagModule } from './tag/tag.module';
 
 @Module({
   controllers: [AppController],
@@ -26,6 +27,7 @@ import { InvestorProfileModule } from './investor-profile/investor-profile.modul
     NewsModule,
     TickerModule,
     InvestorProfileModule,
+    TagModule,
   ],
 })
 export class AppModule { }

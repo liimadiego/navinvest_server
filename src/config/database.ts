@@ -10,6 +10,7 @@ import { TickersEntity } from 'src/entities/tickers.entity';
 import { UserNewsEntity } from 'src/entities/user-news.entity';
 import { UserTickersSubscribeEntity } from 'src/entities/user-tickers-subscribe.entity';
 import { InvestorProfileEntity } from 'src/entities/investor-profile.entity';
+import { TagEntity } from 'src/entities/tag.entity';
 
 dotenv.config();
 
@@ -36,5 +37,6 @@ export const TypeOrmConfig = () =>
             UserNewsEntity,
             UserTickersSubscribeEntity,
             InvestorProfileEntity,
+            TagEntity,
         ],
     }) as TypeOrmModuleOptions;
