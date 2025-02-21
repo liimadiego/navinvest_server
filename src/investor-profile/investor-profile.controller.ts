@@ -1,4 +1,4 @@
-import { Body, Controller, HttpException, HttpStatus, Post } from '@nestjs/common';
+import { Body, Query, Controller, HttpException, HttpStatus, Post, Get } from '@nestjs/common';
 import { InvestorProfileService } from './investor-profile.service';
 import { investorProfileAnswers } from './investor-profile-interface';
 
@@ -39,6 +39,26 @@ export class InvestorProfileController {
     }
 
     const response = await this.investorProfileService.saveInvestorProfile(investor_profile, user_id);
+
+    return { success: true, data: response };
+  }
+
+  //getInvestmentPlan
+  @Get('get-investment-plan')
+  async getInvestmentPlan(@Query() query: { user_id: string }) {
+
+    const { user_id } = query;
+
+    if (!user_id) {
+      throw new HttpException('Campo user_id é obrigatório.', HttpStatus.BAD_REQUEST);
+    }
+
+    const uuid4 = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+    if (!uuid4.test(user_id)) {
+      throw new HttpException('Campo user_id não é um UUID4 válido.', HttpStatus.BAD_REQUEST);
+    }
+
+    const response = await this.investorProfileService.getInvestmentPlan(user_id);
 
     return { success: true, data: response };
   }
