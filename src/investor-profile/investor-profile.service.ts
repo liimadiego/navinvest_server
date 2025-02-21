@@ -57,10 +57,16 @@ export class InvestorProfileService {
             existingProfile.investment_goal = investorProfile.investment_goal;
             existingProfile.profile = profile;
 
-            return this.investorProfileRepository.save(existingProfile);
+            let result = await this.investorProfileRepository.save(existingProfile);
+
+            return result;
         }
 
-        return this.investorProfileRepository.save({ ...investorProfile, user, profile });
+        let result = await this.investorProfileRepository.save({ ...investorProfile, user, profile });
+
+        delete result.user;
+
+        return result;
 
     }
 }
