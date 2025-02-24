@@ -8,10 +8,10 @@ export class BacktestController {
 
   @Post('test')
   test(@Body() body: BacktestRequestDto) {
-    const sumWeights = body.portfolio.reduce((sum, item) => sum + item.weight, 0);
+    const sumWeights = parseFloat(body.portfolio.reduce((sum, item) => sum + item.weight, 0).toFixed(5));
     if (sumWeights !== 1)
       throw new HttpException(
-        `A soma dos pesos dos itens do portfólio não é 1`,
+        `A soma dos pesos dos itens do portfólio (${sumWeights}) não é 1`,
         HttpStatus.BAD_REQUEST,
       );
 
