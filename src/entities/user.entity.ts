@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, OneToMany } from 'typeorm';
 import { UserProfileEntity } from './user-profile.entity';
 import { UserSettingsEntity } from './user-setting.entity';
+import { InvestorProfileEntity } from './investor-profile.entity';
 import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 
 @Entity('users')
@@ -9,16 +10,16 @@ export class UserEntity {
     id: string;
 
     @Column({ type: 'varchar', length: 255 })
-    fullName: string;
+    full_name: string;
 
     @Column({ type: 'varchar', length: 255, unique: true })
     email: string;
 
     @Column({ type: 'varchar', length: 255 })
-    passwordHash: string;
+    password_hash: string;
 
     @Column({ type: 'varchar', length: 20, nullable: true, unique: true })
-    phoneNumber?: string;
+    phone_number?: string;
 
     @Column({ type: 'varchar', length: 50, default: 'user' })
     role: string;
@@ -27,10 +28,10 @@ export class UserEntity {
     status: string;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    createdAt: Date;
+    created_at: Date;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    updatedAt: Date;
+    updated_at: Date;
 
     @OneToOne(() => UserProfileEntity, (profile) => profile.user, { cascade: true })
     profile: UserProfileEntity;
@@ -40,4 +41,7 @@ export class UserEntity {
 
     @OneToMany(() => InvestmentPortfolioEntity, (portfolio) => portfolio.user, { cascade: true })
     portfolios: InvestmentPortfolioEntity[];
+
+    @OneToMany(() => InvestorProfileEntity, (profile) => profile.user, { cascade: true })
+    investorProfiles: InvestorProfileEntity[];
 }

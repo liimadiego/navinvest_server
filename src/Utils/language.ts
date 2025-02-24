@@ -6,6 +6,8 @@ import * as en from '../config/languages/en.json';
 export class LanguagesService {
 
     getPhrase(item: string) {
+        //verifica se já tem no cache a info
+        //se nao, verifica no banco o pais do usuario
 
         if (true) {
             return ptBR[item];

@@ -63,7 +63,6 @@ export class InvestTrackService {
 
         const description = `Ação do usuário: ${dictionary_action[action.action]} ${dictionary_transaction[action.transaction_type]} ${action.asset} ${description_link} R$${action.asset_value}.${boughtFor}${current_asset_value}${observation}`
 
-        console.log(description);
         return description;
 
     }
