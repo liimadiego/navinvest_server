@@ -12,6 +12,7 @@ import { CronNewsService } from './cron-news/cron-news.service';
 import { TickerModule } from './ticker/ticker.module';
 import { InvestorProfileModule } from './investor-profile/investor-profile.module';
 import { TagModule } from './tag/tag.module';
+import { CurrencyConverterModule } from './currency-converter/currency-converter.module';
 
 @Module({
   controllers: [AppController],
@@ -28,6 +29,7 @@ import { TagModule } from './tag/tag.module';
     TickerModule,
     InvestorProfileModule,
     TagModule,
+    CurrencyConverterModule,
   ],
 })
 export class AppModule { }
