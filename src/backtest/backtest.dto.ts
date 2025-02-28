@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 class PortfolioItem {
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[A-Z0-9]+$/, {
+  @Matches(/^[A-Z0-9:]+$/, {
     message: 'O ticker deve conter apenas letras maiúsculas e números.',
   })
   ticker: string;
@@ -22,6 +22,13 @@ export class BacktestRequestDto {
   @IsInt()
   @IsPositive()
   endDate: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^[A-Z]+$/, {
+    message: 'O código da moeda "baseCurrency" deve conter apenas letras maiúsculas.',
+  })
+  baseCurrency: string;
 
   @IsArray()
   @ValidateNested({ each: true })
