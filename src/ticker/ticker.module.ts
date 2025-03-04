@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TickerService } from './ticker.service';
 import { TickerController } from './ticker.controller';
-import { TickersEntity } from '../entities/tickers.entity';
+import { TagEntity } from 'src/entities/tag.entity';
+import { TickersEntity } from 'src/entities/tickers.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { LanguagesService } from 'src/utils/language';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       TickersEntity,
+      TagEntity
     ]),
   ],
   controllers: [TickerController],
-  providers: [TickerService],
+  providers: [TickerService, LanguagesService],
   exports: [TickerService],
 })
 export class TickerModule { }

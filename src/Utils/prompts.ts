@@ -150,6 +150,17 @@ export class PromptsService {
                 ]
             }
 
+            ou 
+            
+            {
+                "investor_plan": [
+                    { "tags": ["Renda Fixa"], "percentage": 0.9 },
+                    { "tags": ["FII Tijolo", "FII"], "percentage": 0.1 }
+                ]
+            }
+
+            *Mas não se prenda a somnente esses, são exemplos.
+
             Utilize o máximo possível das tags enviadas, desde que sejam coerentes com o perfil do usuário.
 
             Processo de Geração do Plano
