@@ -55,8 +55,6 @@ export class PromptsService {
                 "valid_question": false,
                 "answer": ""
             }
-
-            Esse formato garante que a IA siga as diretrizes da plataforma e forneça respostas coerentes dentro do escopo definido.
         `;
 
         const invest_track_context = `
@@ -159,7 +157,8 @@ export class PromptsService {
                 ]
             }
 
-            *Mas não se prenda a somnente esses, são exemplos.
+            *Mas não se prenda a somnente esses, são exemplos. 
+            *E não se esqueça de que ainda sim é um investidor conservador.
 
             Utilize o máximo possível das tags enviadas, desde que sejam coerentes com o perfil do usuário.
 
