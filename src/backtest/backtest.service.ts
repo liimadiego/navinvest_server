@@ -1,11 +1,13 @@
-import { Injectable, HttpException, HttpStatus } from "@nestjs/common";
+import { Injectable, BadRequestException, HttpStatus } from "@nestjs/common";
 import { BacktestRequestDto } from "./backtest.dto";
+import { LanguagesService } from '../Utils/language';
 import yahooFinance from 'yahoo-finance2';
 
 const util = require('node:util');
 
 @Injectable()
 export class BacktestService {
+  private languagesService: LanguagesService = new LanguagesService();
   
   historicalRatesCache: Record<string, any> = {};
 
@@ -24,7 +26,7 @@ export class BacktestService {
       throw `Não foi possível encontrar o simbolo usado pelo yahoo para o ativo "${ticker}", search quotes: ${util.inspect(quotes, { colors: true, depth: Infinity })}`;
 
     } catch (error) {
-      console.error('[E] getYahooSymbol:', error, '\n ');
+      console.error(`[E] getYahooSymbol (ticker= ${ticker}):`, error, '\n ');
       throw error;
     } 
   }
@@ -129,8 +131,11 @@ export class BacktestService {
   async test(body: BacktestRequestDto) {
     const { startDate, endDate, baseCurrency: portfolioBaseCurrency, portfolio } = body;
 
-    if (!(endDate > startDate))
-      throw new HttpException('O parametro "endDate" deve ser maior do que "startDate".', HttpStatus.BAD_REQUEST);
+    if (!(endDate >= startDate))
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: [ this.languagesService.getPhrase('INVALID_DATE_RANGE') ]
+      });
 
     let portfolioItensReturns = [];
     try {
@@ -165,18 +170,21 @@ export class BacktestService {
         portfolioItensReturns = await Promise.all(promises);
       }
     } catch (error) {
-      console.log('Backtest ERROR as string:', error.toString(), '\n ');
-
-      let returnErrorMessage = 'Ocorreu um erro inesperado ao processar o backtest. Por favor, tente novamente mais tarde.';
+      let errorCode = 'UNEXPECTED_BACKTEST_ERROR';
       if (error.toString().includes('Não foi possível encontrar o simbolo usado pelo yahoo para o ativo')) {
-        returnErrorMessage = 'Não foi possível identificar todos os ativos do seu portfólio. Por favor, verifique se os códigos dos ativos (tickers) estão corretos e tente novamente.';
+        errorCode = 'PORTFOLIO_ASSETS_NOT_IDENTIFIED';
       } else if (error.toString().includes('Não foi possível encontrar o simbolo usado pelo yahoo para o par')) {
-        returnErrorMessage = 'Não foi possível identificar a moeda base do seu portfólio. Por favor, verifique se o código da moeda base (baseCurrency) está correto e tente novamente.';
+        errorCode = 'BASE_CURRENCY_NOT_IDENTIFIED';
       } else if (error.toString().includes('yahooFinance.chart() options `period1` and `period2` cannot share the same value.')) {
-        returnErrorMessage = 'Foi detectado um erro nas datas de início (startDate) e/ou de fim (endDate). Por favor, verifique se estão corretas e tente novamente.';
+        errorCode = 'START_END_DATES_ERROR';
+      } else {
+        console.log(`[E] Unknow Backtest ERROR (${error.toString()}):' ${util.inspect(error, { colors: true, depth: Infinity })}\n `);
       }
 
-      throw new HttpException(returnErrorMessage, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: [ this.languagesService.getPhrase(errorCode) ]
+      });
     }
 
     let portfolioResult = {

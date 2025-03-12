@@ -88,7 +88,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 
       return response.status(status).json({
         statusCode: status,
-        message: messages,
+        messages,
       });
     }
 

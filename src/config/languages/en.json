@@ -16,5 +16,11 @@
     "INVALID_POSITIVE_NUMBER": "The field must be a positive number",
     "INVALID_NUMBER_CONSTRAINTS": "The field must be a number conforming to the specified constraints",
     "INVALID_INTEGER_TYPE": "The field must be an integer number",
-    "DUPLICATE_VALUES_NOT_ALLOWED": "All elements in the field must be unique"
+    "DUPLICATE_VALUES_NOT_ALLOWED": "All elements in the field must be unique",
+    "PORTFOLIO_WEIGHTS_EXCEEDS_MAXIMUM": "The sum of the portfolio items must not exceed the maximum allowed value",
+    "INVALID_DATE_RANGE": "The end date must be later than the start date",
+    "UNEXPECTED_BACKTEST_ERROR": "An unexpected error occurred while processing the backtest. Please try again later",
+    "PORTFOLIO_ASSETS_NOT_IDENTIFIED": "We couldn't identify all the assets in your portfolio. Please check if the asset codes (tickers) are correct and try again",
+    "BASE_CURRENCY_NOT_IDENTIFIED": "We couldn't identify the base currency of your portfolio. Please check if the base currency code (baseCurrency) is correct and try again",
+    "START_END_DATES_ERROR": "An error was detected in the start and/or end dates. Please check if they are correct and try again"
 }
