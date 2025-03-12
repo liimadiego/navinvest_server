@@ -1,16 +1,16 @@
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsPositive, IsString, Min, Matches, ValidateNested } from 'class-validator';
+import { IsArray, IsObject, IsEnum, IsInt, IsNotEmpty, IsNumber, IsPositive, IsString, ArrayNotEmpty, ArrayUnique, Min, Max, Matches, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PortfolioItem {
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[A-Z0-9:]+$/, {
-    message: 'O ticker deve conter apenas letras maiúsculas e números.',
-  })
+  @Matches(/^[A-Z0-9:]+$/)
   ticker: string;
 
   @IsNumber()
+  @IsNotEmpty()
   @IsPositive()
+  @Max(1)
   weight: number;
 }
 
@@ -25,13 +25,14 @@ export class BacktestRequestDto {
 
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[A-Z]+$/, {
-    message: 'O código da moeda "baseCurrency" deve conter apenas letras maiúsculas.',
-  })
+  @Matches(/^[A-Z]+$/)
   baseCurrency: string;
 
   @IsArray()
-  @ValidateNested({ each: true })
+  @ArrayNotEmpty()
+  @ArrayUnique(x => x.ticker)
+  @IsObject({ each: true })
+  @ValidateNested({ message: "ola" })
   @Type(() => PortfolioItem)
   portfolio: PortfolioItem[];
 }

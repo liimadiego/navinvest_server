@@ -3,5 +3,18 @@
     "MISSING_REQUIRED_PARAMETERS": "Missing required parameters",
     "SUBSCRIBE_ASSET_ERROR": "An error occurred while trying to subscribe to the asset",
     "CREATE_NOTIFICATION_ERROR": "An error occurred while trying to create the notification",
-    "GET_NOTIFICATIONS_ERROR": "An error occurred while trying to get the notifications"
+    "GET_NOTIFICATIONS_ERROR": "An error occurred while trying to get the notifications",
+    "INVALID_UPPERCASE_FORMAT": "The field must contain only uppercase letters (A-Z), without spaces or special characters",
+    "INVALID_UPPERCASE_ALPHANUMERIC_FORMAT": "The field must contain only uppercase letters (A-Z), numbers (0-9), and colons (:), without spaces or other special characters",
+    "INVALID_NESTED_PROPERTY_TYPE": "Each value in the field must be either an object or an array",
+    "INVALID_ARRAY_TYPE": "The field must be an array",
+    "FIELD_SHOULD_NOT_BE_EMPTY": "The field should not be empty",
+    "INVALID_OBJECT_TYPE": "The field must be an object",
+    "PROPERTY_SHOULD_NOT_EXIST": "The field property should not exist",
+    "INVALID_STRING_TYPE": "The field must be a string",
+    "FIELD_EXCEEDS_MAXIMUM": "The field must not be greater than the maximum allowed value",
+    "INVALID_POSITIVE_NUMBER": "The field must be a positive number",
+    "INVALID_NUMBER_CONSTRAINTS": "The field must be a number conforming to the specified constraints",
+    "INVALID_INTEGER_TYPE": "The field must be an integer number",
+    "DUPLICATE_VALUES_NOT_ALLOWED": "All elements in the field must be unique"
 }

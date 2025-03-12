@@ -3,5 +3,18 @@
     "MISSING_REQUIRED_PARAMETERS": "Parâmetros obrigatórios faltando",
     "SUBSCRIBE_ASSET_ERROR": "Ocorreu um erro ao tentar se inscrever no ativo",
     "CREATE_NOTIFICATION_ERROR": "Ocorreu um erro ao tentar criar a notificação",
-    "GET_NOTIFICATIONS_ERROR": "Ocorreu um erro ao tentar obter as notificações"
+    "GET_NOTIFICATIONS_ERROR": "Ocorreu um erro ao tentar obter as notificações",
+    "INVALID_UPPERCASE_FORMAT": "O campo deve conter apenas letras maiúsculas (A-Z), sem espaços ou caracteres especiais",
+    "INVALID_UPPERCASE_ALPHANUMERIC_FORMAT": "O campo deve conter apenas letras maiúsculas (A-Z), números (0-9) e dois-pontos (:), sem espaços ou outros caracteres especiais",
+    "INVALID_NESTED_PROPERTY_TYPE": "Cada valor do campo deve ser um objeto ou uma lista (array)",
+    "INVALID_ARRAY_TYPE": "O campo deve ser uma lista (array)",
+    "FIELD_SHOULD_NOT_BE_EMPTY": "O campo não deve estar vazio",
+    "INVALID_OBJECT_TYPE": "O campo deve ser um objeto",
+    "PROPERTY_SHOULD_NOT_EXIST": "O campo não deveria conter a propriedade",
+    "INVALID_STRING_TYPE": "O campo deve ser uma string",
+    "FIELD_EXCEEDS_MAXIMUM": "O campo não deve ser maior que o valor máximo permitido",
+    "INVALID_POSITIVE_NUMBER": "O campo deve ser um número positivo",
+    "INVALID_NUMBER_CONSTRAINTS": "O campo deve ser um número que atenda às restrições especificadas",
+    "INVALID_INTEGER_TYPE": "O campo deve ser um número inteiro",
+    "DUPLICATE_VALUES_NOT_ALLOWED": "Todos os elementos do campo devem ser únicos"
 }
