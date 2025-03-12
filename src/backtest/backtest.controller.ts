@@ -12,7 +12,7 @@ export class BacktestController {
     if (sumWeights !== 1)
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: [ `${sumWeights} portfolio weights sum ig greater than 1` ]
+        message: [ `${sumWeights} portfolio weights sum is greater than 1` ]
       });
 
     return this.backtestService.test(body);

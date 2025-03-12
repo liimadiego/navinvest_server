@@ -70,7 +70,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
               return `${this.languagesService.getPhrase('INVALID_NUMBER_CONSTRAINTS')}: '${msgB4FirstSpace}'`;
             else if (msgAfterFirstSpace === 'must be an integer number')
               return `${this.languagesService.getPhrase('INVALID_INTEGER_TYPE')}: '${msgB4FirstSpace}'`;
-            else if (msgAfterFirstSpace === 'portfolio weights sum ig greater than 1')
+            else if (msgAfterFirstSpace === 'portfolio weights sum is greater than 1')
               return `${this.languagesService.getPhrase('PORTFOLIO_WEIGHTS_EXCEEDS_MAXIMUM')}: '${msgB4FirstSpace}'`;
 
             if (msgAfterFirstSpace.startsWith('value in nested property ') && msgAfterFirstSpace.endsWith('must be either object or array'))
