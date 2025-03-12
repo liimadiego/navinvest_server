@@ -14,6 +14,7 @@ export class BacktestController {
     const sumWeights = parseFloat(body.portfolio.reduce((sum, item) => sum + item.weight, 0).toFixed(5));
     if (sumWeights !== 1)
       throw new BadRequestException({
+        translated: true,
         statusCode: HttpStatus.BAD_REQUEST,
         message: [ `${this.languagesService.getPhrase('PORTFOLIO_WEIGHTS_EXCEEDS_MAXIMUM')} (1): ${sumWeights}` ]
       });

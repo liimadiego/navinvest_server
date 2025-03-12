@@ -22,5 +22,6 @@
     "UNEXPECTED_BACKTEST_ERROR": "Ocorreu um erro inesperado ao processar o backtest. Por favor, tente novamente mais tarde",
     "PORTFOLIO_ASSETS_NOT_IDENTIFIED": "Não foi possível identificar todos os ativos do seu portfólio. Por favor, verifique se os códigos dos ativos (tickers) estão corretos e tente novamente",
     "BASE_CURRENCY_NOT_IDENTIFIED": "Não foi possível identificar a moeda base do seu portfólio. Por favor, verifique se o código da moeda base (baseCurrency) está correto e tente novamente",
-    "START_END_DATES_ERROR": "Foi detectado um erro nas datas de início (startDate) e/ou de fim (endDate). Por favor, verifique se estão corretas e tente novamente"
+    "START_END_DATES_ERROR": "Foi detectado um erro nas datas de início (startDate) e/ou de fim (endDate). Por favor, verifique se estão corretas e tente novamente",
+    "CURRENCY_RATE_FETCH_FAILED": "Não foi possível obter a taxa de câmbio para o par de moedas solicitado. Por favor, tente novamente mais tarde"
 }

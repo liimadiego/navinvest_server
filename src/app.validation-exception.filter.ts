@@ -14,7 +14,15 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 
     // Check if the error contains validation messages
     if (typeof exceptionResponse === 'object' && 'message' in exceptionResponse) {
-      let messages = exceptionResponse['message'];
+      // Check if the message is already translated.
+      if ('translated' in exceptionResponse && exceptionResponse.translated)
+        return response.status(status).json({
+          statusCode: status,
+          message: exceptionResponse.message,
+        });
+
+      // Translate the message(s).
+      let messages = exceptionResponse.message;
 
       if (Array.isArray(messages)) {
         // Translate messages
@@ -88,8 +96,9 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 
       return response.status(status).json({
         statusCode: status,
-        messages,
+        message: messages,
       });
+
     }
 
     // Default response
