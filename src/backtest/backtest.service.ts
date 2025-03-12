@@ -98,7 +98,6 @@ export class BacktestService {
   }
 
   calculateDailyLogReturns(assetsPrices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[][], weights: number[]) {
-    const maxPricesLength = Math.max(...assetsPrices.map(prices => prices.length));
     let dailyLogReturnsMap: Map<number, number> = new Map();
     let sum: number = 0;
 
@@ -107,6 +106,20 @@ export class BacktestService {
       const weight = weights[a_i];
 
       for (let i = 1; i < prices.length; i++) { // Loop asset daily prices
+        // Check for day with no market data.
+        if (
+          prices[i].adjclose === null && 
+          prices[i].close === null && 
+          prices[i].low === null && 
+          prices[i].open === null && 
+          prices[i].volume === null && 
+          prices[i].high === null
+        ) {
+          // No data for that day, copy the last 'adjclose' if exists or continue.
+          if (prices[i-1].adjclose === null) continue;
+          prices[i].adjclose = prices[i-1].adjclose; // As the price have not changed.
+        }
+
         const dayTimestamp = prices[i].date.getTime(); // Math.round(prices[i].date.getTime() / 864e5) * 864e5; // new Date(prices[i].date.toISOString().split('T')[0]).getTime();
         const dailyLogReturn = Math.log(prices[i].adjclose / prices[i - 1].adjclose) * weight;
         dailyLogReturnsMap.set(dayTimestamp, (dailyLogReturnsMap.get(dayTimestamp) || 0) + dailyLogReturn);
@@ -202,6 +215,7 @@ export class BacktestService {
       portfolioResult.assetsDates[ticker] = assetDate;
 
       totalLogReturn += sum;
+
       for (let i = 0; i < returns.length; i++) {
         const [ date, dailyLogReturn ] = returns[i];
         dailyLogReturnsMap.set(date, (dailyLogReturnsMap.get(date) || 0) + dailyLogReturn);
