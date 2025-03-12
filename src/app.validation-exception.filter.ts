@@ -37,10 +37,9 @@ export class ValidationExceptionFilter implements ExceptionFilter {
                 return `${this.languagesService.getPhrase('INVALID_NESTED_PROPERTY_TYPE')}: '${propertyName}'`;
             }
           
-          } else if (msg.startsWith('All ') && msg.endsWith(' elements must be unique'))
+          } else if (msg.startsWith('All ') && msg.endsWith(' elements must be unique')) {
             return `${this.languagesService.getPhrase('DUPLICATE_VALUES_NOT_ALLOWED')}: '${msg.split(' ')[1].slice(0, -2)}'`;
-
-          if (msg.startsWith('each value in ')) {
+          } else if (msg.startsWith('each value in ')) {
             const _Idx = msg.slice(14).indexOf(' ');
             if (_Idx !== -1) {
               const fieldName = msg.slice(14, 14 + _Idx);
@@ -71,6 +70,8 @@ export class ValidationExceptionFilter implements ExceptionFilter {
               return `${this.languagesService.getPhrase('INVALID_NUMBER_CONSTRAINTS')}: '${msgB4FirstSpace}'`;
             else if (msgAfterFirstSpace === 'must be an integer number')
               return `${this.languagesService.getPhrase('INVALID_INTEGER_TYPE')}: '${msgB4FirstSpace}'`;
+            else if (msgAfterFirstSpace === 'portfolio weights sum ig greater than 1')
+              return `${this.languagesService.getPhrase('PORTFOLIO_WEIGHTS_EXCEEDS_MAXIMUM')}: '${msgB4FirstSpace}'`;
 
             if (msgAfterFirstSpace.startsWith('value in nested property ') && msgAfterFirstSpace.endsWith('must be either object or array'))
               return `${this.languagesService.getPhrase('INVALID_NESTED_PROPERTY_TYPE')}: '${msgB4FirstSpace.split('.')[0]}'`;

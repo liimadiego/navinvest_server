@@ -1,12 +1,9 @@
 import { Body, Controller, BadRequestException, HttpStatus, Post } from "@nestjs/common";
 import { BacktestService } from "./backtest.service";
 import { BacktestRequestDto } from "./backtest.dto";
-import { LanguagesService } from '../Utils/language';
 
 @Controller('backtest')
 export class BacktestController {
-  private languagesService: LanguagesService = new LanguagesService();
-
   constructor(private backtestService: BacktestService) { }
 
   @Post('test')
@@ -14,9 +11,8 @@ export class BacktestController {
     const sumWeights = parseFloat(body.portfolio.reduce((sum, item) => sum + item.weight, 0).toFixed(5));
     if (sumWeights !== 1)
       throw new BadRequestException({
-        translated: true,
         statusCode: HttpStatus.BAD_REQUEST,
-        message: [ `${this.languagesService.getPhrase('PORTFOLIO_WEIGHTS_EXCEEDS_MAXIMUM')} (1): ${sumWeights}` ]
+        message: [ `${sumWeights} portfolio weights sum ig greater than 1` ]
       });
 
     return this.backtestService.test(body);

@@ -17,7 +17,7 @@
     "INVALID_NUMBER_CONSTRAINTS": "O campo deve ser um número que atenda às restrições especificadas",
     "INVALID_INTEGER_TYPE": "O campo deve ser um número inteiro",
     "DUPLICATE_VALUES_NOT_ALLOWED": "Todos os elementos do campo devem ser únicos",
-    "PORTFOLIO_WEIGHTS_EXCEEDS_MAXIMUM": "A soma dos itens do portfólio não deve ser maior que o valor máximo permitido",
+    "PORTFOLIO_WEIGHTS_EXCEEDS_MAXIMUM": "A soma dos itens do portfólio não deve ser maior que o valor máximo permitido (1)",
     "INVALID_DATE_RANGE": "A data de término deve ser posterior à data de início",
     "UNEXPECTED_BACKTEST_ERROR": "Ocorreu um erro inesperado ao processar o backtest. Por favor, tente novamente mais tarde",
     "PORTFOLIO_ASSETS_NOT_IDENTIFIED": "Não foi possível identificar todos os ativos do seu portfólio. Por favor, verifique se os códigos dos ativos (tickers) estão corretos e tente novamente",
