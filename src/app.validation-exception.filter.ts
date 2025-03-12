@@ -27,6 +27,8 @@ export class ValidationExceptionFilter implements ExceptionFilter {
       if (Array.isArray(messages)) {
         // Translate messages
         messages = messages.map((msg) => {
+          const phrase = this.languagesService.getPhrase(msg);
+          if (phrase) return phrase;
 
           if (msg.startsWith('each value in nested property ')) {
             const _Idx = msg.slice(30).indexOf(' ');
@@ -85,9 +87,6 @@ export class ValidationExceptionFilter implements ExceptionFilter {
                 return `${this.languagesService.getPhrase('PROPERTY_SHOULD_NOT_EXIST')} '${propertyName}': '${msgB4FirstSpace}'`;
             }
           }
-
-          const phrase = this.languagesService.getPhrase(msg);
-          if (phrase) return phrase;
 
           console.log(`/!\\ Não foi possível traduzir automaticamente a mensagem de erro: "${msg}"\n `);
 
