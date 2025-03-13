@@ -226,12 +226,8 @@ export class BacktestService {
 
     // Equaliza os dados quando um ativo do portfólio não foi negociado enquanto os outros estavam em operação.
     let dailyLogReturnsMap: Map<number, number[]> = new Map();
-    let totalLogReturn :number[] = [ 0 , 0];
     for (const { returns, sum, assetDate, ticker } of portfolioItensReturns) {
       portfolioResult.assetsDates[ticker] = assetDate;
-
-      totalLogReturn[0] += sum[0];
-      totalLogReturn[1] += sum[1];
 
       for (let i = 0; i < returns.length; i++) {
         const [ date, returnsArray ] = returns[i];
@@ -248,54 +244,76 @@ export class BacktestService {
     }
     let dailyLogReturns :[any, number[]][] = Array.from(dailyLogReturnsMap.entries()).sort((a, b) => a[0] - b[0]);
 
-    portfolioResult.avgDailyReturn = [ 
-      totalLogReturn[0] / portfolioResult.computedDays, 
-      totalLogReturn[1] / portfolioResult.computedDays 
-    ];
-
-    portfolioResult.volatility = [ 
-      Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][0] - portfolioResult.avgDailyReturn[0], 2), 0) / portfolioResult.computedDays),
-      Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][1] - portfolioResult.avgDailyReturn[1], 2), 0) / portfolioResult.computedDays)
-    ];
-
-    // Converte retornos diários de 'Log' para 'Porcentagem'. (NÃO USE 'dailyLogReturns' APARTIR DAQUI !!!)
+    // Converte retornos diários de 'Log' para 'Porcentagem'.
+    let dailyReturns = [];
+    let dailyLogAcumulado :number[] = [ 0, 0 ];
     let monthlyReturns = [];
     for (let i = 0; i < dailyLogReturns.length; i++) {
       const dlrDate = new Date(dailyLogReturns[i][0]);
 
-      let lastReduced = monthlyReturns.at(-1);
-      let lastReducedDate = new Date(lastReduced?.[0]);
-      if (dlrDate.getUTCMonth() !== lastReducedDate.getUTCMonth()) {
-        if (lastReduced) {  // Convert from 'log' to 'pctg' returns.
-          lastReduced[0] = lastReducedDate.toISOString().split('T')[0];
-          lastReduced[1][0] = Math.exp(lastReduced[1][0]) - 1;
-          lastReduced[1][1] = Math.exp(lastReduced[1][1]) - 1;
+      dailyLogAcumulado[0] += dailyLogReturns[i][1][0];
+      dailyLogAcumulado[1] += dailyLogReturns[i][1][1];
+      
+      dailyReturns.push({
+        date: dlrDate.toISOString().split('T')[0],
+        comdiv :{ // Com dividendos
+          atual: Math.exp(dailyLogReturns[i][1][0]) - 1,
+          acumulado: Math.exp(dailyLogAcumulado[0]) - 1,
+        },
+        semdiv: { // Sem dividendos
+          atual: Math.exp(dailyLogReturns[i][1][1]) - 1,
+          acumulado: Math.exp(dailyLogAcumulado[1]) - 1,
         }
-        lastReduced = [ dailyLogReturns[i][0], [ 0, 0 ] ];
-        monthlyReturns.push(lastReduced);
+      });
+
+      let lastMonthRet = monthlyReturns.at(-1);
+      let lastMonthRetDate = new Date(lastMonthRet?.date);
+      if (dlrDate.getUTCMonth() !== lastMonthRetDate.getUTCMonth()) {
+        if (lastMonthRet) {
+          lastMonthRet.date = new Date(lastMonthRet.date).toISOString().split('T')[0];
+          lastMonthRet.comdiv.atual = Math.exp(lastMonthRet.comdiv.atual) - 1;
+          lastMonthRet.comdiv.acumulado = Math.exp(lastMonthRet.comdiv.acumulado) - 1;
+          lastMonthRet.semdiv.atual = Math.exp(lastMonthRet.semdiv.atual) - 1;
+          lastMonthRet.semdiv.acumulado = Math.exp(lastMonthRet.semdiv.acumulado) - 1;
+        }
+        lastMonthRet = { 
+          date: dailyLogReturns[i][0], 
+          comdiv: { atual: 0, acumulado: lastMonthRet?.comdiv.acumulado || 0 }, 
+          semdiv: { atual: 0, acumulado: lastMonthRet?.semdiv.acumulado || 0 } 
+        };
+        monthlyReturns.push(lastMonthRet);
       }
-
-      lastReduced[1][0] += dailyLogReturns[i][1][0];
-      lastReduced[1][1] += dailyLogReturns[i][1][1];
-
-      dailyLogReturns[i][0] = dlrDate.toISOString().split('T')[0];
-      dailyLogReturns[i][1][0] = Math.exp(dailyLogReturns[i][1][0]) - 1;
-      dailyLogReturns[i][1][1] = Math.exp(dailyLogReturns[i][1][1]) - 1;
+      lastMonthRet.comdiv.atual += dailyLogReturns[i][1][0];
+      lastMonthRet.comdiv.acumulado = dailyLogAcumulado[0];
+      lastMonthRet.semdiv.atual += dailyLogReturns[i][1][1];
+      lastMonthRet.semdiv.acumulado = dailyLogAcumulado[1];
     }
-    // Convert the last reduced from 'log' to 'pctg' returns.
-    const lastReduced = monthlyReturns.at(-1);
-    lastReduced[0] = new Date(lastReduced[0]).toISOString().split('T')[0];
-    lastReduced[1][0] = Math.exp(lastReduced[1][0]) - 1;
-    lastReduced[1][1] = Math.exp(lastReduced[1][1]) - 1;
+    // Convert the last month return from 'log' to 'pctg' returns.
+    const lastMonthRet = monthlyReturns.at(-1);
+    lastMonthRet.date = new Date(lastMonthRet.date).toISOString().split('T')[0];
+    lastMonthRet.comdiv.atual = Math.exp(lastMonthRet.comdiv.atual) - 1;
+    lastMonthRet.comdiv.acumulado = Math.exp(lastMonthRet.comdiv.acumulado) - 1;
+    lastMonthRet.semdiv.atual = Math.exp(lastMonthRet.semdiv.atual) - 1;
+    lastMonthRet.semdiv.acumulado = Math.exp(lastMonthRet.semdiv.acumulado) - 1;
 
-    portfolioResult.dailyReturns = dailyLogReturns;
+    portfolioResult.dailyReturns = dailyReturns;
     portfolioResult.monthlyReturns = monthlyReturns;
 
+    portfolioResult.avgDailyReturn = {
+      comdiv: dailyLogAcumulado[0] / portfolioResult.computedDays, 
+      semdiv: dailyLogAcumulado[1] / portfolioResult.computedDays 
+    };
+
+    portfolioResult.volatility = {
+      comdiv: Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][0] - portfolioResult.avgDailyReturn.comdiv, 2), 0) / portfolioResult.computedDays),
+      semdiv: Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][1] - portfolioResult.avgDailyReturn.semdiv, 2), 0) / portfolioResult.computedDays)
+    };
+
     // Converte retorno total de 'Log' para 'Porcentagem'.
-    portfolioResult.totalReturn = [
-      Math.exp(totalLogReturn[0]) - 1,
-      Math.exp(totalLogReturn[1]) - 1
-    ];
+    portfolioResult.totalReturn = {
+      comdiv: dailyReturns.at(-1).comdiv.acumulado, // Math.exp(dailyLogAcumulado[0]) - 1,
+      semdiv: dailyReturns.at(-1).semdiv.acumulado // Math.exp(dailyLogAcumulado[1]) - 1
+    };
 
     return portfolioResult;
   }
