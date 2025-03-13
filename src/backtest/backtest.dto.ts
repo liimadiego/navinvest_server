@@ -1,4 +1,4 @@
-import { IsArray, IsObject, IsEnum, IsInt, IsNotEmpty, IsNumber, IsPositive, IsString, ArrayNotEmpty, ArrayUnique, Min, Max, Matches, ValidateNested } from 'class-validator';
+import { IsArray, IsObject, IsEnum, IsInt, IsNotEmpty, IsNumber, IsPositive, IsString, ArrayNotEmpty, ArrayUnique, Min, Max, Matches, ValidateNested, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PortfolioItem {

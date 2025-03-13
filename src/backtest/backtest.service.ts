@@ -30,8 +30,8 @@ export class BacktestService {
 
   private async fetchHistoricalPrices (symbol: string, startDate: number, endDate: number) {
     try {
-      const start = new Date(startDate).toISOString().split('T')[0];
-      const end = new Date(endDate).toISOString().split('T')[0];
+      const start = new Date(startDate).toISOString().split('T')[0];  // Inclusive start date
+      const end = new Date(endDate).toISOString().split('T')[0];      // Exclusive end date
       
       const { meta: { currency: baseCurrency }, quotes: prices } = await yahooFinance.chart(symbol, {
         period1: start,
@@ -98,8 +98,8 @@ export class BacktestService {
   }
 
   calculateDailyLogReturns(assetsPrices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[][], weights: number[]) {
-    let dailyLogReturnsMap: Map<number, number> = new Map();
-    let sum: number = 0;
+    let dailyLogReturnsMap: Map<number, number[]> = new Map();
+    let sum :number[] = [ 0, 0 ];
 
     for (let a_i = 0; a_i < assetsPrices.length; a_i++) { // Loop assets.
       const prices = assetsPrices[a_i];
@@ -118,16 +118,31 @@ export class BacktestService {
           // No data for that day, copy the last 'adjclose' if exists or continue.
           if (prices[i-1].adjclose === null) continue;
           prices[i].adjclose = prices[i-1].adjclose; // As the price have not changed.
+
+          // Do the same for 'close'.
+          if (prices[i-1].close === null) continue;
+          prices[i].close = prices[i-1].close; // As the price have not changed.
         }
 
         const dayTimestamp = prices[i].date.getTime(); // Math.round(prices[i].date.getTime() / 864e5) * 864e5; // new Date(prices[i].date.toISOString().split('T')[0]).getTime();
         const dailyLogReturn = Math.log(prices[i].adjclose / prices[i - 1].adjclose) * weight;
-        dailyLogReturnsMap.set(dayTimestamp, (dailyLogReturnsMap.get(dayTimestamp) || 0) + dailyLogReturn);
-        sum += dailyLogReturn;
+        const dailyLogReturnNoDiv = Math.log(prices[i].close / prices[i - 1].close) * weight;
+
+        let returnsArray: number[] = dailyLogReturnsMap.get(dayTimestamp);
+        if (returnsArray === undefined) {
+          returnsArray = [ 0, 0 ];
+          dailyLogReturnsMap.set(dayTimestamp, returnsArray);
+        }
+
+        returnsArray[0] += dailyLogReturn;
+        returnsArray[1] += dailyLogReturnNoDiv;
+
+        sum[0] += dailyLogReturn;
+        sum[1] += dailyLogReturnNoDiv;
       }
     }
 
-    const returns: [number, number][] = Array.from(dailyLogReturnsMap.entries()).sort((a, b) => a[0] - b[0]);
+    const returns: [number, number[]][] = Array.from(dailyLogReturnsMap.entries()).sort((a, b) => a[0] - b[0]);
     return { returns, sum };
 
     // for (let i = 1; i < prices.length; i++) {
@@ -202,6 +217,7 @@ export class BacktestService {
     let portfolioResult = {
       computedDays: Math.max(...portfolioItensReturns.map(p => p.returns.length)),
       dailyReturns: undefined,
+      monthlyReturns: undefined,
       totalReturn: undefined,
       avgDailyReturn: undefined,
       volatility: undefined,
@@ -209,30 +225,77 @@ export class BacktestService {
     };
 
     // Equaliza os dados quando um ativo do portfólio não foi negociado enquanto os outros estavam em operação.
-    let dailyLogReturnsMap: Map<number, number> = new Map();
-    let totalLogReturn = 0;
+    let dailyLogReturnsMap: Map<number, number[]> = new Map();
+    let totalLogReturn :number[] = [ 0 , 0];
     for (const { returns, sum, assetDate, ticker } of portfolioItensReturns) {
       portfolioResult.assetsDates[ticker] = assetDate;
 
-      totalLogReturn += sum;
+      totalLogReturn[0] += sum[0];
+      totalLogReturn[1] += sum[1];
 
       for (let i = 0; i < returns.length; i++) {
-        const [ date, dailyLogReturn ] = returns[i];
-        dailyLogReturnsMap.set(date, (dailyLogReturnsMap.get(date) || 0) + dailyLogReturn);
+        const [ date, returnsArray ] = returns[i];
+
+        let totalReturnsArray = dailyLogReturnsMap.get(date);
+        if (totalReturnsArray === undefined) {
+          totalReturnsArray = new Array(returnsArray.length).fill(0);
+          dailyLogReturnsMap.set(date, totalReturnsArray);
+        }
+
+        totalReturnsArray[0] += returnsArray[0];
+        totalReturnsArray[1] += returnsArray[1];
       }
     }
-    let dailyLogReturns: [number, number][] = Array.from(dailyLogReturnsMap.entries()).sort((a, b) => a[0] - b[0]);
+    let dailyLogReturns :[any, number[]][] = Array.from(dailyLogReturnsMap.entries()).sort((a, b) => a[0] - b[0]);
 
-    portfolioResult.avgDailyReturn = totalLogReturn / portfolioResult.computedDays;
+    portfolioResult.avgDailyReturn = [ 
+      totalLogReturn[0] / portfolioResult.computedDays, 
+      totalLogReturn[1] / portfolioResult.computedDays 
+    ];
 
-    const variance = dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1] - portfolioResult.avgDailyReturn, 2), 0) / portfolioResult.computedDays;
-    portfolioResult.volatility = Math.sqrt(variance);
+    portfolioResult.volatility = [ 
+      Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][0] - portfolioResult.avgDailyReturn[0], 2), 0) / portfolioResult.computedDays),
+      Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][1] - portfolioResult.avgDailyReturn[1], 2), 0) / portfolioResult.computedDays)
+    ];
 
-    // Converte retornos diários de 'Log' para 'Porcentagem'.
-    portfolioResult.dailyReturns = dailyLogReturns.map(([ d, r ]) => [ d, Math.exp(r) - 1 ]);
+    // Converte retornos diários de 'Log' para 'Porcentagem'. (NÃO USE 'dailyLogReturns' APARTIR DAQUI !!!)
+    let monthlyReturns = [];
+    for (let i = 0; i < dailyLogReturns.length; i++) {
+      const dlrDate = new Date(dailyLogReturns[i][0]);
+
+      let lastReduced = monthlyReturns.at(-1);
+      let lastReducedDate = new Date(lastReduced?.[0]);
+      if (dlrDate.getUTCMonth() !== lastReducedDate.getUTCMonth()) {
+        if (lastReduced) {  // Convert from 'log' to 'pctg' returns.
+          lastReduced[0] = lastReducedDate.toISOString().split('T')[0];
+          lastReduced[1][0] = Math.exp(lastReduced[1][0]) - 1;
+          lastReduced[1][1] = Math.exp(lastReduced[1][1]) - 1;
+        }
+        lastReduced = [ dailyLogReturns[i][0], [ 0, 0 ] ];
+        monthlyReturns.push(lastReduced);
+      }
+
+      lastReduced[1][0] += dailyLogReturns[i][1][0];
+      lastReduced[1][1] += dailyLogReturns[i][1][1];
+
+      dailyLogReturns[i][0] = dlrDate.toISOString().split('T')[0];
+      dailyLogReturns[i][1][0] = Math.exp(dailyLogReturns[i][1][0]) - 1;
+      dailyLogReturns[i][1][1] = Math.exp(dailyLogReturns[i][1][1]) - 1;
+    }
+    // Convert the last reduced from 'log' to 'pctg' returns.
+    const lastReduced = monthlyReturns.at(-1);
+    lastReduced[0] = new Date(lastReduced[0]).toISOString().split('T')[0];
+    lastReduced[1][0] = Math.exp(lastReduced[1][0]) - 1;
+    lastReduced[1][1] = Math.exp(lastReduced[1][1]) - 1;
+
+    portfolioResult.dailyReturns = dailyLogReturns;
+    portfolioResult.monthlyReturns = monthlyReturns;
 
     // Converte retorno total de 'Log' para 'Porcentagem'.
-    portfolioResult.totalReturn = Math.exp(totalLogReturn) - 1;
+    portfolioResult.totalReturn = [
+      Math.exp(totalLogReturn[0]) - 1,
+      Math.exp(totalLogReturn[1]) - 1
+    ];
 
     return portfolioResult;
   }
