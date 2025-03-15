@@ -316,8 +316,8 @@ export class BacktestService {
     portfolioResult.withDividends.avgDailyReturn = dailyLogAcumulado[0] / portfolioResult.computedDays;
     portfolioResult.withoutDividends.avgDailyReturn = dailyLogAcumulado[1] / portfolioResult.computedDays;
 
-    portfolioResult.withDividends.avgDailyReturn = dailyLogAcumulado[0] / portfolioResult.computedDays;
-    portfolioResult.withoutDividends.avgDailyReturn = dailyLogAcumulado[1] / portfolioResult.computedDays;
+    portfolioResult.withDividends.volatility = Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][0] - portfolioResult.withDividends.avgDailyReturn, 2), 0) / portfolioResult.computedDays);
+    portfolioResult.withoutDividends.volatility = Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][1] - portfolioResult.withoutDividends.avgDailyReturn, 2), 0) / portfolioResult.computedDays);
 
     portfolioResult.withDividends.totalReturn = dailyReturns.at(-1).withDividends.accumulated;
     portfolioResult.withoutDividends.totalReturn = dailyReturns.at(-1).withoutDividends.accumulated;
