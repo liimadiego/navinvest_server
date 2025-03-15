@@ -9,7 +9,7 @@ export class BacktestService {
   historicalRatesCache: Record<string, any> = {};
 
   // Pega um ticker como 'TAEE11' e busca na base do yahoo o simbolo usado pelo yahoo, como 'TAEE11.SA' por exemplo.
-  private async getYahooSymbol (ticker: string) {
+  private async getYahooSymbol(ticker: string) {
     const tickerType = ticker.split(':')[1];
     ticker = ticker.split(':')[0];
 
@@ -25,14 +25,14 @@ export class BacktestService {
     } catch (error) {
       console.error(`[E] getYahooSymbol (ticker= ${ticker}):`, error, '\n ');
       throw error;
-    } 
+    }
   }
 
-  private async fetchHistoricalPrices (symbol: string, startDate: number, endDate: number) {
+  private async fetchHistoricalPrices(symbol: string, startDate: number, endDate: number) {
     try {
       const start = new Date(startDate).toISOString().split('T')[0];  // Inclusive start date
       const end = new Date(endDate).toISOString().split('T')[0];      // Exclusive end date
-      
+
       const { meta: { currency: baseCurrency }, quotes: prices } = await yahooFinance.chart(symbol, {
         period1: start,
         period2: end,
@@ -53,7 +53,7 @@ export class BacktestService {
     }
   }
 
-  private async fetchHistoricalRates (symbol: string, startDate: number, endDate: number) {
+  private async fetchHistoricalRates(symbol: string, startDate: number, endDate: number) {
     try {
       const start = new Date(startDate).toISOString().split('T')[0];
       const end = new Date(endDate).toISOString().split('T')[0];
@@ -68,14 +68,14 @@ export class BacktestService {
         if (quote == undefined || (!('symbol' in quote)))
           throw `Não foi possível encontrar o simbolo usado pelo yahoo para o par "${symbol}".`;
         const yahooSymbol = quote.symbol;
-  
+
         // Get historical rates for 'yahooSymbol'.
         const { quotes: prices } = await yahooFinance.chart(yahooSymbol, {
           period1: start,
           period2: end,
           interval: '1d',
         });
-  
+
         if (!prices || prices.length < 2)
           throw `Dados insuficientes para o par: ${symbol}`;
 
@@ -83,14 +83,14 @@ export class BacktestService {
         fromCache = false;
       }
 
-      const prices :{ adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[] = structuredClone(this.historicalRatesCache[cacheKey]);
+      const prices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[] = structuredClone(this.historicalRatesCache[cacheKey]);
 
       // Convert 'price.date' to start of the the closest day instead. 
       // (e.g.: Sometimes candle 'date' is something like '2024-09-22T23:00:00.000Z', when it happens convert it to '2024-09-23T00:00:00Z')
       for (const p of prices) p.date = new Date(Math.round(p.date.getTime() / 864e5) * 864e5);
 
       return { prices, fromCache };
-      
+
     } catch (error) {
       console.error(`[E] fetchHistoricalRates (symbol= ${symbol}, startDate= ${startDate}, endDate = ${endDate}):`, error, '\n ');
       throw error;
@@ -99,7 +99,7 @@ export class BacktestService {
 
   calculateDailyLogReturns(assetsPrices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[][], weights: number[]) {
     let dailyLogReturnsMap: Map<number, number[]> = new Map();
-    let sum :number[] = [ 0, 0 ];
+    let sum: number[] = [0, 0];
 
     for (let a_i = 0; a_i < assetsPrices.length; a_i++) { // Loop assets.
       const prices = assetsPrices[a_i];
@@ -108,20 +108,20 @@ export class BacktestService {
       for (let i = 1; i < prices.length; i++) { // Loop asset daily prices
         // Check for day with no market data.
         if (
-          prices[i].adjclose === null && 
-          prices[i].close === null && 
-          prices[i].low === null && 
-          prices[i].open === null && 
-          prices[i].volume === null && 
+          prices[i].adjclose === null &&
+          prices[i].close === null &&
+          prices[i].low === null &&
+          prices[i].open === null &&
+          prices[i].volume === null &&
           prices[i].high === null
         ) {
           // No data for that day, copy the last 'adjclose' if exists or continue.
-          if (prices[i-1].adjclose === null) continue;
-          prices[i].adjclose = prices[i-1].adjclose; // As the price have not changed.
+          if (prices[i - 1].adjclose === null) continue;
+          prices[i].adjclose = prices[i - 1].adjclose; // As the price have not changed.
 
           // Do the same for 'close'.
-          if (prices[i-1].close === null) continue;
-          prices[i].close = prices[i-1].close; // As the price have not changed.
+          if (prices[i - 1].close === null) continue;
+          prices[i].close = prices[i - 1].close; // As the price have not changed.
         }
 
         const dayTimestamp = prices[i].date.getTime(); // Math.round(prices[i].date.getTime() / 864e5) * 864e5; // new Date(prices[i].date.toISOString().split('T')[0]).getTime();
@@ -130,7 +130,7 @@ export class BacktestService {
 
         let returnsArray: number[] = dailyLogReturnsMap.get(dayTimestamp);
         if (returnsArray === undefined) {
-          returnsArray = [ 0, 0 ];
+          returnsArray = [0, 0];
           dailyLogReturnsMap.set(dayTimestamp, returnsArray);
         }
 
@@ -159,7 +159,7 @@ export class BacktestService {
     if (!(endDate >= startDate))
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: [ 'INVALID_DATE_RANGE' ]
+        message: ['INVALID_DATE_RANGE']
       });
 
     let portfolioItensReturns = [];
@@ -168,29 +168,29 @@ export class BacktestService {
       for (const { ticker, weight } of portfolio) {
         promises.push(
           this.getYahooSymbol(ticker)
-          .then(yahooSymbol => this.fetchHistoricalPrices(yahooSymbol, startDate, endDate))
-          .then(async ({ prices: assetPrices, baseCurrency: assetBaseCurrency }) => {
+            .then(yahooSymbol => this.fetchHistoricalPrices(yahooSymbol, startDate, endDate))
+            .then(async ({ prices: assetPrices, baseCurrency: assetBaseCurrency }) => {
 
-            const assetDate = {
-              start: assetPrices.at(0).date.getTime(),
-              end: assetPrices.at(-1).date.getTime()
-            };
-            
-            if (assetBaseCurrency === portfolioBaseCurrency)
-              return { ...this.calculateDailyLogReturns([ assetPrices ], [ weight ]), assetDate, ticker };
-            
-            // Need base currency conversion.
+              const assetDate = {
+                start: assetPrices.at(0).date.getTime(),
+                end: assetPrices.at(-1).date.getTime()
+              };
 
-            const currencySymbol = `${assetBaseCurrency}/${portfolioBaseCurrency}`;
-            const { prices: fxPrices, fromCache } = await this.fetchHistoricalRates(currencySymbol, startDate, endDate);
+              if (assetBaseCurrency === portfolioBaseCurrency)
+                return { ...this.calculateDailyLogReturns([assetPrices], [weight]), assetDate, ticker };
 
-            const fxPricesFiltered = fxPrices.slice(
-              fxPrices.findIndex(p => p.date.getTime() >= assetDate.start), 
-              fxPrices.findLastIndex(p => p.date.getTime() <= assetDate.end) + 1
-            );
+              // Need base currency conversion.
 
-            return { ...this.calculateDailyLogReturns([ assetPrices, fxPricesFiltered ], [ weight, weight ]), assetDate, ticker };
-          })
+              const currencySymbol = `${assetBaseCurrency}/${portfolioBaseCurrency}`;
+              const { prices: fxPrices, fromCache } = await this.fetchHistoricalRates(currencySymbol, startDate, endDate);
+
+              const fxPricesFiltered = fxPrices.slice(
+                fxPrices.findIndex(p => p.date.getTime() >= assetDate.start),
+                fxPrices.findLastIndex(p => p.date.getTime() <= assetDate.end) + 1
+              );
+
+              return { ...this.calculateDailyLogReturns([assetPrices, fxPricesFiltered], [weight, weight]), assetDate, ticker };
+            })
         );
         portfolioItensReturns = await Promise.all(promises);
       }
@@ -210,17 +210,26 @@ export class BacktestService {
 
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: [ errorCode ]
+        message: [errorCode]
       });
     }
 
     let portfolioResult = {
+      withDividends: {
+        dailyReturns: undefined,
+        monthlyReturns: undefined,
+        totalReturn: undefined,
+        avgDailyReturn: undefined,
+        volatility: undefined
+      },
+      withoutDividends: {
+        dailyReturns: undefined,
+        monthlyReturns: undefined,
+        totalReturn: undefined,
+        avgDailyReturn: undefined,
+        volatility: undefined
+      },
       computedDays: Math.max(...portfolioItensReturns.map(p => p.returns.length)),
-      dailyReturns: undefined,
-      monthlyReturns: undefined,
-      totalReturn: undefined,
-      avgDailyReturn: undefined,
-      volatility: undefined,
       assetsDates: {}
     };
 
@@ -230,7 +239,7 @@ export class BacktestService {
       portfolioResult.assetsDates[ticker] = assetDate;
 
       for (let i = 0; i < returns.length; i++) {
-        const [ date, returnsArray ] = returns[i];
+        const [date, returnsArray] = returns[i];
 
         let totalReturnsArray = dailyLogReturnsMap.get(date);
         if (totalReturnsArray === undefined) {
@@ -242,27 +251,27 @@ export class BacktestService {
         totalReturnsArray[1] += returnsArray[1];
       }
     }
-    let dailyLogReturns :[any, number[]][] = Array.from(dailyLogReturnsMap.entries()).sort((a, b) => a[0] - b[0]);
+    let dailyLogReturns: [any, number[]][] = Array.from(dailyLogReturnsMap.entries()).sort((a, b) => a[0] - b[0]);
 
     // Converte retornos diários de 'Log' para 'Porcentagem'.
     let dailyReturns = [];
-    let dailyLogAcumulado :number[] = [ 0, 0 ];
+    let dailyLogAcumulado: number[] = [0, 0];
     let monthlyReturns = [];
     for (let i = 0; i < dailyLogReturns.length; i++) {
       const dlrDate = new Date(dailyLogReturns[i][0]);
 
       dailyLogAcumulado[0] += dailyLogReturns[i][1][0];
       dailyLogAcumulado[1] += dailyLogReturns[i][1][1];
-      
+
       dailyReturns.push({
         date: dlrDate.toISOString().split('T')[0],
-        comdiv :{ // Com dividendos
-          atual: Math.exp(dailyLogReturns[i][1][0]) - 1,
-          acumulado: Math.exp(dailyLogAcumulado[0]) - 1,
+        withDividends: { // Com dividendos
+          current: Math.exp(dailyLogReturns[i][1][0]) - 1,
+          accumulated: Math.exp(dailyLogAcumulado[0]) - 1,
         },
-        semdiv: { // Sem dividendos
-          atual: Math.exp(dailyLogReturns[i][1][1]) - 1,
-          acumulado: Math.exp(dailyLogAcumulado[1]) - 1,
+        withoutDividends: { // Sem dividendos
+          current: Math.exp(dailyLogReturns[i][1][1]) - 1,
+          accumulated: Math.exp(dailyLogAcumulado[1]) - 1,
         }
       });
 
@@ -271,49 +280,47 @@ export class BacktestService {
       if (dlrDate.getUTCMonth() !== lastMonthRetDate.getUTCMonth()) {
         if (lastMonthRet) {
           lastMonthRet.date = new Date(lastMonthRet.date).toISOString().split('T')[0];
-          lastMonthRet.comdiv.atual = Math.exp(lastMonthRet.comdiv.atual) - 1;
-          lastMonthRet.comdiv.acumulado = Math.exp(lastMonthRet.comdiv.acumulado) - 1;
-          lastMonthRet.semdiv.atual = Math.exp(lastMonthRet.semdiv.atual) - 1;
-          lastMonthRet.semdiv.acumulado = Math.exp(lastMonthRet.semdiv.acumulado) - 1;
+          lastMonthRet.withDividends.current = Math.exp(lastMonthRet.withDividends.current) - 1;
+          lastMonthRet.withDividends.accumulated = Math.exp(lastMonthRet.withDividends.accumulated) - 1;
+          lastMonthRet.withoutDividends.current = Math.exp(lastMonthRet.withoutDividends.current) - 1;
+          lastMonthRet.withoutDividends.accumulated = Math.exp(lastMonthRet.withoutDividends.accumulated) - 1;
         }
-        lastMonthRet = { 
-          date: dailyLogReturns[i][0], 
-          comdiv: { atual: 0, acumulado: lastMonthRet?.comdiv.acumulado || 0 }, 
-          semdiv: { atual: 0, acumulado: lastMonthRet?.semdiv.acumulado || 0 } 
+        lastMonthRet = {
+          date: dailyLogReturns[i][0],
+          withDividends: { current: 0, accumulated: lastMonthRet?.withDividends.accumulated || 0 },
+          withoutDividends: { current: 0, accumulated: lastMonthRet?.withoutDividends.accumulated || 0 }
         };
         monthlyReturns.push(lastMonthRet);
       }
-      lastMonthRet.comdiv.atual += dailyLogReturns[i][1][0];
-      lastMonthRet.comdiv.acumulado = dailyLogAcumulado[0];
-      lastMonthRet.semdiv.atual += dailyLogReturns[i][1][1];
-      lastMonthRet.semdiv.acumulado = dailyLogAcumulado[1];
+      lastMonthRet.withDividends.current += dailyLogReturns[i][1][0];
+      lastMonthRet.withDividends.accumulated = dailyLogAcumulado[0];
+      lastMonthRet.withoutDividends.current += dailyLogReturns[i][1][1];
+      lastMonthRet.withoutDividends.accumulated = dailyLogAcumulado[1];
     }
     // Convert the last month return from 'log' to 'pctg' returns.
     const lastMonthRet = monthlyReturns.at(-1);
     lastMonthRet.date = new Date(lastMonthRet.date).toISOString().split('T')[0];
-    lastMonthRet.comdiv.atual = Math.exp(lastMonthRet.comdiv.atual) - 1;
-    lastMonthRet.comdiv.acumulado = Math.exp(lastMonthRet.comdiv.acumulado) - 1;
-    lastMonthRet.semdiv.atual = Math.exp(lastMonthRet.semdiv.atual) - 1;
-    lastMonthRet.semdiv.acumulado = Math.exp(lastMonthRet.semdiv.acumulado) - 1;
+    lastMonthRet.withDividends.current = Math.exp(lastMonthRet.withDividends.current) - 1;
+    lastMonthRet.withDividends.accumulated = Math.exp(lastMonthRet.withDividends.accumulated) - 1;
+    lastMonthRet.withoutDividends.current = Math.exp(lastMonthRet.withoutDividends.current) - 1;
+    lastMonthRet.withoutDividends.accumulated = Math.exp(lastMonthRet.withoutDividends.accumulated) - 1;
 
-    portfolioResult.dailyReturns = dailyReturns;
-    portfolioResult.monthlyReturns = monthlyReturns;
+    // portfolioResult.dailyReturns = dailyReturns;
+    portfolioResult.withDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withDividends.current, accumulated: dr.withDividends.accumulated } });
+    portfolioResult.withoutDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withoutDividends.current, accumulated: dr.withoutDividends.accumulated } });
 
-    portfolioResult.avgDailyReturn = {
-      comdiv: dailyLogAcumulado[0] / portfolioResult.computedDays, 
-      semdiv: dailyLogAcumulado[1] / portfolioResult.computedDays 
-    };
+    // portfolioResult.monthlyReturns = monthlyReturns;
+    portfolioResult.withDividends.monthlyReturns = monthlyReturns.map(mr => { return { date: mr.date, current: mr.withDividends.current, accumulated: mr.withDividends.accumulated } });
+    portfolioResult.withoutDividends.monthlyReturns = monthlyReturns.map(mr => { return { date: mr.date, current: mr.withoutDividends.current, accumulated: mr.withoutDividends.accumulated } });
 
-    portfolioResult.volatility = {
-      comdiv: Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][0] - portfolioResult.avgDailyReturn.comdiv, 2), 0) / portfolioResult.computedDays),
-      semdiv: Math.sqrt(dailyLogReturns.reduce((sum, dr) => sum + Math.pow(dr[1][1] - portfolioResult.avgDailyReturn.semdiv, 2), 0) / portfolioResult.computedDays)
-    };
+    portfolioResult.withDividends.avgDailyReturn = dailyLogAcumulado[0] / portfolioResult.computedDays;
+    portfolioResult.withoutDividends.avgDailyReturn = dailyLogAcumulado[1] / portfolioResult.computedDays;
 
-    // Converte retorno total de 'Log' para 'Porcentagem'.
-    portfolioResult.totalReturn = {
-      comdiv: dailyReturns.at(-1).comdiv.acumulado, // Math.exp(dailyLogAcumulado[0]) - 1,
-      semdiv: dailyReturns.at(-1).semdiv.acumulado // Math.exp(dailyLogAcumulado[1]) - 1
-    };
+    portfolioResult.withDividends.avgDailyReturn = dailyLogAcumulado[0] / portfolioResult.computedDays;
+    portfolioResult.withoutDividends.avgDailyReturn = dailyLogAcumulado[1] / portfolioResult.computedDays;
+
+    portfolioResult.withDividends.totalReturn = dailyReturns.at(-1).withDividends.accumulated;
+    portfolioResult.withoutDividends.totalReturn = dailyReturns.at(-1).withoutDividends.accumulated;
 
     return portfolioResult;
   }
