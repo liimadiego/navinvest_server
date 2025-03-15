@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, HttpStatus } from "@nestjs/common";
 import { BacktestRequestDto } from "./backtest.dto";
 import yahooFinance from 'yahoo-finance2';
+import { timestamp } from "rxjs";
 
 const util = require('node:util');
 
@@ -306,8 +307,9 @@ export class BacktestService {
     lastMonthRet.withoutDividends.accumulated = Math.exp(lastMonthRet.withoutDividends.accumulated) - 1;
 
     // portfolioResult.dailyReturns = dailyReturns;
-    portfolioResult.withDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withDividends.current, accumulated: dr.withDividends.accumulated } });
-    portfolioResult.withoutDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withoutDividends.current, accumulated: dr.withoutDividends.accumulated } });
+    portfolioResult.withDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withDividends.current, accumulated: dr.withDividends.accumulated, date: dr.date } });
+    portfolioResult.withoutDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withoutDividends.current, accumulated: dr.withoutDividends.accumulated, date: dr.date } });
+
 
     // portfolioResult.monthlyReturns = monthlyReturns;
     portfolioResult.withDividends.monthlyReturns = monthlyReturns.map(mr => { return { date: mr.date, current: mr.withDividends.current, accumulated: mr.withDividends.accumulated } });
