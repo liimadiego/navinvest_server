@@ -1,0 +1,7 @@
+# Ignorar arquivos temporários
+*.tmp
+.DS_Store
+
+# Ignorar diretórios de dependências e build
+node_modules/
+dist/
