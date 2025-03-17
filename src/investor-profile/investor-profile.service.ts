@@ -6,7 +6,7 @@ import { TagEntity } from 'src/entities/tag.entity';
 import { Repository } from 'typeorm';
 import { investorProfileAnswers, InvestorProfile } from './investor-profile-interface';
 import OpenAI from 'openai';
-import { PromptsService } from '../utils/prompts';
+import { PromptsService } from '@/utils/prompts';
 
 @Injectable()
 export class InvestorProfileService {

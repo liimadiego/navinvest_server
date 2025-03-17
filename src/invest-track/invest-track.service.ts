@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserAction } from './invest-track-interface';
 import OpenAI from 'openai';
-import { PromptsService } from '../utils/prompts';
+import { PromptsService } from '@/utils/prompts';
 
 @Injectable()
 export class InvestTrackService {
