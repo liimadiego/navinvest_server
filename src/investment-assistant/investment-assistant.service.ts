@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import OpenAI from 'openai';
-import { PromptsService } from '../utils/prompts';
+import { PromptsService } from '../utils/prompts.service';
 import { MessageHistoric } from './investment-assistant-interface';
 
 @Injectable()
