@@ -1,6 +1,6 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { TickerService } from './ticker.service';
-import { LanguagesService } from '@/utils/language';
+import { LanguagesService } from '../utils/language';
 
 @Controller('ticker')
 export class TickerController {
