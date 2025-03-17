@@ -9,6 +9,7 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./src", // Adicionado
     "baseUrl": "./src",
     "incremental": true,
     "skipLibCheck": true,
@@ -23,7 +24,7 @@
         "utils/*"
       ],
       "@/*": [
-        "src/*",
+        "src/*"
       ]
     }
   },
