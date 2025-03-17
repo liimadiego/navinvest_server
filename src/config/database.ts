@@ -1,16 +1,16 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as dotenv from 'dotenv';
-import { UserEntity } from 'src/entities/user.entity';
-import { UserProfileEntity } from 'src/entities/user-profile.entity';
-import { UserSettingsEntity } from 'src/entities/user-setting.entity';
-import { PortfolioTransactionEntity } from 'src/entities/portfolio-transaction.entity';
-import { InvestmentPortfolioEntity } from 'src/entities/investment-portfolio.entity';
-import { NewsEntity } from 'src/entities/news.entity';
-import { TickersEntity } from 'src/entities/tickers.entity';
-import { UserNewsEntity } from 'src/entities/user-news.entity';
-import { UserTickersSubscribeEntity } from 'src/entities/user-tickers-subscribe.entity';
-import { InvestorProfileEntity } from 'src/entities/investor-profile.entity';
-import { TagEntity } from 'src/entities/tag.entity';
+import { UserEntity } from '../entities/user.entity';
+import { UserProfileEntity } from '../entities/user-profile.entity';
+import { UserSettingsEntity } from '../entities/user-setting.entity';
+import { PortfolioTransactionEntity } from '../entities/portfolio-transaction.entity';
+import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
+import { NewsEntity } from '../entities/news.entity';
+import { TickersEntity } from '../entities/tickers.entity';
+import { UserNewsEntity } from '../entities/user-news.entity';
+import { UserTickersSubscribeEntity } from '../entities/user-tickers-subscribe.entity';
+import { InvestorProfileEntity } from '../entities/investor-profile.entity';
+import { TagEntity } from '../entities/tag.entity';
 
 dotenv.config();
 

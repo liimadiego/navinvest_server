@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { InvestorProfileEntity } from 'src/entities/investor-profile.entity';
-import { UserEntity } from 'src/entities/user.entity';
-import { TagEntity } from 'src/entities/tag.entity';
+import { InvestorProfileEntity } from '../entities/investor-profile.entity';
+import { UserEntity } from '../entities/user.entity';
+import { TagEntity } from '../entities/tag.entity';
 import { Repository } from 'typeorm';
 import { investorProfileAnswers, InvestorProfile } from './investor-profile-interface';
 import OpenAI from 'openai';
-import { PromptsService } from 'src/utils/prompts';
+import { PromptsService } from '../utils/prompts';
 
 @Injectable()
 export class InvestorProfileService {
