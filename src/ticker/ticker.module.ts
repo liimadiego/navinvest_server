@@ -4,7 +4,7 @@ import { TickerController } from './ticker.controller';
 import { TagEntity } from 'src/entities/tag.entity';
 import { TickersEntity } from 'src/entities/tickers.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LanguagesService } from ''@/utils/language';;
+import { LanguagesService } from ''@/utils/language';
 
 @Module({
   imports: [
