@@ -13,6 +13,7 @@ import { TickerModule } from './ticker/ticker.module';
 import { InvestorProfileModule } from './investor-profile/investor-profile.module';
 import { TagModule } from './tag/tag.module';
 import { CurrencyConverterModule } from './currency-converter/currency-converter.module';
+import { UtilsModule } from './utils/utils.module';
 
 @Module({
   controllers: [AppController],
@@ -30,6 +31,7 @@ import { CurrencyConverterModule } from './currency-converter/currency-converter
     InvestorProfileModule,
     TagModule,
     CurrencyConverterModule,
+    UtilsModule,
   ],
 })
 export class AppModule { }

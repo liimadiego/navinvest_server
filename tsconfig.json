@@ -20,9 +20,6 @@
     "noFallthroughCasesInSwitch": false,
     "resolveJsonModule": true,
     "paths": {
-      "@utils/*": [
-        "utils/*"
-      ],
       "@/*": [
         "src/*"
       ]
