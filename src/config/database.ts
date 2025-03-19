@@ -26,7 +26,7 @@ export const TypeOrmConfig = () =>
         extra: {
             connectionLimit: 10,
         },
-        ssl: true,
+        ssl: process.env.ENVIROMENT !== 'development',
         entities: [
             UserEntity,
             UserProfileEntity,
