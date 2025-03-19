@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InvestmentAssistantModule } from './investment-assistant/investment-assistant.module';
 import { ConfigModule } from '@nestjs/config';
@@ -13,7 +14,6 @@ import { InvestorProfileModule } from './investor-profile/investor-profile.modul
 import { TagModule } from './tag/tag.module';
 import { CurrencyConverterModule } from './currency-converter/currency-converter.module';
 import { UtilsModule } from './utils/utils.module';
-import { AppController } from './app.controller';
 
 @Module({
   controllers: [AppController],
