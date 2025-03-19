@@ -36,6 +36,7 @@ export class CronNewsService implements OnModuleInit {
                 if (!newsWithThisUrl) {
                     await this.newsService.saveNews({
                         id: null,
+                        uuid: null,
                         title: article.title,
                         description: article.description,
                         content: article.content,

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NewsEntity } from '../entities/news.entity';
 import { UserEntity } from '../entities/user.entity';
-import { Repository } from 'typeorm';
+import { LessThan, MoreThan, Repository } from 'typeorm';
 
 @Injectable()
 export class NewsService {
@@ -72,5 +72,50 @@ export class NewsService {
 
     async getNewsByUrl(url: string): Promise<NewsEntity> {
         return this.newsRepository.findOne({ where: { url } });
+    }
+
+    async getNewsById(uuid: string): Promise<any> {
+        const news = await this.newsRepository.findOne({ where: { uuid: uuid } });
+        if (!news) {
+            throw new Error('News not found');
+        }
+        const { id, ...rest } = news;
+        return rest;
+    }
+
+    async getLatestNews(): Promise<any[]> {
+        const news = await this.newsRepository.find({
+            take: 3,
+            order: {
+                created_at: 'DESC'
+            }
+        });
+
+        return news.map(({ id, ...rest }) => rest);
+    }
+
+    async getOtherNews(uuid: string): Promise<any[]> {
+        const currentNews = await this.newsRepository.findOne({ where: { uuid } });
+
+        if (!currentNews) {
+            throw new Error('News not found');
+        }
+
+        let news = await this.newsRepository.find({
+            where: { created_at: MoreThan(currentNews.created_at) },
+            order: { created_at: 'ASC' },
+            take: 3,
+        });
+
+        if (news.length < 3) {
+            const remainingNews = await this.newsRepository.find({
+                where: { created_at: LessThan(currentNews.created_at) },
+                order: { created_at: 'DESC' },
+                take: 3 - news.length,
+            });
+            news = news.concat(remainingNews);
+        }
+
+        return news.map(({ id, ...rest }) => rest);
     }
 }

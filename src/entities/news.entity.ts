@@ -1,10 +1,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { TickersEntity } from './tickers.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 @Entity('news')
 export class NewsEntity {
     @PrimaryGeneratedColumn()
     id: number;
+
+    @Column({ type: 'uuid', default: () => `'${uuidv4()}'` })
+    uuid: string;
 
     @ManyToOne(() => TickersEntity)
     @JoinColumn({ name: 'ticker_id' })
