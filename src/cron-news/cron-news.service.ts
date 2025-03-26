@@ -3,6 +3,7 @@ import * as cron from 'node-cron';
 import { NewsService } from '../news/news.service';
 import { TickerService } from '../ticker/ticker.service';
 import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class CronNewsService implements OnModuleInit {
@@ -20,7 +21,7 @@ export class CronNewsService implements OnModuleInit {
         //      this.saveNewsInDatabase();
         //      this.sendNewsToSubscribers();
         // });
-
+        this.saveNewsInDatabase();
         console.log('Cron job agendada.');
     }
 
@@ -36,7 +37,7 @@ export class CronNewsService implements OnModuleInit {
                 if (!newsWithThisUrl) {
                     await this.newsService.saveNews({
                         id: null,
-                        uuid: null,
+                        uuid: uuidv4(),
                         title: article.title,
                         description: article.description,
                         content: article.content,
@@ -63,17 +64,17 @@ export class CronNewsService implements OnModuleInit {
         for (const ticker of tickers) {
             console.log(`Buscando notícias para o ticker ${ticker.ticker}`);
             const tickerEntity = await this.tickerService.getTickerById(ticker.id);
-            const companyName = tickerEntity.name;
+            const companyName = tickerEntity.asset_name;
 
             await this.fetchAndSaveNews(ticker.ticker, tickerEntity);
 
-            if (!searchedCompanyNames.has(companyName)) {
-                console.log(`Buscando notícias para a empresa ${companyName}`);
+            // if (!searchedCompanyNames.has(companyName)) {
+            //     console.log(`Buscando notícias para a empresa ${companyName}`);
 
-                await this.fetchAndSaveNews(companyName, tickerEntity);
+            //     await this.fetchAndSaveNews(companyName, tickerEntity);
 
-                searchedCompanyNames.add(companyName);
-            }
+            //     searchedCompanyNames.add(companyName);
+            // }
 
             await this.tickerService.updateLatestSearchNews(ticker);
         }

@@ -37,8 +37,6 @@ export class PortfolioTransactionsService {
             transaction_type: createDto.transaction_type,
             amount: createDto.amount,
             price_per_unit: createDto.price_per_unit,
-            // fees: createDto.fees,
-            // notes: createDto.notes,
             transaction_date: createDto.transaction_date || new Date(),
         });
 

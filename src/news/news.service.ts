@@ -84,38 +84,80 @@ export class NewsService {
     }
 
     async getLatestNews(): Promise<any[]> {
-        const news = await this.newsRepository.find({
-            take: 3,
-            order: {
-                created_at: 'DESC'
-            }
-        });
+        const news = await this.newsRepository
+            .createQueryBuilder("n")
+            .select(["n.*"])
+            .innerJoin(
+                qb => qb
+                    .select("MAX(n2.created_at)", "latest")
+                    .addSelect("n2.ticker_id", "ticker_id")
+                    .from(NewsEntity, "n2")
+                    .groupBy("n2.ticker_id"),
+                "latest_news",
+                "latest_news.ticker_id = n.ticker_id AND latest_news.latest = n.created_at"
+            )
+            .orderBy("n.created_at", "DESC")
+            .limit(3)
+            .getRawMany();
 
         return news.map(({ id, ...rest }) => rest);
     }
 
     async getOtherNews(uuid: string): Promise<any[]> {
-        const currentNews = await this.newsRepository.findOne({ where: { uuid } });
+        const currentNews = await this.newsRepository.findOne({
+            where: { uuid },
+            relations: ['ticker'], // importante pra acessar o ticker.id
+        });
 
         if (!currentNews) {
             throw new Error('News not found');
         }
 
-        let news = await this.newsRepository.find({
-            where: { created_at: MoreThan(currentNews.created_at) },
-            order: { created_at: 'ASC' },
-            take: 3,
-        });
+        const uniqueNews: any[] = [];
+        const seenTickerIds = new Set<number>();
 
-        if (news.length < 3) {
-            const remainingNews = await this.newsRepository.find({
-                where: { created_at: LessThan(currentNews.created_at) },
-                order: { created_at: 'DESC' },
-                take: 3 - news.length,
-            });
-            news = news.concat(remainingNews);
+        // Adiciona o ticker atual para ser evitado
+        if (currentNews.ticker?.id) {
+            seenTickerIds.add(currentNews.ticker.id);
         }
 
-        return news.map(({ id, ...rest }) => rest);
+        // Primeiro: notícias mais recentes
+        const recentNews = await this.newsRepository.find({
+            where: { created_at: MoreThan(currentNews.created_at) },
+            order: { created_at: 'ASC' },
+            relations: ['ticker'],
+        });
+
+        for (const newsItem of recentNews) {
+            const tickerId = newsItem.ticker?.id;
+            if (newsItem.uuid !== uuid && tickerId && !seenTickerIds.has(tickerId)) {
+                uniqueNews.push(newsItem);
+                seenTickerIds.add(tickerId);
+            }
+
+            if (uniqueNews.length >= 3) break;
+        }
+
+        // Se não deu 3, busca notícias antigas
+        if (uniqueNews.length < 3) {
+            const olderNews = await this.newsRepository.find({
+                where: { created_at: LessThan(currentNews.created_at) },
+                order: { created_at: 'DESC' },
+                relations: ['ticker'],
+            });
+
+            for (const newsItem of olderNews) {
+                const tickerId = newsItem.ticker?.id;
+                if (newsItem.uuid !== uuid && tickerId && !seenTickerIds.has(tickerId)) {
+                    uniqueNews.push(newsItem);
+                    seenTickerIds.add(tickerId);
+                }
+
+                if (uniqueNews.length >= 3) break;
+            }
+        }
+
+        return uniqueNews.map(({ id, ...rest }) => rest);
     }
+
 }
