@@ -14,6 +14,8 @@ import { InvestorProfileModule } from './investor-profile/investor-profile.modul
 import { TagModule } from './tag/tag.module';
 import { CurrencyConverterModule } from './currency-converter/currency-converter.module';
 import { UtilsModule } from './utils/utils.module';
+import { InvestmentPortfolioModule } from './investment-portfolio/investment-portfolio.module';
+import { PortfolioTransactionsModule } from './portfolio-transactions/portfolio-transactions.module';
 
 @Module({
   controllers: [AppController],
@@ -32,6 +34,8 @@ import { UtilsModule } from './utils/utils.module';
     TagModule,
     CurrencyConverterModule,
     UtilsModule,
+    InvestmentPortfolioModule,
+    PortfolioTransactionsModule,
   ],
 })
 export class AppModule { }

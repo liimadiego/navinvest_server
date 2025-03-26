@@ -21,4 +21,11 @@ export class InvestmentPortfolioEntity {
 
     @OneToMany(() => PortfolioTransactionEntity, (transaction) => transaction.portfolio, { cascade: true })
     transactions: PortfolioTransactionEntity[];
+
+    @Column({
+        type: 'enum',
+        enum: ['Dividendos', 'Longo Prazo', 'Aposentadoria', 'Valorização de Capital', 'Renda Passiva', 'Especulação', 'Proteção Patrimonial', 'Diversificação Global'],
+    })
+    objective: 'Dividendos' | 'Longo Prazo' | 'Aposentadoria' | 'Valorização de Capital' | 'Renda Passiva' | 'Especulação' | 'Proteção Patrimonial' | 'Diversificação Global';
+
 }

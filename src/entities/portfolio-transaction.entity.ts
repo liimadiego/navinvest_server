@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, Index, JoinColumn } from 'typeorm';
 import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 import { TickersEntity } from './tickers.entity';
 
@@ -7,32 +7,42 @@ export class PortfolioTransactionEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @ManyToOne(() => InvestmentPortfolioEntity, (portfolio) => portfolio.transactions, { onDelete: 'CASCADE' })
+    @Column({ type: 'uuid' })
+    portfolio_id: string;
+
+    @Column({ type: 'numeric' })
+    ticker_id: number;
+
+    @ManyToOne(() => InvestmentPortfolioEntity, (portfolio) => portfolio.transactions, {
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'portfolio_id' })
     portfolio: InvestmentPortfolioEntity;
 
-    @ManyToOne(() => TickersEntity, (ticker) => ticker.transactions, { onDelete: 'CASCADE' })
+    @ManyToOne(() => TickersEntity, (ticker) => ticker.transactions, {
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'ticker_id' })
     ticker: TickersEntity;
 
     @Column({ type: 'varchar', length: 20 })
-    transactionType: string;
+    transaction_type: string;
 
     @Column({ type: 'numeric', precision: 18, scale: 2 })
     amount: number;
 
     @Column({ type: 'numeric', precision: 18, scale: 2, nullable: true })
-    pricePerUnit?: number;
+    price_per_unit?: number;
 
+    @Index()
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    transactionDate: Date;
+    transaction_date: Date;
 
-    @Column({ type: 'varchar', length: 50 })
-    objective:
-        | 'Dividendos'
-        | 'Longo Prazo'
-        | 'Aposentadoria'
-        | 'Valorização de Capital'
-        | 'Renda Passiva'
-        | 'Especulação'
-        | 'Proteção Patrimonial'
-        | 'Diversificação Global';
+    // Campos adicionais úteis
+    // @Column({ type: 'numeric', precision: 18, scale: 2, nullable: true })
+    // fees?: number;
+
+    // @Column({ type: 'text', nullable: true })
+    // notes?: string;
 }
+
