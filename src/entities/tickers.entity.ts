@@ -21,6 +21,9 @@ export class TickersEntity {
     asset_name: string;
 
     @Column({ nullable: true })
+    asset_image_url: string;
+
+    @Column({ nullable: true })
     latest_search_news: Date;
 
     @Column({ nullable: true })

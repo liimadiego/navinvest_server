@@ -21,7 +21,7 @@ export class CronNewsService implements OnModuleInit {
         //      this.saveNewsInDatabase();
         //      this.sendNewsToSubscribers();
         // });
-        this.saveNewsInDatabase();
+        // this.saveNewsInDatabase();
         console.log('Cron job agendada.');
     }
 
