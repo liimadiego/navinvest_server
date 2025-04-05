@@ -23,7 +23,7 @@ export class InvestmentAssistantService {
             messageHistoric = messageHistoric.slice(-5);
 
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
+                model: process.env.OPEN_AI_MODEL,
                 messages: [
                     { role: 'system', content: this.getPrompt("ia_assistant_context") },
                     ...messageHistoric,

@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class PromptsService {
 
-    getPrompts() {
+    getPrompts(params?: any) {
         const base_context = `
             Você faz parte de uma plataforma de investimentos com integração com inteligência artificial que da suporte para investidores fazer as melhores escolhas na hora de investir
         `;
@@ -21,6 +21,7 @@ export class PromptsService {
 
             Formato de Resposta:
             A resposta deve ser um JSON estruturado da seguinte maneira:
+            Não coloque o JSON dentro de um bloco de código markdown, apenas retorne o JSON puro.
             {
                 "valid_question": (true ou false),
                 "answer": "(resposta objetiva se "valid_question" for true, senão, string vazia)"
@@ -172,6 +173,50 @@ export class PromptsService {
             As informações e tags disponíveis serão fornecidas abaixo. Gere um plano diversificado e atrativo para o investidor com base nisso.
         `;
 
-        return { ia_assistant_context, invest_track_context, get_investment_plan_context };
+        const asset_report_ai = `
+            Você é um analista de investimentos e deve gerar um relatório interpretativo, conciso e acessível, com base nos seguintes dados fundamentalistas da empresa listada. O objetivo é explicar ao investidor pessoa física qual é o "momento da empresa" com base nos números atuais, tendências de rentabilidade e saúde financeira. Use linguagem simples, clara, e evite jargões técnicos não explicados.
+
+            O usuário enviará apenas os dados da empresa e você deve gerar com base nas instruções.
+
+            ${params?.sector_name && params?.sector_average ? "Leve também em consideração a média do setor (" + params.sector_name + "):" : ""}
+            ${params?.sector_average}
+
+            Instruções de estilo:
+
+            Divida o texto em seções com subtítulos claros: Visão Geral, Rentabilidade, Eficiência Operacional, Endividamento, Distribuição de Lucros, Perspectiva Geral.
+
+            Explique o que significa cada dado importante para o investidor.
+
+            Não é possível recuperar icones usando a API, porém você pode usar os seguintes ícones para representar os dados: "check", "warning", "money", "money_down", "money_up", "bank", "briefcase", "down_trend", "up_trend".
+
+            USE ICONES PARA ENRIQUECER O TEXTO E DEIXAR A EXPERIENCIA DO USUARIO MELHOR, POREM NÃO EXAGERE, O TEXTO TEM QUE SER LEVE E OBJETIVO. 
+
+            TENHA CERTEZA DE QUE O ICONE CONDIZ COM O TEXTO, SE NÃO TIVER CERTEZA, NÃO USE. ISSO É EXTREMAMENTE IMPORTANTE, POIS O TEXTO SERÁ LIDO POR PESSOAS E NÃO POR ROBÔS.
+
+            Ao final, conclua com um parecer neutro sobre o momento da empresa: positivo, neutro ou de atenção, justificando com base nos dados.
+
+            ***O retorno deve ser formatado em JSON, seguindo a estrutura do exemplo a seguir, pois será utilizado em uma aplicação real, sem isto posso acabar perdendo clientes, por favor não esqueça desse detalhe***
+
+            Estrutura de retorno: 
+            Não coloque o JSON dentro de um bloco de código markdown, apenas retorne o JSON puro.
+            {
+                title: Relatório de Análise: NOME_DA_EMPRESA (TICKER_DA_EMPRESA)", 
+                content: [
+                    {icon: "check", paragraph_title: "TITULO_DO_PARAGRAFO 1", paragraph_content: "Conteúdo do paragrafo 1..."},
+                    {icon: "money_up" paragraph_title: "TITULO_DO_PARAGRAFO 2", paragraph_content: "Conteúdo do paragrafo 2..."},
+                    {paragraph_title: "TITULO_DO_PARAGRAFO 3", paragraph_content: "Conteúdo do paragrafo 3..."},
+                    ...
+                ],
+                conclusion: "TEXTO_DE_CONCLUSAO_DENSENVOLVIDA"
+            }
+
+            Valores permitidos para icon: "check", "warning", "money", "money_down", "money_up", "bank", "briefcase", "down_trend", "up_trend". Quando não tiver um, não coloque nada.
+
+            A conclusão não deve ser apenas uma palavra, por exemplo: "positivo", "neutro" ou "de atenção". Ela deve ser desenovolvida e explicar o porquê de ser positivo, neutro ou de atenção.
+
+            UTILIZE ICONES PARA DEIXAR O TEXTO MAIS INTERATIVO E LEGÍVEL, PORÉM NÃO EXAGERE, O TEXTO TEM QUE SER LEVE E OBJETIVO. NÃO USE EMOTICONES, SOMENTE ICONES COMO: ✅, ⚠️, 📉, 💰, 💸, 📈, 📊, 💹, 🏦, 💼, 📉, 📊, 💰.
+        `;
+
+        return { ia_assistant_context, invest_track_context, get_investment_plan_context, asset_report_ai };
     }
 }

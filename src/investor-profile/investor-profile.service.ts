@@ -104,7 +104,7 @@ export class InvestorProfileService {
             // return { prompt_investment_plan, user_answers_and_profile, tags_prompt };
 
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
+                model: process.env.OPEN_AI_MODEL,
                 messages: [
                     { role: 'system', content: this.prompts["get_investment_plan_context"] },
                     { role: 'system', content: user_answers_and_profile },

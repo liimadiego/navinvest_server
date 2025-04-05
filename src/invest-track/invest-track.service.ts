@@ -21,7 +21,7 @@ export class InvestTrackService {
     async getIAOpinion(action: UserAction): Promise<any> {
         try {
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
+                model: process.env.OPEN_AI_MODEL,
                 messages: [
                     { role: 'system', content: this.getPrompt("invest_track_context") + "\n\n" + this.buildDescription(action) },
                 ],

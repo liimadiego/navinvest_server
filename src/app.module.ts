@@ -16,6 +16,7 @@ import { CurrencyConverterModule } from './currency-converter/currency-converter
 import { UtilsModule } from './utils/utils.module';
 import { InvestmentPortfolioModule } from './investment-portfolio/investment-portfolio.module';
 import { PortfolioTransactionsModule } from './portfolio-transactions/portfolio-transactions.module';
+import { AssetReportAiModule } from './asset-report-ai/asset-report-ai.module';
 
 @Module({
   controllers: [AppController],
@@ -36,6 +37,7 @@ import { PortfolioTransactionsModule } from './portfolio-transactions/portfolio-
     UtilsModule,
     InvestmentPortfolioModule,
     PortfolioTransactionsModule,
+    AssetReportAiModule,
   ],
 })
 export class AppModule { }
