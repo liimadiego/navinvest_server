@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Put } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put, Delete } from '@nestjs/common';
 import { PortfolioTransactionsService } from './portfolio-transactions.service';
 import { CreatePortfolioTransactionDto } from './dto/create-portfolio-transaction-dto';
 
@@ -20,6 +20,14 @@ export class PortfolioTransactionsController {
     data.id = id;
 
     return this.portfolioTransactionsService.editTransaction(data);
+  }
+
+  @Delete(':id')
+  async deleteTransaction(@Param('id') id: string): Promise<any> {
+    if (!id) {
+      throw new Error('ID is required');
+    }
+    return this.portfolioTransactionsService.deleteTransaction(id);
   }
 
   //getTransactions

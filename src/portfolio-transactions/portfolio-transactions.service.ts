@@ -54,6 +54,15 @@ export class PortfolioTransactionsService {
         return this.portfolioTransactionRepository.save(updatedTransaction);
     }
 
+    async deleteTransaction(id: string): Promise<any> {
+        const transaction = await this.portfolioTransactionRepository.findOne({ where: { id } });
+        if (!transaction) {
+            throw new NotFoundException(`Transaction with ID ${id} not found`);
+        }
+
+        return this.portfolioTransactionRepository.remove(transaction);
+    }
+
     async getTransactions(portfolioId: string, individualTransactions: boolean): Promise<any[]> {
         const portfolioExists = await this.investmentPortfolioRepository.exists({ where: { id: portfolioId } });
         if (!portfolioExists) {
