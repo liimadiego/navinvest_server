@@ -17,6 +17,10 @@ export class CreatePortfolioTransactionDto {
     @IsNumber()
     price_per_unit?: number;
 
+    //quantity
+    @IsNumber()
+    quantity: number;
+
     // @IsOptional()
     // @IsNumber()
     // fees?: number;

@@ -34,6 +34,9 @@ export class PortfolioTransactionEntity {
     @Column({ type: 'numeric', precision: 18, scale: 2, nullable: true })
     price_per_unit?: number;
 
+    @Column({ type: 'numeric', precision: 18, scale: 8 })
+    quantity: number;
+
     @Index()
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     transaction_date: Date;

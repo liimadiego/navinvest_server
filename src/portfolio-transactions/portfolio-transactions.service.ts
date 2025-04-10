@@ -38,12 +38,23 @@ export class PortfolioTransactionsService {
             amount: createDto.amount,
             price_per_unit: createDto.price_per_unit,
             transaction_date: createDto.transaction_date || new Date(),
+            quantity: createDto.quantity
         });
 
         return this.portfolioTransactionRepository.save(transaction);
     }
 
-    async getTransactions(portfolioId: string): Promise<any[]> {
+    async editTransaction(data: any): Promise<any> {
+        const transaction = await this.portfolioTransactionRepository.findOne({ where: { id: data.id } });
+        if (!transaction) {
+            throw new NotFoundException(`Transaction with ID ${data.id} not found`);
+        }
+
+        const updatedTransaction = this.portfolioTransactionRepository.merge(transaction, data);
+        return this.portfolioTransactionRepository.save(updatedTransaction);
+    }
+
+    async getTransactions(portfolioId: string, individualTransactions: boolean): Promise<any[]> {
         const portfolioExists = await this.investmentPortfolioRepository.exists({ where: { id: portfolioId } });
         if (!portfolioExists) {
             throw new NotFoundException(`Portfolio with ID ${portfolioId} not found`);
@@ -58,6 +69,7 @@ export class PortfolioTransactionsService {
                 amount: true,
                 price_per_unit: true,
                 transaction_date: true,
+                quantity: true,
                 ticker: {
                     id: true,
                     ticker: true,
@@ -71,8 +83,25 @@ export class PortfolioTransactionsService {
             },
         });
 
-        return this.consolidatePortfolio(transactions);
+        if (individualTransactions) {
+            transactions.forEach((transaction) => {
+                transaction.ticker.asset_type = this.translateAssetType(
+                    transaction.ticker.asset_type,
+                    transaction.ticker.currency
+                );
+            });
 
+            //mais recentes antes (transaction.transcation_date)
+            transactions.sort((a, b) => {
+                const dateA = new Date(a.transaction_date).getTime();
+                const dateB = new Date(b.transaction_date).getTime();
+                return dateB - dateA;
+            });
+
+            return transactions;
+        }
+
+        return this.consolidatePortfolio(transactions);
     }
 
     translateAssetType(assetType: string, currency: string): string {
@@ -101,7 +130,7 @@ export class PortfolioTransactionsService {
             const tickerCode = transaction.ticker.ticker;
             const amount = parseFloat(transaction.amount);
             const price = parseFloat(transaction.price_per_unit);
-            const quantity = amount / price;
+            const quantity = parseFloat(transaction.quantity);
 
             if (!grouped[tickerCode]) {
                 grouped[tickerCode] = {
@@ -113,6 +142,7 @@ export class PortfolioTransactionsService {
                     currency: transaction.ticker.currency,
                     total_amount: 0,
                     total_quantity: 0,
+                    quantity,
                     current_price: parseFloat(transaction.ticker.current_price),
                 };
             }
