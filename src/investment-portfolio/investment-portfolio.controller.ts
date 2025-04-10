@@ -6,7 +6,6 @@ import { CreateInvestmentPortfolioDto } from './dto/create-investment-portfolio-
 export class InvestmentPortfolioController {
   constructor(private readonly investmentPortfolioService: InvestmentPortfolioService) { }
 
-  //create
   @Post()
   async create(@Body() investmentPortfolio: CreateInvestmentPortfolioDto) {
     return await this.investmentPortfolioService.create(investmentPortfolio);

@@ -31,10 +31,9 @@ export class InvestmentPortfolioService {
             throw new Error('Erro ao criar portfólio de investimentos.');
         }
 
-        delete newInvestmentPortfolio.user;
-        delete newInvestmentPortfolio.userId;
+        const investmentPortfolios = await this.findByUserId(user_id);
 
-        return newInvestmentPortfolio;
+        return investmentPortfolios;
     }
 
     async findByUserId(userId: string) {
@@ -51,6 +50,9 @@ export class InvestmentPortfolioService {
                 user: {
                     id: user.id
                 }
+            },
+            order: {
+                created_at: 'DESC'
             }
         });
 

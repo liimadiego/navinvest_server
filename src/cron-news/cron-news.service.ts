@@ -22,7 +22,7 @@ export class CronNewsService implements OnModuleInit {
         //      this.sendNewsToSubscribers();
         // });
         // this.saveNewsInDatabase();
-        console.log('Cron job agendada.');
+        // console.log('Cron job agendada.');
     }
 
     private async fetchAndSaveNews(searchTerm: string, ticker: any) {
