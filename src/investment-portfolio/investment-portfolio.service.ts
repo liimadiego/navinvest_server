@@ -58,4 +58,46 @@ export class InvestmentPortfolioService {
 
         return investment_portfolios;
     }
+
+    async getTransactionsByInvestmentPortfolioId(investmentPortfolioId: string) {
+        const investmentPortfolio = await this.investmentPortfolioRepository.createQueryBuilder('investment_portfolio')
+            .leftJoinAndSelect('investment_portfolio.transactions', 'transactions')
+            .leftJoinAndSelect('transactions.ticker', 'ticker')
+            .where('investment_portfolio.id = :investmentPortfolioId', { investmentPortfolioId })
+            .getOne();
+
+        if (!investmentPortfolio) {
+            throw new Error('Portfólio de investimentos não encontrado.');
+        }
+
+        return investmentPortfolio;
+    }
+
+    async getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId: string) {
+        const investmentPortfolio = await this.getTransactionsByInvestmentPortfolioId(investmentPortfolioId);
+
+        const totalAssets = investmentPortfolio.transactions.reduce((total, transaction) => {
+            return total + (transaction.quantity * transaction.ticker.current_price);
+        }, 0);
+
+        return {
+            investmentPortfolioId: investmentPortfolio.id,
+            totalAssets: parseFloat(totalAssets.toFixed(2)),
+            portfolioName: investmentPortfolio.name,
+        };
+    }
+
+    async getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId: string) {
+        const investmentPortfolio = await this.getTransactionsByInvestmentPortfolioId(investmentPortfolioId);
+
+        const totalInvested = investmentPortfolio.transactions.reduce((total, transaction) => {
+            return total + (transaction.quantity * transaction.price_per_unit);
+        }, 0);
+
+        return {
+            investmentPortfolioId: investmentPortfolio.id,
+            totalInvested: parseFloat(totalInvested.toFixed(2)),
+            portfolioName: investmentPortfolio.name,
+        };
+    }
 }

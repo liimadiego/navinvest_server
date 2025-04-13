@@ -15,4 +15,22 @@ export class InvestmentPortfolioController {
   async findByUserId(@Param('userId') userId: string) {
     return await this.investmentPortfolioService.findByUserId(userId);
   }
+
+  @Get('total-assets/:investmentPortfolioId')
+  async getTotalAssetsByInvestmentPortfolioId(@Param('investmentPortfolioId') investmentPortfolioId: string) {
+    if (!investmentPortfolioId) {
+      throw new Error('Investment Portfolio ID is required.');
+    }
+
+    return await this.investmentPortfolioService.getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId);
+  }
+
+  @Get('total-invested/:investmentPortfolioId')
+  async getTotalInvestedByInvestmentPortfolioId(@Param('investmentPortfolioId') investmentPortfolioId: string) {
+    if (!investmentPortfolioId) {
+      throw new Error('Investment Portfolio ID is required.');
+    }
+
+    return await this.investmentPortfolioService.getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId);
+  }
 }
