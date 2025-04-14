@@ -15,4 +15,4 @@ import { NewsService } from '../news/news.service';
   ],
   providers: [CronNewsService],
 })
-export class NewsModule { }
+export class CronNewsModule { }

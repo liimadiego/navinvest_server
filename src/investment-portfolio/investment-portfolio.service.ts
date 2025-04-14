@@ -4,6 +4,9 @@ import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.enti
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateInvestmentPortfolioDto } from './dto/create-investment-portfolio-dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { PortfolioDataRecord, PortfolioDataRecordDocument } from '../schemas/portfolio-data-record.schema';
 
 @Injectable()
 export class InvestmentPortfolioService {
@@ -11,7 +14,9 @@ export class InvestmentPortfolioService {
         @InjectRepository(InvestmentPortfolioEntity)
         private readonly investmentPortfolioRepository: Repository<InvestmentPortfolioEntity>,
         @InjectRepository(UserEntity)
-        private readonly userRepository: Repository<UserEntity>
+        private readonly userRepository: Repository<UserEntity>,
+        @InjectModel(PortfolioDataRecord.name)
+        private portfolioDataRecordModel: Model<PortfolioDataRecordDocument>
     ) { }
 
     async create(investmentPortfolio: CreateInvestmentPortfolioDto) {
@@ -83,7 +88,7 @@ export class InvestmentPortfolioService {
         return {
             investmentPortfolioId: investmentPortfolio.id,
             totalAssets: parseFloat(totalAssets.toFixed(2)),
-            portfolioName: investmentPortfolio.name,
+            portfolioName: investmentPortfolio.name
         };
     }
 
@@ -100,4 +105,93 @@ export class InvestmentPortfolioService {
             portfolioName: investmentPortfolio.name,
         };
     }
+
+    async insertOrUpdatePortfolioDataRecord(portfolioId: string, record: any) {
+        try {
+            const month = record.month || new Date().getMonth() + 1;
+            const year = record.year || new Date().getFullYear();
+            const currency = record.currency || 'BRL';
+            const totalAssets = record.totalAssets;
+            const totalInvested = record.totalInvested;
+
+            const existingRecord = await this.portfolioDataRecordModel.findOne({
+                portfolioId: portfolioId
+            });
+
+            if (!existingRecord) {
+                const newRecord = new this.portfolioDataRecordModel({
+                    portfolioId,
+                    date: new Date(),
+                    data: record,
+                });
+
+                await newRecord.save();
+
+                return newRecord;
+            } else {
+                const data = existingRecord.data;
+
+                const existingData = data.find((d: any) => d.month === month.toString() && d.year === year.toString());
+
+                if (existingData) {
+                    existingData.totalAssets = totalAssets;
+                    existingData.totalInvested = totalInvested;
+                    existingData.currency = currency;
+                } else {
+                    data.push({
+                        month: month.toString(),
+                        year: year.toString(),
+                        totalAssets,
+                        totalInvested,
+                        currency
+                    });
+                }
+
+                await this.portfolioDataRecordModel.updateOne(
+                    { portfolioId },
+                    {
+                        $set: {
+                            data: data,
+                        },
+                    }
+                );
+
+                return existingRecord;
+            }
+
+
+        } catch (error) {
+            throw new Error(`Erro ao salvar registro de ativos: ${error.message}`);
+        }
+    }
+
+    async getPortfolioDataByPortfolioId(portfolioId: string) {
+        const portfolioDataRecord = await this.portfolioDataRecordModel.findOne({
+            portfolioId: portfolioId
+        });
+
+        if (!portfolioDataRecord) {
+            throw new Error('Registro de ativos não encontrado.');
+        }
+
+        const data = portfolioDataRecord.data;
+        const currentDate = new Date();
+        const twelveMonthsAgo = new Date(currentDate.setMonth(currentDate.getMonth() - 12));
+        const filteredData = data.filter((d: any) => {
+            const recordDate = new Date(d.year, d.month - 1, 1);
+            return recordDate >= twelveMonthsAgo;
+        });
+
+        const currentTotalAssets = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId);
+        const currentTotalInvested = await this.getTotalInvestedByInvestmentPortfolioId(portfolioId);
+
+        return {
+            portfolioId: portfolioId,
+            historicalData: filteredData,
+            currentTotalAssets: currentTotalAssets.totalAssets,
+            currentTotalInvested: currentTotalInvested.totalInvested,
+            portfolioName: currentTotalAssets.portfolioName
+        }
+    }
+
 }

@@ -9,6 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TypeOrmConfig } from './config/database';
 import { NewsModule } from './news/news.module';
 import { CronNewsService } from './cron-news/cron-news.service';
+import { CronTotalAssetsService } from './cron-users/portfolio-data/cron-portfolio-data.service';
 import { TickerModule } from './ticker/ticker.module';
 import { InvestorProfileModule } from './investor-profile/investor-profile.module';
 import { TagModule } from './tag/tag.module';
@@ -17,12 +18,15 @@ import { UtilsModule } from './utils/utils.module';
 import { InvestmentPortfolioModule } from './investment-portfolio/investment-portfolio.module';
 import { PortfolioTransactionsModule } from './portfolio-transactions/portfolio-transactions.module';
 import { AssetReportAiModule } from './asset-report-ai/asset-report-ai.module';
+import { UsersModule } from './users/users.module';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   controllers: [AppController],
-  providers: [AppService, CronNewsService],
+  providers: [AppService, CronNewsService, CronTotalAssetsService],
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig()),
+    MongooseModule.forRoot('mongodb://localhost:27017/ai_invest'),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -38,6 +42,7 @@ import { AssetReportAiModule } from './asset-report-ai/asset-report-ai.module';
     InvestmentPortfolioModule,
     PortfolioTransactionsModule,
     AssetReportAiModule,
+    UsersModule,
   ],
 })
 export class AppModule { }

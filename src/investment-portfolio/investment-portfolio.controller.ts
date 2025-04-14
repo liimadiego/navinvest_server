@@ -33,4 +33,14 @@ export class InvestmentPortfolioController {
 
     return await this.investmentPortfolioService.getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId);
   }
+
+  //getAssetsRecordByPortfolioId
+  @Get('portfolio-data/:investmentPortfolioId')
+  async getPortfolioDataByPortfolioId(@Param('investmentPortfolioId') investmentPortfolioId: string) {
+    if (!investmentPortfolioId) {
+      throw new Error('Investment Portfolio ID is required.');
+    }
+
+    return await this.investmentPortfolioService.getPortfolioDataByPortfolioId(investmentPortfolioId);
+  }
 }
