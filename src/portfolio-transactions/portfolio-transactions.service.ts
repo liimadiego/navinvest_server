@@ -5,6 +5,7 @@ import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entit
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePortfolioTransactionDto } from './dto/create-portfolio-transaction-dto';
+import { LanguagesService } from 'utils/language.service';
 
 @Injectable()
 export class PortfolioTransactionsService {
@@ -14,7 +15,8 @@ export class PortfolioTransactionsService {
         @InjectRepository(TickersEntity)
         private readonly tickerRepository: Repository<TickersEntity>,
         @InjectRepository(PortfolioTransactionEntity)
-        private readonly portfolioTransactionRepository: Repository<PortfolioTransactionEntity>
+        private readonly portfolioTransactionRepository: Repository<PortfolioTransactionEntity>,
+        private readonly languagesService: LanguagesService,
     ) { }
 
     async createTransaction(createDto: CreatePortfolioTransactionDto): Promise<any> {
@@ -63,7 +65,7 @@ export class PortfolioTransactionsService {
         return this.portfolioTransactionRepository.remove(transaction);
     }
 
-    async getTransactions(portfolioId: string, individualTransactions: boolean): Promise<any[]> {
+    async getTransactions(portfolioId: string, individualTransactions: boolean, verbose: boolean = true): Promise<any[]> {
         const portfolioExists = await this.investmentPortfolioRepository.exists({ where: { id: portfolioId } });
         if (!portfolioExists) {
             throw new NotFoundException(`Portfolio with ID ${portfolioId} not found`);
@@ -94,7 +96,7 @@ export class PortfolioTransactionsService {
 
         if (individualTransactions) {
             transactions.forEach((transaction) => {
-                transaction.ticker.asset_type = this.translateAssetType(
+                transaction.ticker.asset_type = this.languagesService.translateAssetType(
                     transaction.ticker.asset_type,
                     transaction.ticker.currency
                 );
@@ -110,35 +112,15 @@ export class PortfolioTransactionsService {
             return transactions;
         }
 
-        return this.consolidatePortfolio(transactions);
+        return this.consolidatePortfolio(transactions, verbose);
     }
 
-    translateAssetType(assetType: string, currency: string): string {
-        const type = assetType.toLowerCase();
-        const currencyCode = currency.toUpperCase();
-
-        if (type === 'stock' && currencyCode === 'BRL') return 'Ações';
-        if (type === 'stock' && currencyCode === 'USD') return 'Stocks';
-
-        const typeMap: Record<string, string> = {
-            fii: 'FIIs',
-            etf: 'ETFs',
-            bdr: 'BDRs',
-            reit: 'REITs',
-            crypto: 'Criptomoedas',
-            stablecoin: 'Criptomoedas',
-        };
-
-        return typeMap[type] || 'Others';
-    }
-
-    consolidatePortfolio(transactions: any[]): any[] {
+    consolidatePortfolio(transactions: any[], verbose: boolean = true): any[] {
         const grouped: Record<string, any> = {};
 
         for (const transaction of transactions) {
             const tickerCode = transaction.ticker.ticker;
             const amount = parseFloat(transaction.amount);
-            const price = parseFloat(transaction.price_per_unit);
             const quantity = parseFloat(transaction.quantity);
 
             if (!grouped[tickerCode]) {
@@ -214,7 +196,7 @@ export class PortfolioTransactionsService {
                     ? ((parseFloat(asset.current_value) / totalPortfolioValue) * 100).toFixed(2)
                     : '0.00';
 
-            const categoryName = this.translateAssetType(asset.asset_type, asset.currency);
+            const categoryName = this.languagesService.translateAssetType(asset.asset_type, asset.currency);
 
             if (!groupedByCategory[categoryName]) {
                 groupedByCategory[categoryName] = [];
@@ -227,10 +209,29 @@ export class PortfolioTransactionsService {
             });
         }
 
-        return Object.entries(groupedByCategory).map(([category, assets]) => ({
-            category,
-            assets,
-        }));
+        if (verbose) {
+            return Object.entries(groupedByCategory).map(([category, assets]) => {
+                console.log({ category, assets })
+                return {
+                    category,
+                    assets,
+                }
+            });
+        }
+
+        //retorna somente o nome da categoria e a porcentagem total dela
+        return Object.entries(groupedByCategory).map(([category, assets]) => {
+            const totalPercentage = assets.reduce(
+                (acc, asset) => acc + parseFloat(asset.percentage),
+                0
+            );
+
+            return {
+                category,
+                total_percentage: totalPercentage.toFixed(2),
+            };
+        });
+
     }
 
 }

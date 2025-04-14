@@ -1,5 +1,5 @@
 import { UserEntity } from './../entities/user.entity';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,6 +7,8 @@ import { CreateInvestmentPortfolioDto } from './dto/create-investment-portfolio-
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PortfolioDataRecord, PortfolioDataRecordDocument } from '../schemas/portfolio-data-record.schema';
+import { LanguagesService } from 'utils/language.service';
+import { PortfolioTransactionsService } from 'portfolio-transactions/portfolio-transactions.service';
 
 @Injectable()
 export class InvestmentPortfolioService {
@@ -16,7 +18,9 @@ export class InvestmentPortfolioService {
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
         @InjectModel(PortfolioDataRecord.name)
-        private portfolioDataRecordModel: Model<PortfolioDataRecordDocument>
+        private portfolioDataRecordModel: Model<PortfolioDataRecordDocument>,
+        private readonly languagesService: LanguagesService,
+        private readonly portfolioTransactionsService: PortfolioTransactionsService,
     ) { }
 
     async create(investmentPortfolio: CreateInvestmentPortfolioDto) {
@@ -171,7 +175,13 @@ export class InvestmentPortfolioService {
         });
 
         if (!portfolioDataRecord) {
-            throw new Error('Registro de ativos não encontrado.');
+            return {
+                portfolioId: portfolioId,
+                historicalData: [],
+                currentTotalAssets: 0,
+                currentTotalInvested: 0,
+                portfolioName: ''
+            };
         }
 
         const data = portfolioDataRecord.data;
@@ -184,13 +194,15 @@ export class InvestmentPortfolioService {
 
         const currentTotalAssets = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId);
         const currentTotalInvested = await this.getTotalInvestedByInvestmentPortfolioId(portfolioId);
+        const portfolioDivision = await this.portfolioTransactionsService.getTransactions(portfolioId, false, false)
 
         return {
             portfolioId: portfolioId,
             historicalData: filteredData,
             currentTotalAssets: currentTotalAssets.totalAssets,
             currentTotalInvested: currentTotalInvested.totalInvested,
-            portfolioName: currentTotalAssets.portfolioName
+            portfolioName: currentTotalAssets.portfolioName,
+            portfolioDivision: portfolioDivision,
         }
     }
 

@@ -36,11 +36,8 @@ export class PortfolioTransactionsController {
     return this.portfolioTransactionsService.getTransactions(portfolioId, true);
   }
 
-
-  //getTransactions
   @Get('consolidated-transactions/:portfolioId')
   async getConsolidatedTransactions(@Param('portfolioId') portfolioId: string): Promise<any> {
     return this.portfolioTransactionsService.getTransactions(portfolioId, false);
   }
-
 }

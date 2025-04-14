@@ -5,6 +5,7 @@ import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.enti
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
 import { TickersEntity } from 'entities/tickers.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { LanguagesService } from 'utils/language.service';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ]),
   ],
   controllers: [PortfolioTransactionsController],
-  providers: [PortfolioTransactionsService],
+  providers: [PortfolioTransactionsService, LanguagesService],
+  exports: [PortfolioTransactionsService],
 })
 export class PortfolioTransactionsModule { }
