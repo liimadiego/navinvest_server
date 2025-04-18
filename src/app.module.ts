@@ -26,7 +26,7 @@ import { MongooseModule } from '@nestjs/mongoose';
   providers: [AppService, CronNewsService, CronTotalAssetsService],
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig()),
-    MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@localhost:27017/ai_invest`, {
+    MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}:27017/ai_invest`, {
       authSource: 'admin',
     }),
     ConfigModule.forRoot({

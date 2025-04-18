@@ -1,8 +1,0 @@
-Primeiro contato com a IA no assistente
-
-Contexto: esse prompt faz parte de uma plataforma de investimentos com IA que possui um assistente de investimentos.
-Validação: Retorne false se essa pergunta não for pertinente ao contexto, fere algum limite legal, prejudica a plataforma de alguma forma ou peça uma indicação direta de investimento que comprometa a plataforma. A resposta também deve ser não caso a pergunta seja para ganhar dinheiro fácil ou qualquer coisa nesse sentido. Caso contrário, retorne true.
-Resposta: Caso a validação seja igual a Sim, responda a pergunta do cliente de forma clara e objetiva, identificando o nível de pergunta para dar um nível de resposta a altura, não se estenda mais do que necessário.
-Pergunta do cliente: "Boa tarde, como funcionam os fundos imobiliarios?"
-Estrutura final de resposta: {valid_question: (valor da validação), answer: (resposta, caso a validação for true, senão, "")} 
-
