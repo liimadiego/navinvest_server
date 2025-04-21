@@ -34,7 +34,6 @@ export class InvestmentPortfolioController {
     return await this.investmentPortfolioService.getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId);
   }
 
-  //getAssetsRecordByPortfolioId
   @Get('portfolio-data/:investmentPortfolioId')
   async getPortfolioDataByPortfolioId(@Param('investmentPortfolioId') investmentPortfolioId: string) {
     if (!investmentPortfolioId) {

@@ -10,6 +10,7 @@ import { LanguagesService } from 'utils/language.service';
 import { PortfolioTransactionsService } from 'portfolio-transactions/portfolio-transactions.service';
 import { TickersEntity } from 'entities/tickers.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
+import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entit
       InvestmentPortfolioEntity,
       TickersEntity,
       PortfolioTransactionEntity,
+      FixedIncomeDetailsEntity,
       UserEntity
     ]),
   ],

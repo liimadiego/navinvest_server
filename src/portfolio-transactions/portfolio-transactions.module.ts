@@ -6,13 +6,15 @@ import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entit
 import { TickersEntity } from 'entities/tickers.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LanguagesService } from 'utils/language.service';
+import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       InvestmentPortfolioEntity,
       TickersEntity,
-      PortfolioTransactionEntity
+      PortfolioTransactionEntity,
+      FixedIncomeDetailsEntity,
     ]),
   ],
   controllers: [PortfolioTransactionsController],

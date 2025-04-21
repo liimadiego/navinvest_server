@@ -24,6 +24,9 @@ export class LanguagesService {
         if (type === 'stock' && currencyCode === 'USD') return 'Stocks';
 
         const typeMap: Record<string, string> = {
+            mutual_fund: 'Mutual Funds',
+            fixed_income: 'Renda Fixa',
+            treasury: 'Títulos Públicos',
             fii: 'FIIs',
             etf: 'ETFs',
             bdr: 'BDRs',

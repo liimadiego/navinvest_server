@@ -85,8 +85,16 @@ export class InvestmentPortfolioService {
     async getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId: string) {
         const investmentPortfolio = await this.getTransactionsByInvestmentPortfolioId(investmentPortfolioId);
 
+        //MEXER AQUI (ADAPTAR PARA O NOVO MODELO DE DADOS)
         const totalAssets = investmentPortfolio.transactions.reduce((total, transaction) => {
-            return total + (transaction.quantity * transaction.ticker.current_price);
+            if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
+                if (transaction.transaction_type === 'SELL') {
+                    return total - (transaction.quantity * transaction.price_per_unit);
+                }
+                return total + (transaction.quantity * transaction.ticker.current_price);
+            }
+
+            return total;
         }, 0);
 
         return {

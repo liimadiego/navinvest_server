@@ -11,6 +11,7 @@ import { UserNewsEntity } from '../entities/user-news.entity';
 import { UserTickersSubscribeEntity } from '../entities/user-tickers-subscribe.entity';
 import { InvestorProfileEntity } from '../entities/investor-profile.entity';
 import { TagEntity } from '../entities/tag.entity';
+import { FixedIncomeDetailsEntity } from '../entities/fixed-income-details.entity';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ export const TypeOrmConfig = () =>
             UserProfileEntity,
             UserSettingsEntity,
             PortfolioTransactionEntity,
+            FixedIncomeDetailsEntity,
             InvestmentPortfolioEntity,
             NewsEntity,
             TickersEntity,

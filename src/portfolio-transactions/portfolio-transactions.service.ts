@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { TickersEntity } from 'entities/tickers.entity';
 import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
+import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePortfolioTransactionDto } from './dto/create-portfolio-transaction-dto';
@@ -10,7 +11,6 @@ import OpenAI from 'openai';
 import * as path from 'path';
 import * as csv from 'csv-parser';
 import * as xlsx from 'xlsx';
-import { ConfigService } from '@nestjs/config';
 import { Multer } from 'multer';
 import { PromptsService } from '../utils/prompts.service';
 @Injectable()
@@ -26,7 +26,8 @@ export class PortfolioTransactionsService {
         @InjectRepository(PortfolioTransactionEntity)
         private readonly portfolioTransactionRepository: Repository<PortfolioTransactionEntity>,
         private readonly languagesService: LanguagesService,
-        private configService: ConfigService
+        @InjectRepository(FixedIncomeDetailsEntity)
+        private readonly fixedIncomeDetailsRepository: Repository<FixedIncomeDetailsEntity>,
     ) {
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
@@ -75,40 +76,144 @@ export class PortfolioTransactionsService {
     }
 
     async createTransaction(createDto: CreatePortfolioTransactionDto): Promise<any> {
-        const [portfolioExists, tickerExists] = await Promise.all([
-            this.investmentPortfolioRepository.exist({ where: { id: createDto.portfolio_id } }),
-            this.tickerRepository.exist({ where: { id: createDto.ticker_id } }),
-        ]);
+        const portfolioExists = await this.investmentPortfolioRepository.exists({
+            where: { id: createDto.portfolio_id }
+        });
 
         if (!portfolioExists) {
             throw new NotFoundException(`Portfolio with ID ${createDto.portfolio_id} not found`);
         }
 
-        if (!tickerExists) {
-            throw new NotFoundException(`Ticker with ID ${createDto.ticker_id} not found`);
+        if (createDto.ticker_id) {
+            const tickerExists = await this.tickerRepository.exists({
+                where: { id: createDto.ticker_id }
+            });
+
+            if (!tickerExists) {
+                throw new NotFoundException(`Ticker with ID ${createDto.ticker_id} not found`);
+            }
+        }
+
+        let fixedIncomeDetails = null;
+
+        if (createDto.asset_type === 'FIXED_INCOME' && (
+            !createDto.issuer ||
+            !createDto.investment_type ||
+            !createDto.indexation_type ||
+            !createDto.expiration_date ||
+            !createDto.indexer ||
+            !createDto.currency ||
+            !createDto.indexer_rate
+        )) {
+            throw new NotFoundException(`Missing required fields for fixed income transaction`);
+        }
+
+        if (createDto.asset_type === 'FIXED_INCOME') {
+            fixedIncomeDetails = {
+                issuer: createDto.issuer,
+                investment_type: createDto.investment_type,
+                indexation_type: createDto.indexation_type,
+                expiration_date: createDto.expiration_date,
+                indexer: createDto.indexer,
+                currency: createDto.currency,
+                indexer_rate: createDto.indexer_rate,
+            };
         }
 
         const transaction = this.portfolioTransactionRepository.create({
             portfolio: { id: createDto.portfolio_id },
-            ticker: { id: createDto.ticker_id },
+            ticker: createDto.ticker_id ? { id: createDto.ticker_id } : null,
+            asset_type: createDto.asset_type,
             transaction_type: createDto.transaction_type,
             amount: createDto.amount,
-            price_per_unit: createDto.price_per_unit,
+            price_per_unit: createDto.price_per_unit || null,
             transaction_date: createDto.transaction_date || new Date(),
-            quantity: createDto.quantity
+            quantity: createDto.quantity || 0,
+            fixed_income_details: fixedIncomeDetails ? await this.fixedIncomeDetailsRepository.save(fixedIncomeDetails) : null,
         });
 
         return this.portfolioTransactionRepository.save(transaction);
     }
 
     async editTransaction(data: any): Promise<any> {
-        const transaction = await this.portfolioTransactionRepository.findOne({ where: { id: data.id } });
+        let transaction: any;
+
+        if (data.asset_type === 'FIXED_INCOME') {
+            transaction = await this.portfolioTransactionRepository.findOne({
+                where: { id: data.id },
+                relations: ['fixed_income_details']
+            });
+        } else {
+            transaction = await this.portfolioTransactionRepository.findOne({ where: { id: data.id } });
+        }
+
         if (!transaction) {
             throw new NotFoundException(`Transaction with ID ${data.id} not found`);
         }
 
-        const updatedTransaction = this.portfolioTransactionRepository.merge(transaction, data);
-        return this.portfolioTransactionRepository.save(updatedTransaction);
+        if (data.ticker_id) {
+            const tickerExists = await this.tickerRepository.exists({
+                where: { id: data.ticker_id }
+            });
+
+            if (!tickerExists) {
+                throw new NotFoundException(`Ticker with ID ${data.ticker_id} not found`);
+            }
+        }
+
+        if (data.asset_type === 'FIXED_INCOME' && (
+            !data.issuer ||
+            !data.investment_type ||
+            !data.indexation_type ||
+            !data.expiration_date ||
+            !data.indexer ||
+            !data.currency ||
+            !data.indexer_rate
+        )) {
+            throw new NotFoundException(`Missing required fields for fixed income transaction`);
+        }
+
+        if (data.asset_type === 'FIXED_INCOME') {
+            const fixed_income_details_data = {
+                issuer: data.issuer,
+                investment_type: data.investment_type,
+                indexation_type: data.indexation_type,
+                expiration_date: data.expiration_date,
+                indexer: data.indexer,
+                currency: data.currency,
+                indexer_rate: data.indexer_rate,
+            };
+
+            const fixed_income_details = await this.fixedIncomeDetailsRepository.findOne({ where: { id: transaction.fixed_income_details.id } });
+
+            if (!fixed_income_details) {
+                throw new NotFoundException(`Fixed income details with ID ${transaction.fixed_income_details.id} not found`);
+            }
+
+            await this.fixedIncomeDetailsRepository.update(fixed_income_details.id, fixed_income_details_data);
+            transaction.fixed_income_details = fixed_income_details;
+        }
+
+        transaction.portfolio = { id: data.portfolio_id };
+        transaction.ticker = data.ticker_id ? { id: data.ticker_id } : null;
+        transaction.asset_type = data.asset_type;
+        transaction.transaction_type = data.transaction_type;
+        transaction.amount = data.amount;
+        transaction.price_per_unit = data.price_per_unit || null;
+        transaction.transaction_date = data.transaction_date || new Date();
+        transaction.quantity = data.quantity || 0;
+
+        if (data.ticker_id) {
+            transaction.ticker_id = data.ticker_id;
+        }
+
+        if (data.costs !== undefined) {
+            transaction.costs = data.costs;
+        }
+
+        const updatedTransaction = await this.portfolioTransactionRepository.save(transaction);
+
+        return updatedTransaction;
     }
 
     async deleteTransaction(id: string): Promise<any> {
@@ -128,7 +233,7 @@ export class PortfolioTransactionsService {
 
         const transactions = await this.portfolioTransactionRepository.find({
             where: { portfolio: { id: portfolioId } },
-            relations: ['ticker'],
+            relations: ['ticker', 'fixed_income_details'],
             select: {
                 id: true,
                 transaction_type: true,
@@ -136,6 +241,8 @@ export class PortfolioTransactionsService {
                 price_per_unit: true,
                 transaction_date: true,
                 quantity: true,
+                asset_type: true,
+                created_at: true,
                 ticker: {
                     id: true,
                     ticker: true,
@@ -150,17 +257,16 @@ export class PortfolioTransactionsService {
         });
 
         if (individualTransactions) {
-            transactions.forEach((transaction) => {
-                transaction.ticker.asset_type = this.languagesService.translateAssetType(
-                    transaction.ticker.asset_type,
-                    transaction.ticker.currency
-                );
-            });
+            // transactions.forEach((transaction) => {
+            //     transaction.asset_type = this.languagesService.translateAssetType(
+            //         transaction.ticker?.asset_type || transaction.asset_type,
+            //         transaction.ticker?.currency || transaction.fixed_income_details?.currency || 'BRL'
+            //     );
+            // });
 
-            //mais recentes antes (transaction.transcation_date)
             transactions.sort((a, b) => {
-                const dateA = new Date(a.transaction_date).getTime();
-                const dateB = new Date(b.transaction_date).getTime();
+                const dateA = new Date(a.created_at).getTime();
+                const dateB = new Date(b.created_at).getTime();
                 return dateB - dateA;
             });
 
@@ -174,26 +280,50 @@ export class PortfolioTransactionsService {
         const grouped: Record<string, any> = {};
 
         for (const transaction of transactions) {
-            const tickerCode = transaction.ticker.ticker;
+            const isFixedIncome = transaction.fixed_income_details && !transaction.ticker;
+
+            let assetId: string;
+            let assetName: string;
+            let assetType: string;
+            let assetCurrency: string;
+            let assetImageUrl: string;
+            let currentPrice: number = 0;
+
+            if (isFixedIncome) {
+                assetId = `FI_${transaction.fixed_income_details.id}`;
+                assetName = `${transaction.fixed_income_details.issuer} - ${transaction.fixed_income_details.investment_type}`;
+                assetType = transaction.asset_type;
+                assetCurrency = transaction.fixed_income_details.currency || 'BRL';
+                assetImageUrl = 'https://investidor10.com.br/assets/front/images/money-check-alt.svg';
+            } else {
+                assetId = transaction.ticker?.ticker || 'TEMP';
+                assetName = transaction.ticker?.asset_name || 'N/A';
+                assetType = transaction.ticker?.asset_type || transaction.asset_type || 'N/A';
+                assetCurrency = transaction.ticker?.currency || 'BRL';
+                assetImageUrl = transaction.ticker?.asset_image_url || 'N/A';
+                currentPrice = transaction.ticker ? parseFloat(transaction.ticker.current_price) : 0;
+            }
+
             const amount = parseFloat(transaction.amount);
             const quantity = parseFloat(transaction.quantity);
 
-            if (!grouped[tickerCode]) {
-                grouped[tickerCode] = {
+            if (!grouped[assetId]) {
+                grouped[assetId] = {
                     transaction_id: transaction.id,
-                    ticker: tickerCode,
-                    asset_name: transaction.ticker.asset_name,
-                    asset_image_url: transaction.ticker.asset_image_url,
-                    asset_type: transaction.ticker.asset_type,
-                    currency: transaction.ticker.currency,
+                    ticker: isFixedIncome ? null : assetId,
+                    fixed_income_details: isFixedIncome ? transaction.fixed_income_details : null,
+                    asset_name: assetName,
+                    asset_image_url: assetImageUrl,
+                    asset_type: assetType,
+                    currency: assetCurrency,
                     total_amount: 0,
                     total_quantity: 0,
                     quantity,
-                    current_price: parseFloat(transaction.ticker.current_price),
+                    current_price: currentPrice,
                 };
             }
 
-            const asset = grouped[tickerCode];
+            const asset = grouped[assetId];
 
             if (transaction.transaction_type === 'BUY') {
                 asset.total_amount += amount;
@@ -215,22 +345,25 @@ export class PortfolioTransactionsService {
         }
 
         const consolidatedPortfolio = Object.values(grouped)
-            .filter((asset) => asset.total_quantity > 0)
+            .filter((asset) => asset.total_amount > 0)
             .map((asset) => {
-                const averagePrice =
-                    asset.total_quantity > 0
-                        ? asset.total_amount / asset.total_quantity
-                        : 0;
-                const currentValue = asset.total_quantity * asset.current_price;
+                const isFixedIncome = asset.fixed_income_details && !asset.ticker;
+                const averagePrice = isFixedIncome ?
+                    asset.total_amount :
+                    (asset.total_quantity > 0 ? asset.total_amount / asset.total_quantity : 0);
+
+                const currentValue = isFixedIncome ?
+                    asset.total_amount * 1.06 : //CRIAR LOGICA PARA PUXAR RENTABILIDADE DA RENDA FIXA
+                    asset.total_quantity * asset.current_price;
+
                 const profit = currentValue - asset.total_amount;
-                const variation =
-                    averagePrice > 0
-                        ? ((asset.current_price - averagePrice) / averagePrice) * 100
-                        : 0;
+                const variation = isFixedIncome ?
+                    ((currentValue - asset.total_amount) / asset.total_amount) * 100 :
+                    (averagePrice > 0 ? ((asset.current_price - averagePrice) / averagePrice) * 100 : 0);
 
                 return {
                     ...asset,
-                    average_price: averagePrice.toFixed(2),
+                    average_price: isFixedIncome ? null : averagePrice.toFixed(2),
                     total_quantity: asset.total_quantity,
                     current_value: currentValue.toFixed(2),
                     profit: profit.toFixed(2),
@@ -238,10 +371,7 @@ export class PortfolioTransactionsService {
                 };
             });
 
-        const totalPortfolioValue = consolidatedPortfolio.reduce(
-            (acc, asset) => acc + parseFloat(asset.current_value),
-            0
-        );
+        const totalPortfolioValue = consolidatedPortfolio.reduce((acc, asset) => acc + parseFloat(asset.current_value), 0);
 
         const groupedByCategory: Record<string, any[]> = {};
 
@@ -284,7 +414,6 @@ export class PortfolioTransactionsService {
                 total_percentage: totalPercentage.toFixed(2),
             };
         });
-
     }
 
     getPrompt(name: string): string | null {
