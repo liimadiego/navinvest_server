@@ -225,7 +225,8 @@ export class PromptsService {
 
             Você é uma IA que atua como assistente em uma plataforma de investimentos. Sua função é importar transações a partir de um arquivo enviado (imagem, CSV ou XLSX). Seu objetivo é retornar um array de objetos JSON, onde cada objeto representa uma transação com os seguintes campos:
 
-            Obrigatórios
+            Para itens de renda variável (identifique):
+            Obrigatórios:
             transaction_type: BUY ou SELL
             quantity: número com até 8 casas decimais
             price_per_unit: valor unitário do ativo (float)
@@ -235,6 +236,23 @@ export class PromptsService {
             Opcionais:
             amount: valor total da transação (float) — este campo é opcional
 
+            Para itens de renda fixa (identifique):
+            Obrigatórios:
+            transaction_type: BUY ou SELL
+
+            Opcionais:
+            amount: float
+            transaction_date: "YYYY-MM-DD"
+            expiration_date: "YYYY-MM-DD"
+            issuer: string
+            investment_type ('LCI', 'CDB', 'LCA', 'LC', 'LF', 'RDB', 'DEBENTURE', 'CRI', 'CRA', 'CCB')
+            indexation_type ('PRE_FIXED', 'POST_FIXED')
+            indexer ('CDI', 'CDI+', 'IPCA+')
+            indexer_rate: float (porcentagem. Ex: 100% = 100 - 43,4% = 43.4) 
+
+            OS VALORES DE RENDA FIXA PODEM VIR NULO (exceto transaction_type) CASO VOCÊ NÃO IDENTIFIQUE OU NÃO TENHA CERTEZA, MANDE OS QUE IDENTIFICOU, EXISTE UMA TELA APÓS ESSE PROCESSAMENTO PARA O USUÁRIO PREENCHER OS QUE FALTAM. 
+            OS VALORES DE RENDA VARIÁVEL DEVEM VIR COMPLETOS, OU ENTÃO RETORNE ERRO.
+
             Como processar:
             - Se for uma imagem, ela será enviada diretamente.
             - Se for um arquivo CSV ou XLSX, você receberá os dados da tabela processada.
@@ -242,25 +260,53 @@ export class PromptsService {
 
             Validação:
             - Só processe e retorne os dados se todos os campos obrigatórios estiverem presentes (transaction_type, price_per_unit, transaction_date, ticker, quantity).
-            - O campo amount pode estar ausente. Será processado na aplicação.
-            - Se faltar qualquer campo obrigatório, não processe e retorne uma mensagem informando em português do Brasil quais campos estão ausentes (use os nomes traduzidos, ex: "Data da transação", "Código do ativo", etc.).
-            - Se os dados forem ilegíveis, confusos ou não fizerem sentido como transações, diga isso ao usuário.
+            - (para renda fixa) Retorne como null campos de renda fixa não encontrados ou confusos.
+            - (para ambos) O campo amount pode estar ausente. Será processado na aplicação.
+            - (para ambos) Se faltar qualquer campo obrigatório, não processe e retorne uma mensagem informando em português do Brasil quais campos estão ausentes (use os nomes traduzidos, ex: "Data da transação", "Código do ativo", etc.).
+            - (Para renda variável) Se os dados forem ilegíveis, confusos ou não fizerem sentido como transações, diga isso ao usuário.
 
             Resposta esperada:
             Em caso de sucesso:
             {
                 "success": true,
-                "data": [
-                    {
-                        "transaction_type": "BUY",
-                        "amount": 52.0 (OU null, já que é opcional),
-                        "price_per_unit": 7.78,
-                        "transaction_date": "2025-03-25T00:00:00",
-                        "ticker": "AURE3",
-                        "quantity": 52.0
-                    },
-                    ...
-                ]
+                "data": {
+                    fixed_income: [
+                        {
+                             transaction_type: BUY,
+                             amount: 265.87,
+                             transaction_date: "2025-04-15",
+                             expiration_date: "2031-04-15",
+                             issuer: "C6 Bank",
+                             investment_type: "CDB",
+                             indexation_type: "POST_FIXED",
+                             indexer: "IPCA+",
+                             indexer_rate: 7
+                         },
+                          {
+                             transaction_type: BUY,
+                             amount: 265.87,
+                             transaction_date: "2025-04-15",
+                             expiration_date: "2031-04-15",
+                             issuer: "C6 Bank",
+                             investment_type: null,
+                             indexation_type: null,
+                             indexer: null,
+                             indexer_rate: null
+                         },
+                         ...
+                    ],
+                    variable_income: [
+                        {
+                             "transaction_type": "BUY",
+                             "amount": 52.0 (OU null, já que é opcional),
+                             "price_per_unit": 7.78,
+                             "transaction_date": "2025-03-25",
+                             "ticker": "AURE3",
+                             "quantity": 52.0
+                         },
+                         ...
+                    ]
+                }
             }
             Em caso de erro:
             {

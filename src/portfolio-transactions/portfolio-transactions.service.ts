@@ -35,44 +35,65 @@ export class PortfolioTransactionsService {
     }
 
     async createTransactionFromWalletImportData(walletImportData: any, portfolioId: string): Promise<any> {
-        const tickers = [];
-
-        for (const transaction of walletImportData) {
-            const ticker = await this.tickerRepository.findOne({ where: { ticker: transaction.ticker } });
-            if (!ticker) {
-                throw new NotFoundException(`Ticker ${transaction.ticker} not found`);
-            }
-
-            tickers.push({ tickerId: ticker.id, tickerName: transaction.ticker, ticker });
-        }
-
-        const portfolio = await this.investmentPortfolioRepository.findOne({ where: { id: portfolioId } });
-        if (!portfolio) {
+        const portfolioExists = await this.investmentPortfolioRepository.exists({ where: { id: portfolioId } });
+        if (!portfolioExists) {
             throw new NotFoundException(`Portfolio with ID ${portfolioId} not found`);
         }
 
-        for (const transaction of walletImportData) {
-            const ticker = tickers.find(t => t.tickerName === transaction.ticker);
+        // console.log('walletImportData', walletImportData);
 
+        const { fixed_income, variable_income } = walletImportData;
+        const transactions = [];
+
+        const fixedIncomeTransactions = fixed_income.map((item: any) => {
+            return {
+                portfolio_id: portfolioId,
+                asset_type: 'FIXED_INCOME',
+                transaction_type: item.transaction_type,
+                amount: item.amount,
+                price_per_unit: item.amount,
+                transaction_date: item.transaction_date,
+                quantity: 1,
+                issuer: item.issuer,
+                investment_type: item.investment_type,
+                indexation_type: item.indexation_type,
+                expiration_date: item.expiration_date,
+                indexer: item.indexer,
+                currency: "BRL",
+                indexer_rate: item.indexer_rate,
+            };
+        });
+
+        const variableIncomeTransactions = await Promise.all(variable_income.map(async (item: any) => {
+            const ticker = await this.tickerRepository.findOne({ where: { ticker: item.ticker } });
             if (!ticker) {
-                throw new NotFoundException(`Ticker ${transaction.ticker} not found`);
+                throw new NotFoundException(`Ticker with name ${item.ticker} not found`);
             }
+            const tickerId = ticker.id;
 
-            const _transaction = this.portfolioTransactionRepository.create({
-                portfolio: { id: portfolioId },
-                ticker: { id: ticker.tickerId },
-                transaction_type: transaction.transaction_type,
-                amount: transaction.amount,
-                price_per_unit: transaction.price_per_unit,
-                transaction_date: transaction.transaction_date || new Date(),
-                quantity: transaction.quantity
-            });
+            return {
+                portfolio_id: portfolioId,
+                asset_type: ticker.asset_type.toUpperCase(),
+                transaction_type: item.transaction_type,
+                amount: item.amount,
+                price_per_unit: item.price_per_unit,
+                transaction_date: item.transaction_date,
+                quantity: item.quantity,
+                ticker_id: tickerId,
+            };
+        }));
 
-            await this.portfolioTransactionRepository.save(_transaction);
-        }
+        transactions.push(...fixedIncomeTransactions, ...variableIncomeTransactions);
 
-        return { success: true, message: 'Transactions created successfully' };
+        const savedTransactions = await Promise.all(transactions.map(async (transaction) => {
+            await this.createTransaction(transaction);
+            return transaction;
+        }));
 
+        return {
+            success: true,
+            message: 'Transações criadas com sucesso'
+        };
     }
 
     async createTransaction(createDto: CreatePortfolioTransactionDto): Promise<any> {
@@ -490,31 +511,10 @@ export class PortfolioTransactionsService {
 
             try {
                 const parsedResponse = JSON.parse(aiResponse);
-                if (parsedResponse.success === false) {
-                    return {
-                        success: false,
-                        message: parsedResponse.message || 'Erro ao processar resposta da IA',
-                        error: parsedResponse.message || 'Erro ao processar resposta da IA',
-                    };
-                } else {
-                    return {
-                        success: true,
-                        data: parsedResponse
-                    };
-                }
-            } catch (e) {
-                if (aiResponse.success === false) {
-                    return {
-                        success: false,
-                        message: aiResponse.message || 'Erro ao processar resposta da IA',
-                        error: aiResponse.message || 'Erro ao processar resposta da IA',
-                    };
-                }
 
-                return {
-                    success: true,
-                    data: aiResponse
-                };
+                return parsedResponse;
+            } catch (e) {
+                return aiResponse;
             }
         } catch (error) {
             console.error('Erro ao processar importação:', error);

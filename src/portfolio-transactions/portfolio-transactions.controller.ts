@@ -44,14 +44,6 @@ export class PortfolioTransactionsController {
       throw new BadRequestException(response?.message || 'Erro ao processar o arquivo');
     }
 
-    if (response && response.success && response.data && response.data.data) {
-      try {
-        await this.portfolioTransactionsService.createTransactionFromWalletImportData(response.data.data, portfolioId);
-      } catch (error) {
-        throw new BadRequestException('Erro ao processar os dados do arquivo: ' + error.message);
-      }
-    }
-
     return response;
   }
 
@@ -86,5 +78,17 @@ export class PortfolioTransactionsController {
   @Get('consolidated-transactions/:portfolioId')
   async getConsolidatedTransactions(@Param('portfolioId') portfolioId: string): Promise<any> {
     return this.portfolioTransactionsService.getTransactions(portfolioId, false);
+  }
+
+  @Post('create-transaction-from-wallet-import-data/:portfolioId')
+  async createTransactionFromWalletImportData(@Param('portfolioId') portfolioId: string, @Body() data: any): Promise<any> {
+    if (!data || !data.data) {
+      throw new BadRequestException('Dados inválidos');
+    }
+    if (!portfolioId) {
+      throw new BadRequestException('ID da carteira é obrigatório');
+    }
+
+    return this.portfolioTransactionsService.createTransactionFromWalletImportData(data.data, portfolioId);
   }
 }
