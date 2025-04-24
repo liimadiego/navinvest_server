@@ -1,18 +1,20 @@
+import * as path from 'path';
+import * as csv from 'csv-parser';
+import * as xlsx from 'xlsx';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { TickersEntity } from 'entities/tickers.entity';
 import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
 import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
+import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePortfolioTransactionDto } from './dto/create-portfolio-transaction-dto';
 import { LanguagesService } from 'utils/language.service';
 import OpenAI from 'openai';
-import * as path from 'path';
-import * as csv from 'csv-parser';
-import * as xlsx from 'xlsx';
 import { Multer } from 'multer';
 import { PromptsService } from '../utils/prompts.service';
+
 @Injectable()
 export class PortfolioTransactionsService {
     private openai: OpenAI;
@@ -28,6 +30,8 @@ export class PortfolioTransactionsService {
         private readonly languagesService: LanguagesService,
         @InjectRepository(FixedIncomeDetailsEntity)
         private readonly fixedIncomeDetailsRepository: Repository<FixedIncomeDetailsEntity>,
+        @InjectRepository(TreasuriesEntity)
+        private readonly treasuriesRepository: Repository<TreasuriesEntity>,
     ) {
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
@@ -40,12 +44,10 @@ export class PortfolioTransactionsService {
             throw new NotFoundException(`Portfolio with ID ${portfolioId} not found`);
         }
 
-        // console.log('walletImportData', walletImportData);
-
-        const { fixed_income, variable_income } = walletImportData;
+        const { fixed_income, variable_income, treasury } = walletImportData;
         const transactions = [];
 
-        const fixedIncomeTransactions = fixed_income.map((item: any) => {
+        const fixedIncomeTransactions = fixed_income?.map((item: any) => {
             return {
                 portfolio_id: portfolioId,
                 asset_type: 'FIXED_INCOME',
@@ -62,9 +64,33 @@ export class PortfolioTransactionsService {
                 currency: "BRL",
                 indexer_rate: item.indexer_rate,
             };
-        });
+        }) || [];
 
-        const variableIncomeTransactions = await Promise.all(variable_income.map(async (item: any) => {
+        const treasuryTransactions = await Promise.all((treasury || []).map(async (item: any) => {
+            const treasuryTitle = await this.treasuriesRepository.findOne({
+                where: [
+                    { name: item.name, indexer: item.indexer },
+                    { isin: item.isin }
+                ]
+            });
+
+            if (!treasuryTitle) {
+                throw new NotFoundException(`Título do Tesouro '${item.name}' com indexador '${item.indexer}' não encontrado`);
+            }
+
+            return {
+                portfolio_id: portfolioId,
+                asset_type: 'TREASURY',
+                transaction_type: item.transaction_type,
+                amount: item.amount,
+                price_per_unit: item.price_per_unit || treasuryTitle.unit_price,
+                transaction_date: item.transaction_date,
+                quantity: item.quantity || 1,
+                treasury_id: treasuryTitle.id,
+            };
+        }));
+
+        const variableIncomeTransactions = await Promise.all((variable_income || []).map(async (item: any) => {
             const ticker = await this.tickerRepository.findOne({ where: { ticker: item.ticker } });
             if (!ticker) {
                 throw new NotFoundException(`Ticker with name ${item.ticker} not found`);
@@ -83,9 +109,9 @@ export class PortfolioTransactionsService {
             };
         }));
 
-        transactions.push(...fixedIncomeTransactions, ...variableIncomeTransactions);
+        transactions.push(...fixedIncomeTransactions, ...variableIncomeTransactions, ...treasuryTransactions);
 
-        const savedTransactions = await Promise.all(transactions.map(async (transaction) => {
+        await Promise.all(transactions.map(async (transaction) => {
             await this.createTransaction(transaction);
             return transaction;
         }));
@@ -112,6 +138,16 @@ export class PortfolioTransactionsService {
 
             if (!tickerExists) {
                 throw new NotFoundException(`Ticker with ID ${createDto.ticker_id} not found`);
+            }
+        }
+
+        if (createDto.treasury_id) {
+            const treasuryExists = await this.treasuriesRepository.exists({
+                where: { id: createDto.treasury_id }
+            });
+
+            if (!treasuryExists) {
+                throw new NotFoundException(`Treasury with ID ${createDto.treasury_id} not found`);
             }
         }
 
@@ -144,6 +180,7 @@ export class PortfolioTransactionsService {
         const transaction = this.portfolioTransactionRepository.create({
             portfolio: { id: createDto.portfolio_id },
             ticker: createDto.ticker_id ? { id: createDto.ticker_id } : null,
+            treasury: createDto.treasury_id ? { id: createDto.treasury_id } : null,
             asset_type: createDto.asset_type,
             transaction_type: createDto.transaction_type,
             amount: createDto.amount,
@@ -182,6 +219,16 @@ export class PortfolioTransactionsService {
             }
         }
 
+        if (data.treasury_id) {
+            const treasuryExists = await this.treasuriesRepository.exists({
+                where: { id: data.treasury_id }
+            });
+
+            if (!treasuryExists) {
+                throw new NotFoundException(`Treasury with ID ${data.treasury_id} not found`);
+            }
+        }
+
         if (data.asset_type === 'FIXED_INCOME' && (
             !data.issuer ||
             !data.investment_type ||
@@ -195,37 +242,49 @@ export class PortfolioTransactionsService {
         }
 
         if (data.asset_type === 'FIXED_INCOME') {
-            const fixed_income_details_data = {
-                issuer: data.issuer,
-                investment_type: data.investment_type,
-                indexation_type: data.indexation_type,
-                expiration_date: data.expiration_date,
-                indexer: data.indexer,
-                currency: data.currency,
-                indexer_rate: data.indexer_rate,
-            };
+            const fixed_income_details_data: any = {};
 
-            const fixed_income_details = await this.fixedIncomeDetailsRepository.findOne({ where: { id: transaction.fixed_income_details.id } });
+            if (data.issuer !== undefined) fixed_income_details_data.issuer = data.issuer;
+            if (data.investment_type !== undefined) fixed_income_details_data.investment_type = data.investment_type;
+            if (data.indexation_type !== undefined) fixed_income_details_data.indexation_type = data.indexation_type;
+            if (data.expiration_date !== undefined) fixed_income_details_data.expiration_date = data.expiration_date;
+            if (data.indexer !== undefined) fixed_income_details_data.indexer = data.indexer;
+            if (data.currency !== undefined) fixed_income_details_data.currency = data.currency;
+            if (data.indexer_rate !== undefined) fixed_income_details_data.indexer_rate = data.indexer_rate;
 
-            if (!fixed_income_details) {
-                throw new NotFoundException(`Fixed income details with ID ${transaction.fixed_income_details.id} not found`);
+            if (transaction.fixed_income_details) {
+                await this.fixedIncomeDetailsRepository.update(transaction.fixed_income_details.id, fixed_income_details_data);
+            } else {
+                transaction.fixed_income_details = await this.fixedIncomeDetailsRepository.save(fixed_income_details_data);
             }
-
-            await this.fixedIncomeDetailsRepository.update(fixed_income_details.id, fixed_income_details_data);
-            transaction.fixed_income_details = fixed_income_details;
         }
 
-        transaction.portfolio = { id: data.portfolio_id };
-        transaction.ticker = data.ticker_id ? { id: data.ticker_id } : null;
-        transaction.asset_type = data.asset_type;
-        transaction.transaction_type = data.transaction_type;
-        transaction.amount = data.amount;
-        transaction.price_per_unit = data.price_per_unit || null;
-        transaction.transaction_date = data.transaction_date || new Date();
-        transaction.quantity = data.quantity || 0;
-
-        if (data.ticker_id) {
-            transaction.ticker_id = data.ticker_id;
+        if (data.portfolio_id !== undefined) {
+            transaction.portfolio = { id: data.portfolio_id };
+        }
+        if (data.ticker_id !== undefined) {
+            transaction.ticker = data.ticker_id ? { id: data.ticker_id } : null;
+        }
+        if (data.treasury_id !== undefined) {
+            transaction.treasury = data.treasury_id ? { id: data.treasury_id } : null;
+        }
+        if (data.asset_type !== undefined) {
+            transaction.asset_type = data.asset_type;
+        }
+        if (data.transaction_type !== undefined) {
+            transaction.transaction_type = data.transaction_type;
+        }
+        if (data.amount !== undefined) {
+            transaction.amount = data.amount;
+        }
+        if (data.price_per_unit !== undefined) {
+            transaction.price_per_unit = data.price_per_unit;
+        }
+        if (data.transaction_date !== undefined) {
+            transaction.transaction_date = data.transaction_date;
+        }
+        if (data.quantity !== undefined) {
+            transaction.quantity = data.quantity;
         }
 
         if (data.costs !== undefined) {
@@ -239,6 +298,7 @@ export class PortfolioTransactionsService {
 
     async deleteTransaction(id: string): Promise<any> {
         const transaction = await this.portfolioTransactionRepository.findOne({ where: { id } });
+
         if (!transaction) {
             throw new NotFoundException(`Transaction with ID ${id} not found`);
         }
@@ -254,7 +314,7 @@ export class PortfolioTransactionsService {
 
         const transactions = await this.portfolioTransactionRepository.find({
             where: { portfolio: { id: portfolioId } },
-            relations: ['ticker', 'fixed_income_details'],
+            relations: ['ticker', 'fixed_income_details', 'treasury'],
             select: {
                 id: true,
                 transaction_type: true,
@@ -278,13 +338,6 @@ export class PortfolioTransactionsService {
         });
 
         if (individualTransactions) {
-            // transactions.forEach((transaction) => {
-            //     transaction.asset_type = this.languagesService.translateAssetType(
-            //         transaction.ticker?.asset_type || transaction.asset_type,
-            //         transaction.ticker?.currency || transaction.fixed_income_details?.currency || 'BRL'
-            //     );
-            // });
-
             transactions.sort((a, b) => {
                 const dateA = new Date(a.created_at).getTime();
                 const dateB = new Date(b.created_at).getTime();
@@ -301,23 +354,31 @@ export class PortfolioTransactionsService {
         const grouped: Record<string, any> = {};
 
         for (const transaction of transactions) {
-            const isFixedIncome = transaction.fixed_income_details && !transaction.ticker;
+            const isFixedIncome = transaction.fixed_income_details && !transaction.ticker && !transaction.treasury;
+            const isTreasury = transaction.treasury && !transaction.ticker && !transaction.fixed_income_details;
 
             let assetId: string;
             let assetName: string;
             let assetType: string;
-            let assetCurrency: string;
+            let assetCurrency: string = 'BRL';
             let assetImageUrl: string;
             let currentPrice: number = 0;
 
             if (isFixedIncome) {
-                assetId = `FI_${transaction.fixed_income_details.id}`;
+                assetId = transaction.fixed_income_details.id;
                 assetName = `${transaction.fixed_income_details.issuer} - ${transaction.fixed_income_details.investment_type}`;
                 assetType = transaction.asset_type;
                 assetCurrency = transaction.fixed_income_details.currency || 'BRL';
                 assetImageUrl = 'https://investidor10.com.br/assets/front/images/money-check-alt.svg';
+            } else if (isTreasury) {
+                assetId = transaction.treasury.id;
+                assetName = `Tesouro - ${transaction.treasury.name}`;
+                assetType = 'TREASURY';
+                assetCurrency = 'BRL';
+                assetImageUrl = 'https://www.tesourodireto.com.br/assets/img/td-logo.svg';
+                currentPrice = transaction.treasury.unit_price || parseFloat(transaction.price_per_unit) || 0;
             } else {
-                assetId = transaction.ticker?.ticker || 'TEMP';
+                assetId = transaction.ticker?.ticker || null;
                 assetName = transaction.ticker?.asset_name || 'N/A';
                 assetType = transaction.ticker?.asset_type || transaction.asset_type || 'N/A';
                 assetCurrency = transaction.ticker?.currency || 'BRL';
@@ -331,8 +392,9 @@ export class PortfolioTransactionsService {
             if (!grouped[assetId]) {
                 grouped[assetId] = {
                     transaction_id: transaction.id,
-                    ticker: isFixedIncome ? null : assetId,
+                    ticker: (!isFixedIncome && !isTreasury) ? assetId : null,
                     fixed_income_details: isFixedIncome ? transaction.fixed_income_details : null,
+                    treasury: isTreasury ? transaction.treasury : null,
                     asset_name: assetName,
                     asset_image_url: assetImageUrl,
                     asset_type: assetType,
@@ -368,23 +430,37 @@ export class PortfolioTransactionsService {
         const consolidatedPortfolio = Object.values(grouped)
             .filter((asset) => asset.total_amount > 0)
             .map((asset) => {
-                const isFixedIncome = asset.fixed_income_details && !asset.ticker;
-                const averagePrice = isFixedIncome ?
+                const isFixedIncome = asset.fixed_income_details && !asset.ticker && !asset.treasury;
+                const isTreasury = asset.treasury && !asset.ticker && !asset.fixed_income_details;
+
+                const averagePrice = (isFixedIncome || isTreasury) ?
                     asset.total_amount :
                     (asset.total_quantity > 0 ? asset.total_amount / asset.total_quantity : 0);
 
-                const currentValue = isFixedIncome ?
-                    asset.total_amount * 1.06 : //CRIAR LOGICA PARA PUXAR RENTABILIDADE DA RENDA FIXA
-                    asset.total_quantity * asset.current_price;
+                let currentValue: number;
+                let variation: number;
+
+                if (isFixedIncome) {
+                    // Lógica para renda fixa
+                    currentValue = asset.total_amount * 1.06; // Lógica simplificada para renda fixa
+                    variation = ((currentValue - asset.total_amount) / asset.total_amount) * 100;
+                } else if (isTreasury) {
+                    // Lógica para tesouro direto (aplicar rentabilidade específica)
+                    const treasuryRate = asset.treasury.rate || 5; // Taxa padrão se não especificada
+                    const rentabilityFactor = 1 + (treasuryRate / 100);
+                    currentValue = asset.total_amount * rentabilityFactor;
+                    variation = ((currentValue - asset.total_amount) / asset.total_amount) * 100;
+                } else {
+                    // Lógica para renda variável
+                    currentValue = asset.total_quantity * asset.current_price;
+                    variation = averagePrice > 0 ? ((asset.current_price - averagePrice) / averagePrice) * 100 : 0;
+                }
 
                 const profit = currentValue - asset.total_amount;
-                const variation = isFixedIncome ?
-                    ((currentValue - asset.total_amount) / asset.total_amount) * 100 :
-                    (averagePrice > 0 ? ((asset.current_price - averagePrice) / averagePrice) * 100 : 0);
 
                 return {
                     ...asset,
-                    average_price: isFixedIncome ? null : averagePrice.toFixed(2),
+                    average_price: (isFixedIncome || isTreasury) ? null : averagePrice.toFixed(2),
                     total_quantity: asset.total_quantity,
                     current_value: currentValue.toFixed(2),
                     profit: profit.toFixed(2),
@@ -436,6 +512,8 @@ export class PortfolioTransactionsService {
             };
         });
     }
+
+    /* ==================================== WALLET IMPORT SECTION ==================================== */
 
     getPrompt(name: string): string | null {
         return this.prompts[name] || null;
@@ -584,4 +662,6 @@ export class PortfolioTransactionsService {
             };
         }
     }
+
+    /* ==================================== END WALLET IMPORT SECTION ==================================== */
 }

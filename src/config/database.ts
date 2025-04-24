@@ -12,6 +12,7 @@ import { UserTickersSubscribeEntity } from '../entities/user-tickers-subscribe.e
 import { InvestorProfileEntity } from '../entities/investor-profile.entity';
 import { TagEntity } from '../entities/tag.entity';
 import { FixedIncomeDetailsEntity } from '../entities/fixed-income-details.entity';
+import { TreasuriesEntity } from 'entities/treasuries.entity';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ export const TypeOrmConfig = () =>
         ssl: !(process.env.ENVIROMENT === 'development') ? { rejectUnauthorized: false } : false,
         entities: [
             UserEntity,
+            TreasuriesEntity,
             UserProfileEntity,
             UserSettingsEntity,
             PortfolioTransactionEntity,

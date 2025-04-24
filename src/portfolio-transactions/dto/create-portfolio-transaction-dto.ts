@@ -8,6 +8,14 @@ export class CreatePortfolioTransactionDto {
     @IsNumber()
     ticker_id?: number;
 
+    @IsOptional()
+    @IsNumber()
+    treasury_id?: number;
+
+    @IsOptional()
+    @IsString()
+    tresury_id?: number;
+
     @IsIn(['BUY', 'SELL', 'DIVIDEND', 'SPLIT', 'TRANSFER'])
     transaction_type: string;
 

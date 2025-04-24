@@ -11,6 +11,7 @@ import { PortfolioTransactionsService } from 'portfolio-transactions/portfolio-t
 import { TickersEntity } from 'entities/tickers.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
 import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
+import { TreasuriesEntity } from 'entities/treasuries.entity';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
       TickersEntity,
       PortfolioTransactionEntity,
       FixedIncomeDetailsEntity,
+      TreasuriesEntity,
       UserEntity
     ]),
   ],

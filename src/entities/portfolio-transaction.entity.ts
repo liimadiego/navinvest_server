@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, Index, JoinColumn, O
 import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 import { TickersEntity } from './tickers.entity';
 import { FixedIncomeDetailsEntity } from './fixed-income-details.entity';
+import { TreasuriesEntity } from './treasuries.entity';
 
 @Entity('portfolio_transactions')
 export class PortfolioTransactionEntity {
@@ -20,9 +21,7 @@ export class PortfolioTransactionEntity {
     @JoinColumn({ name: 'portfolio_id' })
     portfolio: InvestmentPortfolioEntity;
 
-    @ManyToOne(() => TickersEntity, (ticker) => ticker.transactions, {
-        onDelete: 'CASCADE',
-    })
+    @ManyToOne(() => TickersEntity, (ticker) => ticker.transactions)
     @JoinColumn({ name: 'ticker_id' })
     ticker: TickersEntity;
 
@@ -31,6 +30,10 @@ export class PortfolioTransactionEntity {
     })
     @JoinColumn({ name: 'fixed_income_details_id' })
     fixed_income_details: FixedIncomeDetailsEntity;
+
+    @OneToOne(() => TreasuriesEntity, (treasury) => treasury.transactions)
+    @JoinColumn({ name: 'treasury_id' })
+    treasury: TreasuriesEntity;
 
     @Column({ type: 'varchar', length: 20 })
     transaction_type: string;
