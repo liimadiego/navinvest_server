@@ -13,6 +13,7 @@ import { InvestorProfileEntity } from '../entities/investor-profile.entity';
 import { TagEntity } from '../entities/tag.entity';
 import { FixedIncomeDetailsEntity } from '../entities/fixed-income-details.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
+import { MongooseModuleOptions } from '@nestjs/mongoose';
 
 dotenv.config();
 
@@ -45,3 +46,11 @@ export const TypeOrmConfig = () =>
             TagEntity,
         ],
     }) as TypeOrmModuleOptions;
+
+
+export const MongoDBConfig = (): [ string, MongooseModuleOptions ] => ([
+    `mongodb://${(process.env.ENVIROMENT !== 'development' ? `${process.env.MONGO_USER}:${process.env.MONGO_PASS}@` : ``)}${(process.env.MONGO_HOST || 'localhost')}:${(process.env.MONGO_PORT || '27017')}/${(process.env.MONGO_PATH || 'ai_invest')}`,
+    {
+        authSource: !(process.env.ENVIROMENT === 'development') ? 'admin': undefined,
+    }
+]);

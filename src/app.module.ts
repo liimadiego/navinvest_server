@@ -6,7 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { BacktestModule } from './backtest/backtest.module';
 import { InvestTrackModule } from './invest-track/invest-track.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TypeOrmConfig } from './config/database';
+import { TypeOrmConfig, MongoDBConfig } from './config/database';
 import { NewsModule } from './news/news.module';
 import { CronNewsService } from './cron-news/cron-news.service';
 import { CronTotalAssetsService } from './cron-users/portfolio-data/cron-portfolio-data.service';
@@ -26,9 +26,7 @@ import { MongooseModule } from '@nestjs/mongoose';
   providers: [AppService, CronNewsService, CronTotalAssetsService],
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig()),
-    MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}:27017/ai_invest`, {
-      authSource: 'admin',
-    }),
+    MongooseModule.forRoot(...MongoDBConfig()),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
