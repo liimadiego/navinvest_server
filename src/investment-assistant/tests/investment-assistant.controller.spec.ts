@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InvestmentAssistantController } from './investment-assistant.controller';
-import { InvestmentAssistantService } from './investment-assistant.service';
+import { InvestmentAssistantController } from '../investment-assistant.controller';
+import { InvestmentAssistantService } from '../investment-assistant.service';
 
 describe('InvestmentAssistantController', () => {
   let controller: InvestmentAssistantController;
