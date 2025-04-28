@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TagEntity } from '../entities/tag.entity';
 import { TickersEntity } from '../entities/tickers.entity';
+import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -11,14 +12,34 @@ export class TickerService {
         private readonly tickerRepository: Repository<TickersEntity>,
         @InjectRepository(TagEntity)
         private readonly tagRepository: Repository<TagEntity>,
+        @InjectRepository(TreasuriesEntity)
+        private readonly treasuryRepository: Repository<TreasuriesEntity>
     ) { }
 
-    async getTickers(limit = 0): Promise<TickersEntity[]> {
-        if (limit > 0) {
-            return this.tickerRepository.find({ take: limit });
+    async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
+        console.log("getTickers", limit, query, type);
+
+        let queryBuilder = type === 'treasury' ?
+            this.treasuryRepository.createQueryBuilder("treasuries") :
+            this.tickerRepository.createQueryBuilder("tickers")
+
+        if (query) {
+            if (type === 'treasury') {
+                queryBuilder = queryBuilder.where("(LOWER(treasuries.name) LIKE LOWER(:query))", { query: `%${query}%` });
+            } else {
+                queryBuilder = queryBuilder.where("(LOWER(tickers.ticker) LIKE LOWER(:query) OR LOWER(tickers.asset_name) LIKE LOWER(:query))", { query: `%${query}%` });
+            }
         }
 
-        return this.tickerRepository.find();
+        if (type && type !== 'treasury') {
+            queryBuilder = queryBuilder.andWhere("tickers.asset_type = :type", { type });
+        }
+
+        if (limit > 0) {
+            queryBuilder = queryBuilder.take(limit);
+        }
+
+        return queryBuilder.getMany();
     }
 
     async getTickersToSearchNews(limit = 0): Promise<TickersEntity[]> {

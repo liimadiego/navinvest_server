@@ -3,6 +3,7 @@ import { TickerService } from './ticker.service';
 import { TickerController } from './ticker.controller';
 import { TagEntity } from '../entities/tag.entity';
 import { TickersEntity } from '../entities/tickers.entity';
+import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LanguagesService } from '../utils/language.service';
 
@@ -10,7 +11,8 @@ import { LanguagesService } from '../utils/language.service';
   imports: [
     TypeOrmModule.forFeature([
       TickersEntity,
-      TagEntity
+      TagEntity,
+      TreasuriesEntity,
     ]),
   ],
   controllers: [TickerController],
