@@ -5,9 +5,13 @@ import {
     OneToMany,
     ManyToMany,
     JoinTable,
+    OneToOne,
+    ManyToOne,
+    JoinColumn,
 } from 'typeorm';
 import { TagEntity } from './tag.entity';
 import { PortfolioTransactionEntity } from './portfolio-transaction.entity';
+import { CompanyEntity } from './companies.entity';
 
 @Entity('tickers')
 export class TickersEntity {
@@ -19,6 +23,9 @@ export class TickersEntity {
 
     @Column()
     asset_name: string;
+
+    // @Column({ nullable: true })
+    // company_id: string;
 
     @Column({ nullable: true })
     asset_image_url: string;
@@ -38,35 +45,11 @@ export class TickersEntity {
     @Column({ nullable: true })
     exchange: string;
 
-    @Column({ nullable: true })
-    sector: string;
-
-    @Column({ nullable: true })
-    industry: string;
-
-    @Column({ nullable: true })
-    main_asset: string;
-
-    @Column({ default: true })
-    is_tradable: boolean;
-
     @Column({ type: 'numeric', nullable: true })
     current_price: number;
 
     @Column({ nullable: true })
-    isin: string;
-
-    @Column({ nullable: true })
-    cnpj: string;
-
-    @Column({ nullable: true })
-    fund_classification: string;
-
-    @Column({ nullable: true })
     risk_rating: string;
-
-    @Column({ nullable: true })
-    data_source: string;
 
     @Column({ type: 'timestamp', default: () => 'now()' })
     updated_at: Date;
@@ -81,4 +64,8 @@ export class TickersEntity {
 
     @OneToMany(() => PortfolioTransactionEntity, (transaction) => transaction.ticker)
     transactions: PortfolioTransactionEntity[];
+
+    @ManyToOne(() => CompanyEntity, (company) => company.tickers)
+    @JoinColumn({ name: 'company_id', referencedColumnName: 'id' })
+    company: CompanyEntity;
 }

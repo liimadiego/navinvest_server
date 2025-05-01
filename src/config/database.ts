@@ -14,6 +14,8 @@ import { TagEntity } from '../entities/tag.entity';
 import { FixedIncomeDetailsEntity } from '../entities/fixed-income-details.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { MongooseModuleOptions } from '@nestjs/mongoose';
+import { CompanyEntity } from 'entities/companies.entity';
+import { ReitEntity } from 'entities/reits.entity';
 
 dotenv.config();
 
@@ -44,6 +46,8 @@ export const TypeOrmConfig = () =>
             UserTickersSubscribeEntity,
             InvestorProfileEntity,
             TagEntity,
+            CompanyEntity,
+            ReitEntity,
         ],
     }) as TypeOrmModuleOptions;
 
