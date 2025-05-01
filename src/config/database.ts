@@ -48,9 +48,9 @@ export const TypeOrmConfig = () =>
     }) as TypeOrmModuleOptions;
 
 
-export const MongoDBConfig = (): [ string, MongooseModuleOptions ] => ([
+export const MongoDBConfig = (): [string, MongooseModuleOptions] => ([
     `mongodb://${(process.env.ENVIROMENT !== 'development' ? `${process.env.MONGO_USER}:${process.env.MONGO_PASS}@` : ``)}${(process.env.MONGO_HOST || 'localhost')}:${(process.env.MONGO_PORT || '27017')}/${(process.env.MONGO_PATH || 'ai_invest')}`,
     {
-        authSource: !(process.env.ENVIROMENT === 'development') ? 'admin': undefined,
+        authSource: !(process.env.ENVIROMENT === 'development') ? 'admin' : undefined,
     }
 ]);

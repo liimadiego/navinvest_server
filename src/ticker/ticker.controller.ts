@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { TickerService } from './ticker.service';
 import { LanguagesService } from '../utils/language.service';
 
@@ -9,9 +9,9 @@ export class TickerController {
     private readonly languageService: LanguagesService
   ) { }
 
-  @Get()
-  async getTickers() {
-    return this.tickerService.getTickers();
+  @Get("/:query")
+  async getTickers(@Query('limit') limit: number = 0, @Param('query') query: string = '', @Query('type') type: string = '') {
+    return this.tickerService.getTickers(limit, query, type);
   }
 
   @Get('get-tickers-by-tags')

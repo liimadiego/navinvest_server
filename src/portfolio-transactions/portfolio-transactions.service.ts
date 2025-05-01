@@ -372,11 +372,11 @@ export class PortfolioTransactionsService {
                 assetImageUrl = 'https://investidor10.com.br/assets/front/images/money-check-alt.svg';
             } else if (isTreasury) {
                 assetId = transaction.treasury.id;
-                assetName = `Tesouro - ${transaction.treasury.name}`;
+                assetName = `${transaction.treasury.name}`;
                 assetType = 'TREASURY';
                 assetCurrency = 'BRL';
                 assetImageUrl = 'https://www.tesourodireto.com.br/assets/img/td-logo.svg';
-                currentPrice = transaction.treasury.unit_price || parseFloat(transaction.price_per_unit) || 0;
+                currentPrice = transaction.amount || 0;
             } else {
                 assetId = transaction.ticker?.ticker || null;
                 assetName = transaction.ticker?.asset_name || 'N/A';
