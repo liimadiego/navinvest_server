@@ -10,15 +10,24 @@ export class BacktestService {
   historicalRatesCache: Record<string, any> = {};
 
   // Pega um ticker como 'TAEE11' e busca na base do yahoo o simbolo usado pelo yahoo, como 'TAEE11.SA' por exemplo.
-  private async getYahooSymbol(ticker: string) {
+  private async getYahooSymbol (ticker: string) {
     const tickerType = ticker.split(':')[1];
     ticker = ticker.split(':')[0];
 
     try {
-      const { quotes } = await yahooFinance.search(ticker, { quotesCount: 6, newsCount: 0 });
+      const { quotes } = await yahooFinance.search(ticker + (tickerType === 'CRYPTOCURRENCY' ? '-USD' : ''), { quotesCount: 6, newsCount: 0 });
       for (const q of quotes) {
-        if ('symbol' in q && (q.symbol === ticker || q.symbol.startsWith(`${ticker}.`) || (tickerType === 'CURRENCY' && q.quoteType === 'CURRENCY' && q.longname.replace('/', '') === ticker && q.shortname.replace('/', '') === ticker)))
+        if (
+          'symbol' in q && 
+          (
+            ((!tickerType) && q.symbol === ticker) || 
+            ((!tickerType) && q.symbol.startsWith(`${ticker}.`)) || 
+            (tickerType === 'CURRENCY' && q.quoteType === 'CURRENCY' && q.longname.replace('/', '') === ticker && q.shortname.replace('/', '') === ticker) ||
+            (tickerType === 'CRYPTOCURRENCY' && q.quoteType === 'CRYPTOCURRENCY' && q.symbol === ticker + '-USD')
+          )
+        ) {
           return q.symbol;
+        }
       }
 
       throw `Não foi possível encontrar o simbolo usado pelo yahoo para o ativo "${ticker}", search quotes: ${util.inspect(quotes, { colors: true, depth: Infinity })}`;
@@ -29,7 +38,7 @@ export class BacktestService {
     }
   }
 
-  private async fetchHistoricalPrices(symbol: string, startDate: number, endDate: number) {
+  private async fetchHistoricalPrices (symbol: string, startDate: number, endDate: number) {
     try {
       const start = new Date(startDate).toISOString().split('T')[0];  // Inclusive start date
       const end = new Date(endDate).toISOString().split('T')[0];      // Exclusive end date
@@ -54,7 +63,7 @@ export class BacktestService {
     }
   }
 
-  private async fetchHistoricalRates(symbol: string, startDate: number, endDate: number) {
+  private async fetchHistoricalRates (symbol: string, startDate: number, endDate: number) {
     try {
       const start = new Date(startDate).toISOString().split('T')[0];
       const end = new Date(endDate).toISOString().split('T')[0];
@@ -98,7 +107,7 @@ export class BacktestService {
     }
   }
 
-  calculateDailyLogReturns(assetsPrices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[][], weights: number[]) {
+  calculateDailyLogReturns (assetsPrices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[][], weights: number[]) {
     let dailyLogReturnsMap: Map<number, number[]> = new Map();
     let sum: number[] = [0, 0];
 
@@ -154,7 +163,7 @@ export class BacktestService {
     // return { returns, sum };
   }
 
-  async test(body: BacktestRequestDto) {
+  async test (body: BacktestRequestDto) {
     const { startDate, endDate, baseCurrency: portfolioBaseCurrency, portfolio } = body;
 
     if (!(endDate >= startDate))
@@ -309,7 +318,6 @@ export class BacktestService {
     // portfolioResult.dailyReturns = dailyReturns;
     portfolioResult.withDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withDividends.current, accumulated: dr.withDividends.accumulated, date: dr.date } });
     portfolioResult.withoutDividends.dailyReturns = dailyReturns.map(dr => { return { current: dr.withoutDividends.current, accumulated: dr.withoutDividends.accumulated, date: dr.date } });
-
 
     // portfolioResult.monthlyReturns = monthlyReturns;
     portfolioResult.withDividends.monthlyReturns = monthlyReturns.map(mr => { return { date: mr.date, current: mr.withDividends.current, accumulated: mr.withDividends.accumulated } });
