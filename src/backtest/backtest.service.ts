@@ -2,6 +2,8 @@ import { Injectable, BadRequestException, HttpStatus } from "@nestjs/common";
 import { BacktestRequestDto } from "./backtest.dto";
 import yahooFinance from 'yahoo-finance2';
 import { timestamp } from "rxjs";
+import { ChartOptionsWithReturnArray } from "yahoo-finance2/dist/esm/src/modules/chart";
+import { ChartOptionsWithReturnObject } from "yahoo-finance2/dist/esm/src/modules/chart";
 
 const util = require('node:util');
 
@@ -10,7 +12,7 @@ export class BacktestService {
   historicalRatesCache: Record<string, any> = {};
 
   // Pega um ticker como 'TAEE11' e busca na base do yahoo o simbolo usado pelo yahoo, como 'TAEE11.SA' por exemplo.
-  private async getYahooSymbol (ticker: string) {
+  async getYahooSymbol (ticker: string) {
     const tickerType = ticker.split(':')[1];
     ticker = ticker.split(':')[0];
 
@@ -26,11 +28,11 @@ export class BacktestService {
             (tickerType === 'CRYPTOCURRENCY' && q.quoteType === 'CRYPTOCURRENCY' && q.symbol === ticker + '-USD')
           )
         ) {
-          return q.symbol;
+          return { symbol: q.symbol };
         }
       }
 
-      throw `Não foi possível encontrar o simbolo usado pelo yahoo para o ativo "${ticker}", search quotes: ${util.inspect(quotes, { colors: true, depth: Infinity })}`;
+      throw `Não foi possível encontrar o simbolo usado pelo yahoo para o ativo "${ticker}"`; // , search quotes: ${util.inspect(quotes, { colors: true, depth: Infinity })}`;
 
     } catch (error) {
       console.error(`[E] getYahooSymbol (ticker= ${ticker}):`, error, '\n ');
@@ -38,25 +40,55 @@ export class BacktestService {
     }
   }
 
-  private async fetchHistoricalPrices (symbol: string, startDate: number, endDate: number) {
+  async fetchHistoricalPrices (symbol: string, startDate: number, endDate: number, returnType: string = "array", pricesToReturn: string | string[] = "") {
     try {
       const start = new Date(startDate).toISOString().split('T')[0];  // Inclusive start date
       const end = new Date(endDate).toISOString().split('T')[0];      // Exclusive end date
 
-      const { meta: { currency: baseCurrency }, quotes: prices } = await yahooFinance.chart(symbol, {
+      if (returnType !== 'object' && returnType !== 'array')
+        throw `Parametro 'returnType' (${returnType})" inválido, deve ser "object" ou "array".`;
+
+      const chartData = await yahooFinance.chart(symbol, {
         period1: start,
         period2: end,
         interval: '1d',
-      });
+        return: returnType
+      }); 
 
-      if (!prices || prices.length < 2)
-        throw `Dados insuficientes para o symbol: ${symbol}`;
+      if (returnType === 'array') {
+        const { meta: { currency: baseCurrency }, quotes: prices } = chartData;
 
-      // Convert 'price.date' to start of the day instead of start of exchange trading period.
-      for (const p of prices) p.date.setUTCHours(0, 0, 0, 0);
+        if (!prices || prices.length < 2)
+          throw `Dados insuficientes para o symbol: ${symbol}`;
 
-      return { baseCurrency, prices };
+        // Convert 'price.date' to start of the day instead of start of exchange trading period.
+        for (const p of prices) p.date.setUTCHours(0, 0, 0, 0);
 
+        return { baseCurrency, prices };
+      } else {
+        const { meta: { currency: baseCurrency }, timestamp, indicators: { quote: [ ohlc ], adjclose: [ { adjclose } ] } } = chartData;
+
+        if (!timestamp || timestamp.length < 2)
+          throw `Dados insuficientes para o symbol: ${symbol}`;
+
+        // Convert 'timestamp' to start of the day instead of start of exchange trading period.
+        const dates = timestamp.map(t => new Date(new Date(t * 1e3).setUTCHours(0, 0, 0, 0)).toISOString());
+
+        const prices = { dates, ...ohlc, adjclose };
+        
+        // Retorna apenas os preços selecionados.
+        if (pricesToReturn)
+          return { 
+            baseCurrency, 
+            prices: typeof pricesToReturn === 'string' ? prices[pricesToReturn] : pricesToReturn.reduce((obj, priceToReturn) => {
+              obj[priceToReturn] = prices[priceToReturn];
+              return obj;
+            }, { dates }) 
+          };
+        
+        // Retorna todos os preços.
+        return { baseCurrency, prices };
+      }
     } catch (error) {
       console.error(`[E] fetchHistoricalPrices (symbol= ${symbol}, startDate= ${startDate}, endDate = ${endDate}):`, error, '\n ');
       throw error;
@@ -178,7 +210,7 @@ export class BacktestService {
       for (const { ticker, weight } of portfolio) {
         promises.push(
           this.getYahooSymbol(ticker)
-            .then(yahooSymbol => this.fetchHistoricalPrices(yahooSymbol, startDate, endDate))
+            .then(yahooSymbol => this.fetchHistoricalPrices(yahooSymbol.symbol, startDate, endDate))
             .then(async ({ prices: assetPrices, baseCurrency: assetBaseCurrency }) => {
 
               const assetDate = {
