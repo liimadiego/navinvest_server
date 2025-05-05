@@ -75,7 +75,7 @@ export class CompaniesService {
         let historicalQuotesObj: any = {};
 
         if (historicalQuotesData) {
-            historicalQuotesObj = historicalQuotesData.toObject().quotes.slice(-120);
+            historicalQuotesObj = historicalQuotesData.toObject().quotes;
         }
 
         const formattedStockData: any = {};
