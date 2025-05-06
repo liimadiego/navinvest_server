@@ -25,5 +25,6 @@ import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/hi
   ],
   controllers: [CompaniesController],
   providers: [CompaniesService],
+  exports: [CompaniesService],
 })
 export class CompaniesModule { }

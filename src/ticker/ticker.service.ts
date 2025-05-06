@@ -227,4 +227,16 @@ export class TickerService {
         return filteredData;
     }
 
+
+    async validateTicker(ticker: string): Promise<boolean> {
+        ticker = ticker.toUpperCase()
+
+        const tickerData = await this.tickerRepository.createQueryBuilder("tickers")
+            .where("tickers.ticker = :ticker", { ticker })
+            .getOne();
+
+        console.log('tickerData:', tickerData, '\n ');
+        
+        return !!tickerData;
+    }
 }

@@ -19,6 +19,8 @@ import {
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 
+const util = require('util');
+
 @Injectable()
 export class CompaniesService {
     constructor(
@@ -40,7 +42,7 @@ export class CompaniesService {
         return this.companyRepository.find();
     }
 
-    async getCompanyByTicker(ticker: string): Promise<any> {
+    async getCompanyByTicker (ticker: string): Promise<any> {
         const tickerData = await this.tickersRepository.findOne({
             where: { ticker },
             relations: ['company']

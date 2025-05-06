@@ -1,9 +1,6 @@
 import { Injectable, BadRequestException, HttpStatus } from "@nestjs/common";
 import { BacktestRequestDto } from "./backtest.dto";
 import yahooFinance from 'yahoo-finance2';
-import { timestamp } from "rxjs";
-import { ChartOptionsWithReturnArray } from "yahoo-finance2/dist/esm/src/modules/chart";
-import { ChartOptionsWithReturnObject } from "yahoo-finance2/dist/esm/src/modules/chart";
 
 const util = require('node:util');
 
@@ -93,6 +90,30 @@ export class BacktestService {
       console.error(`[E] fetchHistoricalPrices (symbol= ${symbol}, startDate= ${startDate}, endDate = ${endDate}):`, error, '\n ');
       throw error;
     }
+  }
+
+  async getQuotationsByTicker (ticker: string, period: number): Promise<any> {
+    const currentDate = new Date();
+    const endDate = Math.ceil(currentDate.getTime() / 864e5) * 864e5;
+    const startDate = Math.floor(currentDate.setUTCMonth(currentDate.getUTCMonth() - period) / 864e5) * 864e5;
+
+    const historicalPrices = await this.getYahooSymbol(ticker)
+      .then(({ symbol }) => this.fetchHistoricalPrices(symbol, startDate, endDate, "array"));
+
+    const dataLength = historicalPrices.prices.length;
+
+    if (dataLength > 20) {
+      const step = Math.ceil(dataLength / 20);
+
+      const reducedData = historicalPrices.prices.filter((_, index) => index % step === 0);
+      if (reducedData.at(-1).date !==  historicalPrices.prices.at(-1).date) {
+        reducedData.push(historicalPrices.prices.at(-1));
+      }
+
+      historicalPrices.prices = reducedData;
+    }
+    
+    return historicalPrices;
   }
 
   private async fetchHistoricalRates (symbol: string, startDate: number, endDate: number) {
