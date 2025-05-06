@@ -49,10 +49,8 @@ export class CompaniesService {
         if (!tickerData) {
             throw new Error('Ticker not found');
         }
-        const companyId = tickerData.company.id;
 
-        const todayOneYearAgo = new Date();
-        todayOneYearAgo.setFullYear(todayOneYearAgo.getFullYear() - 1);
+        const companyId = tickerData.company.id;
 
         const totalDividendsLast12Months: any = await this.dividendsRepository
             .createQueryBuilder('dividends')
@@ -70,6 +68,14 @@ export class CompaniesService {
         }
 
         const companyData = await this.stockDataRecordModel.findOne({ companyId });
+
+        if (!companyData) {
+            throw new Error('Company data not found');
+        }
+
+        let companyDataObj: any = {};
+        companyDataObj = companyData.toObject();
+
         const historicalDividendYieldData = await this.historicalDividendYieldRecordModel.findOne({ tickerId: tickerData.id });
         const historicalQuotesData = await this.historicalQuotesRecordModel.findOne({ tickerId: tickerData.id });
         let historicalQuotesObj: any = {};
@@ -78,16 +84,7 @@ export class CompaniesService {
             historicalQuotesObj = historicalQuotesData.toObject().quotes;
         }
 
-        const formattedStockData: any = {};
-        let companyDataObj: any = {};
-
         let historicalDividendYieldObj: any = {};
-
-        if (!companyData) {
-            throw new Error('Company data not found');
-        }
-
-        companyDataObj = companyData.toObject();
 
         const marketRatiosFiltered = companyDataObj.market_ratios.filter((item: any) => {
             return item.ticker === tickerData.ticker;
@@ -102,47 +99,60 @@ export class CompaniesService {
         const cagrNetSales5Y = ((currentNetSales / currentNetSales5Y) ** (1 / 5)) - 1;
         const cagrNetIncome5Y = ((currentNetIncome / currentNetIncome5Y) ** (1 / 5)) - 1;
 
-        Object.keys(companyDataObj).forEach((key) => {
-            if (key === 'market_ratios' && Array.isArray(marketRatiosFiltered) && marketRatiosFiltered.length > 0) {
-                marketRatiosFiltered.sort((a: any, b: any) => {
-                    return new Date(b.reference_date).getTime() - new Date(a.reference_date).getTime();
-                });
-                formattedStockData[key] = marketRatiosFiltered[0];
-            } else if (Array.isArray(companyDataObj[key]) && companyDataObj[key].length > 0) {
-                formattedStockData[key] = companyDataObj[key][0];
-            } else {
-                formattedStockData[key] = companyDataObj[key];
-            }
-        });
-
         if (historicalDividendYieldData) {
             historicalDividendYieldObj = historicalDividendYieldData.toObject();
         }
 
-        const yearToConsider = companyDataObj.incomes[0].period_end.split('-')[0];
+        const yearsAvailable = await this.getYearsCompanyData(companyId);
 
-        const dividendsOfCompanyCurrentPeriod = await this.dividendsRepository
-            .createQueryBuilder('dividends')
-            .select('SUM(dividends.adj_amount)', 'totalDividends')
-            .where('company_id = :companyId', { companyId })
-            .andWhere('dividends.ticker = :ticker', { ticker })
-            .andWhere('dividends.ex_date >= :startDate', { startDate: `${yearToConsider}-01-01 00:00:00` })
-            .andWhere('dividends.ex_date <= :endDate', { endDate: `${yearToConsider}-12-31 23:59:59` })
-            .getRawOne();
+        const promises = yearsAvailable.map(async (item: any) => {
+            const index = item.index;
+            const year = item.year;
+            const formattedStockData: any = {};
 
-        const extraData = await this.buildOtherData(formattedStockData, dividendsOfCompanyCurrentPeriod);
+            Object.keys(companyDataObj).forEach((key) => {
+                if (key === 'market_ratios' && Array.isArray(marketRatiosFiltered) && marketRatiosFiltered.length > 0) {
+                    marketRatiosFiltered.sort((a: any, b: any) => {
+                        return new Date(b.reference_date).getTime() - new Date(a.reference_date).getTime();
+                    });
+                    formattedStockData[key] = marketRatiosFiltered[index];
+                } else if (Array.isArray(companyDataObj[key]) && companyDataObj[key].length > 0) {
+                    formattedStockData[key] = companyDataObj[key][index];
+                } else {
+                    formattedStockData[key] = companyDataObj[key];
+                }
+            });
 
-        delete formattedStockData._id;
-        delete formattedStockData.companyId;
+            const dividendsOfCompanyCurrentPeriod = await this.dividendsRepository
+                .createQueryBuilder('dividends')
+                .select('SUM(dividends.adj_amount)', 'totalDividends')
+                .where('company_id = :companyId', { companyId })
+                .andWhere('dividends.ticker = :ticker', { ticker })
+                .andWhere('dividends.ex_date >= :startDate', { startDate: `${year}-01-01 00:00:00` })
+                .andWhere('dividends.ex_date <= :endDate', { endDate: `${year}-12-31 23:59:59` })
+                .getRawOne();
+
+            const extraData = await this.buildOtherData(formattedStockData, dividendsOfCompanyCurrentPeriod);
+
+            delete formattedStockData._id;
+            delete formattedStockData.companyId;
+
+            return {
+                year,
+                ...formattedStockData,
+                dividendYieldLast12Months,
+                others: {
+                    ...extraData,
+                }
+            };
+        });
+
+        const allYearsReturn = await Promise.all(promises);
 
         return {
-            companyMarketData: {
-                ...formattedStockData, dividendYieldLast12Months, others: {
-                    ...extraData,
-                    cagrNetSales5Y,
-                    cagrNetIncome5Y
-                }
-            },
+            companyMarketData: allYearsReturn,
+            cagrNetSales5Y,
+            cagrNetIncome5Y,
             tickerCompanyInfo: tickerData,
             historicalDividendYieldData: historicalDividendYieldObj,
             historicalQuotesData: historicalQuotesObj,
@@ -235,5 +245,20 @@ export class CompaniesService {
             current_liquidity,
             ROIC
         };
+    }
+
+    async getYearsCompanyData(companyId: string): Promise<any> {
+        const companyData = await this.stockDataRecordModel.findOne({ companyId });
+
+        if (!companyData) {
+            throw new Error('Company data not found');
+        }
+
+        let companyDataObj: any = {};
+        companyDataObj = companyData.toObject();
+
+        const years = companyDataObj.incomes.map((item: any, index: number) => { return { year: item.period_end.split('-')[0], index } });
+
+        return years;
     }
 }
