@@ -42,7 +42,7 @@ export const tools: CustomFunction[] = [
     {
         type: 'function',
         function: {
-            name: 'companiesService_getQuotationsByTicker',
+            name: 'backtestService_getQuotationsByTicker',
             description: 'Get the last quotations of a company with the time period being specified by the user.',
             parameters: {
                 type: 'object',

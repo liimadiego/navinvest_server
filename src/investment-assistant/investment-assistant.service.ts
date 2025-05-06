@@ -8,7 +8,7 @@ import { TickerService } from '../ticker/ticker.service';
 import { CompaniesService } from 'companies/companies.service';
 import { CustomFunction } from 'utils/functions_tools/custom_functions.dto';
 import { tools } from 'utils/functions_tools/custom_functions';
-// import util from 'node:util';
+import { BacktestService } from 'backtest/backtest.service';
 
 const util = require('util');
 
@@ -20,6 +20,7 @@ export class InvestmentAssistantService {
     constructor(
         private readonly tickerService: TickerService,
         private readonly companiesService: CompaniesService,
+        private readonly backtestService: BacktestService,
         @InjectRepository(TickersEntity)
         private readonly tickersRepository: TickersEntity,
     ) {
@@ -51,7 +52,7 @@ export class InvestmentAssistantService {
 
             while (response.choices[0].message?.tool_calls) {
                 // Handle custom function call
-                
+
                 const toolCall = response.choices[0].message.tool_calls[0];
                 // console.log('toolCall:', toolCall, '\n ');
 
@@ -61,6 +62,14 @@ export class InvestmentAssistantService {
                 const [ serviceName, funcName ] = functionCall.name.split('_');
                 const r = await this[serviceName][funcName](...Object.values(JSON.parse(functionCall.arguments)));
                 // console.log('response:', r, '\n ');
+
+                if (funcName === 'getQuotationsByTicker') {
+                    return {
+                        messageType: 'chart',
+                        data: r,
+                        ticker: functionCall.arguments.ticker,
+                    };
+                }
 
                 inputMessages.push({ role: "system", content: JSON.stringify(toolCall) });
                 inputMessages.push({ role: "system", content: JSON.stringify(
