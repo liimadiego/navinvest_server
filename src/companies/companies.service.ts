@@ -93,6 +93,15 @@ export class CompaniesService {
             return item.ticker === tickerData.ticker;
         });
 
+        const currentNetSales = companyDataObj.incomes[0].net_sales || 0;
+        const currentNetSales5Y = companyDataObj.incomes[4].net_sales || 0;
+
+        const currentNetIncome = companyDataObj.incomes[0].net_income || 0;
+        const currentNetIncome5Y = companyDataObj.incomes[4].net_income || 0;
+
+        const cagrNetSales5Y = ((currentNetSales / currentNetSales5Y) ** (1 / 5)) - 1;
+        const cagrNetIncome5Y = ((currentNetIncome / currentNetIncome5Y) ** (1 / 5)) - 1;
+
         Object.keys(companyDataObj).forEach((key) => {
             if (key === 'market_ratios' && Array.isArray(marketRatiosFiltered) && marketRatiosFiltered.length > 0) {
                 marketRatiosFiltered.sort((a: any, b: any) => {
@@ -110,14 +119,121 @@ export class CompaniesService {
             historicalDividendYieldObj = historicalDividendYieldData.toObject();
         }
 
+        const yearToConsider = companyDataObj.incomes[0].period_end.split('-')[0];
+
+        const dividendsOfCompanyCurrentPeriod = await this.dividendsRepository
+            .createQueryBuilder('dividends')
+            .select('SUM(dividends.adj_amount)', 'totalDividends')
+            .where('company_id = :companyId', { companyId })
+            .andWhere('dividends.ticker = :ticker', { ticker })
+            .andWhere('dividends.ex_date >= :startDate', { startDate: `${yearToConsider}-01-01 00:00:00` })
+            .andWhere('dividends.ex_date <= :endDate', { endDate: `${yearToConsider}-12-31 23:59:59` })
+            .getRawOne();
+
+        const extraData = await this.buildOtherData(formattedStockData, dividendsOfCompanyCurrentPeriod);
+
         delete formattedStockData._id;
         delete formattedStockData.companyId;
 
         return {
-            companyMarketData: { ...formattedStockData, dividendYieldLast12Months },
+            companyMarketData: {
+                ...formattedStockData, dividendYieldLast12Months, others: {
+                    ...extraData,
+                    cagrNetSales5Y,
+                    cagrNetIncome5Y
+                }
+            },
             tickerCompanyInfo: tickerData,
             historicalDividendYieldData: historicalDividendYieldObj,
             historicalQuotesData: historicalQuotesObj,
+        };
+    }
+
+    async buildOtherData(formattedStockData: any, dividendsOfCompanyCurrentPeriod: any) {
+        const {
+            balance,
+            cash_flows,
+            incomes,
+            market_ratios,
+            ratios,
+            shares,
+        } = formattedStockData || {};
+
+        let EV = null;
+        let EBIT = incomes.ebit || null;
+        let EBITDA = null;
+        let EV_EBIT = null; // valor da empresa / EBIT
+        let EV_EBITDA = null; // valor da empresa / EBITDA
+        let P_EBIT = null; // preço / EBIT
+        let P_EBITDA = null; // preço / EBIT
+        const netDebt = ratios.net_debt; //divida líquida
+        let earnings_per_share = null; // lucro por ação
+        let dividend_per_share = null; // dividendos por ação
+        let payout = null; // payout
+        let p_acl = null; // preço / capital de giro
+        const netDebtEquity = balance.equity ? netDebt / balance.equity : null;
+        const netDebtEBITDA = ratios.ebitda ? netDebt / ratios.ebitda : null;
+        const netDebtEBIT = incomes.ebit ? netDebt / incomes.ebit : null;
+        const grossDebtEquity = balance.equity ? ratios.gross_debt / balance.equity : null;
+        const current_liquidity = ratios?.current_liquidity;
+
+        if (ratios?.working_capital && market_ratios.price && shares.shares_total) {
+            const aclPerShare = ratios.working_capital / shares.shares_total;
+            p_acl = market_ratios.price / aclPerShare;
+        }
+
+        if (dividendsOfCompanyCurrentPeriod.totalDividends && incomes?.net_income && shares.shares_total) {
+            payout = (dividendsOfCompanyCurrentPeriod?.totalDividends * shares.shares_total) / incomes?.net_income;
+        }
+
+        if (shares?.shares_total && market_ratios?.price && balance?.loans && balance?.long_term_loans && balance?.cash) {
+            EV = (shares.shares_total * market_ratios.price) + (balance.loans + balance.long_term_loans) - balance.cash;
+        }
+
+        if (EBIT && cash_flows?.depreciation_and_amortization) {
+            EBITDA = EBIT + cash_flows.depreciation_and_amortization;
+        }
+
+        if (EBIT && EV) {
+            EV_EBIT = EV / EBIT;
+        }
+
+        if (EBITDA && EV) {
+            EV_EBITDA = EV / EBITDA;
+        }
+
+        if (market_ratios?.price && EBIT && shares?.shares_total) {
+            P_EBIT = market_ratios?.price / (EBIT / shares?.shares_total)
+        }
+
+        if (market_ratios?.price && EBITDA && shares?.shares_total) {
+            P_EBITDA = market_ratios?.price / (EBITDA / shares?.shares_total)
+        }
+
+        const taxRate = incomes.taxes && incomes.profit_before_taxes ? Math.abs(incomes.taxes / incomes.profit_before_taxes) : null;
+        const nopat = taxRate && EBIT ? EBIT * (1 - taxRate) : null;
+        const capitalInvested = balance.assets && balance.cash ? balance.assets - balance.cash : null;
+        const ROIC = capitalInvested && nopat ? (capitalInvested > 0 ? nopat / capitalInvested : null) : null;
+
+        return {
+            EV,
+            EBIT,
+            EBITDA,
+            EV_EBIT,
+            EV_EBITDA,
+            P_EBIT,
+            P_EBITDA,
+            netDebt,
+            netDebtEBITDA,
+            netDebtEBIT,
+            netDebtEquity,
+            earnings_per_share: shares?.earnings_per_share || null,
+            dividend_per_share: shares?.dividend_per_share || null,
+            payout: payout || null,
+            p_acl: p_acl || null,
+            grossDebtEquity,
+            current_liquidity,
+            ROIC
         };
     }
 }
