@@ -18,5 +18,6 @@ import { StockDataRecord, StockDataRecordSchema } from '../schemas/stock-data-re
   ],
   controllers: [CompaniesController],
   providers: [CompaniesService],
+  exports: [CompaniesService],
 })
 export class CompaniesModule { }

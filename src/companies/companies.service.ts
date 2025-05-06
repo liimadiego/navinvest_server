@@ -7,6 +7,8 @@ import { StockDataRecord, StockDataRecordDocument } from '../schemas/stock-data-
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 
+const util = require('util');
+
 @Injectable()
 export class CompaniesService {
     constructor(
@@ -22,7 +24,30 @@ export class CompaniesService {
         return this.companyRepository.find();
     }
 
-    async getCompanyByTicker(ticker: string): Promise<any> {
+    async getQuotationsByTicker (ticker: string, period: number, fromChat: boolean = false): Promise<any> {
+        const tickerData = await this.tickersRepository.findOne({
+            where: { ticker },
+            relations: ['company']
+        });
+
+        if (!tickerData) {
+            throw new Error('Ticker not found');
+        }
+
+        const companyId = tickerData.company.id;
+        const companyData = await this.stockDataRecordModel.findOne({ companyId });
+
+        if (!companyData) {
+            throw new Error('Company data not found');
+        }
+
+        const companyDataObj = companyData.toObject();
+        console.log('companyDataObj:', util.inspect(companyDataObj, { colors: true, depth: 1 }), '\n ');
+
+        return companyDataObj;
+    }
+
+    async getCompanyByTicker (ticker: string): Promise<any> {
         const tickerData = await this.tickersRepository.findOne({
             where: { ticker },
             relations: ['company']
