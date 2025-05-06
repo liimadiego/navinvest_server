@@ -16,6 +16,8 @@ import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { MongooseModuleOptions } from '@nestjs/mongoose';
 import { CompanyEntity } from 'entities/companies.entity';
 import { ReitEntity } from 'entities/reits.entity';
+import { DividendEntity } from 'entities/dividends.entity';
+import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 
 dotenv.config();
 
@@ -34,6 +36,8 @@ export const TypeOrmConfig = () =>
         ssl: !(process.env.ENVIROMENT === 'development') ? { rejectUnauthorized: false } : false,
         entities: [
             UserEntity,
+            EconomicIndexesEntity,
+            DividendEntity,
             TreasuriesEntity,
             UserProfileEntity,
             UserSettingsEntity,

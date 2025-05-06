@@ -48,6 +48,9 @@ export class TickersEntity {
     @Column({ type: 'numeric', nullable: true })
     current_price: number;
 
+    @Column({ type: 'numeric', nullable: true })
+    price_twelve_months_ago: number;
+
     @Column({ nullable: true })
     risk_rating: string;
 

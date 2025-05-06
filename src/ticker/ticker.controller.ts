@@ -30,4 +30,15 @@ export class TickerController {
 
     return this.tickerService.getTickersByTags(tagsArray);
   }
+
+  @Get('get-proftability-by-ticker/:ticker')
+  async getProftabilityByTicker(@Param('ticker') ticker: string) {
+    return await this.tickerService.getProftabilityByTicker(ticker.toUpperCase())
+      .then((data) => {
+        return data;
+      })
+      .catch((error) => {
+        throw new BadRequestException(error.message);
+      });
+  }
 }
