@@ -189,7 +189,7 @@ export class CompaniesService {
         const grossDebtEquity = balance.equity ? ratios.gross_debt / balance.equity : null;
         const current_liquidity = ratios?.current_liquidity;
 
-        if (ratios?.working_capital && market_ratios.price && shares.shares_total) {
+        if (ratios?.working_capital && market_ratios?.price && shares.shares_total) {
             const aclPerShare = ratios.working_capital / shares.shares_total;
             p_acl = market_ratios.price / aclPerShare;
         }

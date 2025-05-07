@@ -39,9 +39,10 @@ export class InvestmentAssistantService {
 
             const inputMessages : MessageHistoric[] = [
                 { role: 'system', content: this.getPrompt("ia_assistant_context") },
-                ...messageHistoric,
+                ...messageHistoric.filter(m => !!m.content),
                 { role: 'user', content: message }
             ];
+            // console.log('inputMessages:', inputMessages, '\n ');
                 
             let response = await this.openai.chat.completions.create({
                 model: process.env.OPEN_AI_MODEL,
@@ -59,15 +60,24 @@ export class InvestmentAssistantService {
                 const functionCall : any = response.choices[0].message.tool_calls[0].function;
                 // console.log('functionCall:', functionCall, '\n ');
 
+                // Parse 'functionCall.arguments' to JSON.
+                if (functionCall.arguments) 
+                    functionCall.arguments = JSON.parse(functionCall.arguments);
+
                 const [ serviceName, funcName ] = functionCall.name.split('_');
-                const r = await this[serviceName][funcName](...Object.values(JSON.parse(functionCall.arguments)));
+                const r = await this[serviceName][funcName](...Object.values(functionCall.arguments));
                 // console.log('response:', r, '\n ');
 
                 if (funcName === 'getQuotationsByTicker') {
                     return {
-                        messageType: 'chart',
-                        data: r,
-                        ticker: functionCall.arguments.ticker,
+                        valid_question: true,
+                        data: [
+                            { messageType: 'text', answer: `Aqui estão os dados de fechamento da ação ${functionCall.arguments.ticker}:` },
+                            { messageType: 'chart', answer: {
+                                series: [ { name: 'Cotação de ' + functionCall.arguments.ticker, data: r.prices.map(x => x.close.toFixed(2)) } ],
+                                categories: r.prices.map(x => new Date(x.date).toISOString().split('T')[0].split('-').reverse().join('/')),
+                            } },
+                        ]
                     };
                 }
 
@@ -88,7 +98,9 @@ export class InvestmentAssistantService {
                 });
             }
 
-            return JSON.parse(response.choices[0].message?.content || '{}');
+            const { valid_question, ...content } = JSON.parse(response.choices[0].message?.content);
+
+            return { valid_question, data: [ { messageType: 'text', ...content } ] };
             
         } catch (error) {
             console.error('Error in OpenAI interaction:', error, '\n ');

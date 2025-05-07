@@ -235,7 +235,7 @@ export class TickerService {
             .where("tickers.ticker = :ticker", { ticker })
             .getOne();
 
-        console.log('tickerData:', tickerData, '\n ');
+        // console.log('tickerData:', tickerData, '\n ');
         
         return !!tickerData;
     }
