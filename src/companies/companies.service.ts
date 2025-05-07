@@ -127,7 +127,7 @@ export class CompaniesService {
 
             const dividendsOfCompanyCurrentPeriod = await this.dividendsRepository
                 .createQueryBuilder('dividends')
-                .select('SUM(dividends.adj_amount)', 'totalDividends')
+                .select('SUM(dividends.amount)', 'totalDividends')
                 .where('company_id = :companyId', { companyId })
                 .andWhere('dividends.ticker = :ticker', { ticker })
                 .andWhere('dividends.ex_date >= :startDate', { startDate: `${year}-01-01 00:00:00` })
@@ -171,6 +171,7 @@ export class CompaniesService {
             shares,
         } = formattedStockData || {};
 
+        let totalShares = null
         let EV = null;
         let EBIT = incomes.ebit || null;
         let EBITDA = null;
@@ -189,17 +190,21 @@ export class CompaniesService {
         const grossDebtEquity = balance.equity ? ratios.gross_debt / balance.equity : null;
         const current_liquidity = ratios?.current_liquidity;
 
-        if (ratios?.working_capital && market_ratios?.price && shares.shares_total) {
-            const aclPerShare = ratios.working_capital / shares.shares_total;
+        if (balance?.assets && market_ratios.assets_per_share) {
+            totalShares = balance.assets / market_ratios.assets_per_share;
+        }
+
+        if (ratios?.working_capital && market_ratios.price && totalShares) {
+            const aclPerShare = ratios.working_capital / totalShares;
             p_acl = market_ratios.price / aclPerShare;
         }
 
-        if (dividendsOfCompanyCurrentPeriod.totalDividends && incomes?.net_income && shares.shares_total) {
-            payout = (dividendsOfCompanyCurrentPeriod?.totalDividends * shares.shares_total) / incomes?.net_income;
+        if (dividendsOfCompanyCurrentPeriod.totalDividends && incomes?.net_income && totalShares) {
+            payout = (dividendsOfCompanyCurrentPeriod?.totalDividends * totalShares) / incomes?.net_income;
         }
 
-        if (shares?.shares_total && market_ratios?.price && balance?.loans && balance?.long_term_loans && balance?.cash) {
-            EV = (shares.shares_total * market_ratios.price) + (balance.loans + balance.long_term_loans) - balance.cash;
+        if (totalShares && market_ratios?.price && balance?.loans && balance?.long_term_loans && balance?.cash) {
+            EV = (totalShares * market_ratios.price) + (balance.loans + balance.long_term_loans) - balance.cash;
         }
 
         if (EBIT && cash_flows?.depreciation_and_amortization) {
@@ -214,12 +219,12 @@ export class CompaniesService {
             EV_EBITDA = EV / EBITDA;
         }
 
-        if (market_ratios?.price && EBIT && shares?.shares_total) {
-            P_EBIT = market_ratios?.price / (EBIT / shares?.shares_total)
+        if (market_ratios?.price && EBIT && totalShares) {
+            P_EBIT = market_ratios?.price / (EBIT / totalShares)
         }
 
-        if (market_ratios?.price && EBITDA && shares?.shares_total) {
-            P_EBITDA = market_ratios?.price / (EBITDA / shares?.shares_total)
+        if (market_ratios?.price && EBITDA && totalShares) {
+            P_EBITDA = market_ratios?.price / (EBITDA / totalShares)
         }
 
         const taxRate = incomes.taxes && incomes.profit_before_taxes ? Math.abs(incomes.taxes / incomes.profit_before_taxes) : null;
@@ -245,7 +250,8 @@ export class CompaniesService {
             p_acl: p_acl || null,
             grossDebtEquity,
             current_liquidity,
-            ROIC
+            ROIC,
+            totalShares
         };
     }
 
