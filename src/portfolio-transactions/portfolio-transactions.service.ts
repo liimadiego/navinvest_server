@@ -1,6 +1,5 @@
 import * as path from 'path';
 import * as csv from 'csv-parser';
-import * as xlsx from 'xlsx';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { TickersEntity } from 'entities/tickers.entity';
 import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
@@ -529,9 +528,9 @@ export class PortfolioTransactionsService {
                         return this.processImageFile(file);
                     } else if (fileExtension === '.csv') {
                         return this.processCsvFile(file);
-                    } else if (['.xlsx', '.xls'].includes(fileExtension)) {
+                    } /*else if (['.xlsx', '.xls'].includes(fileExtension)) {
                         return this.processExcelFile(file);
-                    } else {
+                    }*/ else {
                         return {
                             filename: file.originalname,
                             error: 'Formato de arquivo não suportado',
@@ -640,28 +639,28 @@ export class PortfolioTransactionsService {
         });
     }
 
-    private async processExcelFile(file: Multer.File): Promise<any> {
-        try {
-            const workbook = xlsx.read(file.buffer, { type: 'buffer' });
-            const results = {};
+    // private async processExcelFile(file: Multer.File): Promise<any> {
+    //     try {
+    //         const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+    //         const results = {};
 
-            workbook.SheetNames.forEach(sheetName => {
-                const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                results[sheetName] = sheetData;
-            });
+    //         workbook.SheetNames.forEach(sheetName => {
+    //             const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    //             results[sheetName] = sheetData;
+    //         });
 
-            return {
-                filename: file.originalname,
-                type: 'data',
-                data: results
-            };
-        } catch (error) {
-            return {
-                filename: file.originalname,
-                error: `Erro ao processar arquivo Excel: ${error.message}`
-            };
-        }
-    }
+    //         return {
+    //             filename: file.originalname,
+    //             type: 'data',
+    //             data: results
+    //         };
+    //     } catch (error) {
+    //         return {
+    //             filename: file.originalname,
+    //             error: `Erro ao processar arquivo Excel: ${error.message}`
+    //         };
+    //     }
+    // }
 
     /* ==================================== END WALLET IMPORT SECTION ==================================== */
 }

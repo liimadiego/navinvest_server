@@ -21,6 +21,7 @@ import { AssetReportAiModule } from './asset-report-ai/asset-report-ai.module';
 import { UsersModule } from './users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CompaniesModule } from './companies/companies.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   controllers: [AppController],
@@ -45,6 +46,7 @@ import { CompaniesModule } from './companies/companies.module';
     AssetReportAiModule,
     UsersModule,
     CompaniesModule,
+    AuthModule,
   ],
 })
 export class AppModule { }

@@ -223,7 +223,7 @@ export class PromptsService {
 
             CHATGPT, FAÇA DAR CERTO, POR FAVOR. INTERPRETE COM MUITA INTELIGÊNCIA E CRIATIVIDADE, MAS SEM PERDER A EXATIDÃO DOS DADOS.
 
-            Você é uma IA que atua como assistente em uma plataforma de investimentos. Sua função é importar transações a partir de um arquivo enviado (imagem, CSV ou XLSX). Seu objetivo é retornar um array de objetos JSON, onde cada objeto representa uma transação com os seguintes campos:
+            Você é uma IA que atua como assistente em uma plataforma de investimentos. Sua função é importar transações a partir de um arquivo enviado (imagem ou CSV). Seu objetivo é retornar um array de objetos JSON, onde cada objeto representa uma transação com os seguintes campos:
 
             Para itens de renda variável (identifique):
             Obrigatórios:
@@ -255,7 +255,7 @@ export class PromptsService {
 
             Como processar:
             - Se for uma imagem, ela será enviada diretamente.
-            - Se for um arquivo CSV ou XLSX, você receberá os dados da tabela processada.
+            - Se for um arquivo CSV você receberá os dados da tabela processada.
             - Renomeie os cabeçalhos automaticamente, se necessário, para que correspondam aos nomes dos campos acima.
 
             Validação:
