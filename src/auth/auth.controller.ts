@@ -24,6 +24,40 @@ export class AuthController {
         }
     }
 
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    @Post('register')
+    signUp(@Body() body: any): Promise<any> {
+        const { email, password, full_name, phone_number } = body;
+
+        if (!email || !password || !full_name || !phone_number) {
+            throw new BadRequestException('All fields are required');
+        }
+
+        try {
+            return this.authService.signUp(email, password, full_name, phone_number);
+        } catch (error) {
+            throw new UnauthorizedException('Registration failed');
+        }
+    }
+
+    //mexer aqui, deve ser pelo esquema de enviar email, gerar link e depois o usuário clicar no link para atualizar a senha
+    @HttpCode(HttpStatus.OK)
+    @Post('update-password')
+    async updatePassword(@Body() body: any): Promise<any> {
+        const { userId, newPassword } = body;
+
+        if (!userId || !newPassword) {
+            throw new BadRequestException('User ID and new password are required');
+        }
+
+        try {
+            return this.authService.updatePassword(userId, newPassword);
+        } catch (error) {
+            throw new UnauthorizedException('Password update failed');
+        }
+    }
+
     @HttpCode(HttpStatus.OK)
     @Get('me')
     async getMe(@Req() request: Request): Promise<any> {

@@ -16,6 +16,22 @@ export class UsersService {
         });
     }
 
+    async findByPhoneNumber(phone_number: string): Promise<UserEntity | null> {
+        return this.userRepository.findOne({
+            where: { phone_number },
+        });
+    }
+
+    async create(user: Partial<UserEntity>): Promise<any> {
+        const newUser = this.userRepository.create(user);
+        return this.userRepository.save(newUser);
+    }
+
+    async update(id: string, user: Partial<UserEntity>): Promise<UserEntity> {
+        await this.userRepository.update(id, user);
+        return this.userRepository.findOne({ where: { id } });
+    }
+
     async findById(id: string): Promise<UserEntity | null> {
         return this.userRepository.findOne({
             where: { id },
