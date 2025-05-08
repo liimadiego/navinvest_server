@@ -16,6 +16,12 @@ export class UsersService {
         });
     }
 
+    async findById(id: string): Promise<UserEntity | null> {
+        return this.userRepository.findOne({
+            where: { id },
+        });
+    }
+
     async findAll(): Promise<UserEntity[]> {
         return this.userRepository.find({
             order: {

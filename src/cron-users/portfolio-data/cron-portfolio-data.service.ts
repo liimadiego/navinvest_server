@@ -28,8 +28,8 @@ export class CronTotalAssetsService implements OnModuleInit {
 
         for (const user of users) {
             for (const portfolio of user.portfolios) {
-                const totalAssets = await this.InvestmentPortfolioService.getTotalAssetsByInvestmentPortfolioId(portfolio.id);
-                const totalInvested = await this.InvestmentPortfolioService.getTotalInvestedByInvestmentPortfolioId(portfolio.id);
+                const totalAssets = await this.InvestmentPortfolioService.getTotalAssetsByInvestmentPortfolioId(portfolio.id, user.id);
+                const totalInvested = await this.InvestmentPortfolioService.getTotalInvestedByInvestmentPortfolioId(portfolio.id, user.id);
 
                 const savedPortfolio = await this.savePortfolioData(portfolio.id, totalAssets.totalAssets, totalInvested.totalInvested, "BRL");
 

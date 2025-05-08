@@ -1,6 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
-import { Public } from 'decorators/public.decorator';
 
 @Controller('companies')
 export class CompaniesController {

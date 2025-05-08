@@ -1,9 +1,6 @@
 import { IsString, IsEnum, IsUUID } from 'class-validator';
 
 export class CreateInvestmentPortfolioDto {
-    @IsUUID()
-    userId: string;
-
     @IsString()
     name: string;
 

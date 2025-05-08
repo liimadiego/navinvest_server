@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { InvestmentPortfolioService } from './investment-portfolio.service';
 import { CreateInvestmentPortfolioDto } from './dto/create-investment-portfolio-dto';
 
@@ -7,39 +7,65 @@ export class InvestmentPortfolioController {
   constructor(private readonly investmentPortfolioService: InvestmentPortfolioService) { }
 
   @Post()
-  async create(@Body() investmentPortfolio: CreateInvestmentPortfolioDto) {
-    return await this.investmentPortfolioService.create(investmentPortfolio);
+  async create(@Req() request: Request, @Body() investmentPortfolio: CreateInvestmentPortfolioDto) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
+    if (!userId) {
+      throw new Error('User not found.');
+    }
+
+    return await this.investmentPortfolioService.create(investmentPortfolio, userId);
   }
 
-  @Get(':userId')
-  async findByUserId(@Param('userId') userId: string) {
+  @Get()
+  async find(@Req() request: Request) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
+    if (!userId) {
+      throw new Error('User not found.');
+    }
     return await this.investmentPortfolioService.findByUserId(userId);
   }
 
   @Get('total-assets/:investmentPortfolioId')
-  async getTotalAssetsByInvestmentPortfolioId(@Param('investmentPortfolioId') investmentPortfolioId: string) {
+  async getTotalAssetsByInvestmentPortfolioId(
+    @Req() request: Request,
+    @Param('investmentPortfolioId') investmentPortfolioId: string
+  ) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
     if (!investmentPortfolioId) {
       throw new Error('Investment Portfolio ID is required.');
     }
 
-    return await this.investmentPortfolioService.getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId);
+    return await this.investmentPortfolioService.getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId, userId);
   }
 
   @Get('total-invested/:investmentPortfolioId')
-  async getTotalInvestedByInvestmentPortfolioId(@Param('investmentPortfolioId') investmentPortfolioId: string) {
+  async getTotalInvestedByInvestmentPortfolioId(
+    @Req() request: Request,
+    @Param('investmentPortfolioId') investmentPortfolioId: string
+  ) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
     if (!investmentPortfolioId) {
       throw new Error('Investment Portfolio ID is required.');
     }
 
-    return await this.investmentPortfolioService.getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId);
+    return await this.investmentPortfolioService.getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId, userId);
   }
 
   @Get('portfolio-data/:investmentPortfolioId')
-  async getPortfolioDataByPortfolioId(@Param('investmentPortfolioId') investmentPortfolioId: string) {
+  async getPortfolioDataByPortfolioId(
+    @Req() request: Request,
+    @Param('investmentPortfolioId') investmentPortfolioId: string
+  ) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
     if (!investmentPortfolioId) {
       throw new Error('Investment Portfolio ID is required.');
     }
 
-    return await this.investmentPortfolioService.getPortfolioDataByPortfolioId(investmentPortfolioId);
+    return await this.investmentPortfolioService.getPortfolioDataByPortfolioId(investmentPortfolioId, userId);
   }
 }
