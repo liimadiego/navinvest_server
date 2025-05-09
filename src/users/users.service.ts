@@ -27,9 +27,8 @@ export class UsersService {
         return this.userRepository.save(newUser);
     }
 
-    async update(id: string, user: Partial<UserEntity>): Promise<UserEntity> {
-        await this.userRepository.update(id, user);
-        return this.userRepository.findOne({ where: { id } });
+    async updatePassword(id: string, password_hash: string): Promise<any> {
+        return this.userRepository.update(id, { password_hash });
     }
 
     async findById(id: string): Promise<UserEntity | null> {

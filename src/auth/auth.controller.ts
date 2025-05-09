@@ -41,6 +41,24 @@ export class AuthController {
         }
     }
 
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    @Post('reset-password')
+    async resetPassword(@Body() body: any): Promise<any> {
+        const { email } = body;
+
+        if (!email) {
+            throw new BadRequestException('Email is required');
+        }
+
+        try {
+            return this.authService.resetPassword(email);
+        } catch (error) {
+            throw new UnauthorizedException('Reset password failed');
+        }
+    }
+
+    @Public()
     @HttpCode(HttpStatus.OK)
     @Post('update-password')
     async updatePassword(@Body() body: any): Promise<any> {
@@ -70,24 +88,6 @@ export class AuthController {
             return this.authService.getUserFromToken(token);
         } catch (error) {
             throw new UnauthorizedException('Invalid token');
-        }
-    }
-
-    //resetPassword
-    @Public()
-    @HttpCode(HttpStatus.OK)
-    @Post('reset-password')
-    async resetPassword(@Body() body: any): Promise<any> {
-        const { email } = body;
-
-        if (!email) {
-            throw new BadRequestException('Email is required');
-        }
-
-        try {
-            return this.authService.resetPassword(email);
-        } catch (error) {
-            throw new UnauthorizedException('Reset password failed');
         }
     }
 }

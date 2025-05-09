@@ -58,19 +58,32 @@ export class AuthService {
         }
     }
 
-    async updatePassword(email: string, newPassword: string, code: string): Promise<void> {
+    async updatePassword(email: string, newPassword: string, code: string): Promise<any> {
         try {
+            const resetPasswordCode = await this.resetPasswordCodeRepository.findOne({ where: { code } });
+            if (!resetPasswordCode || resetPasswordCode.expires_at < new Date()) {
+                console.log('Invalid or expired code');
+                throw new UnauthorizedException('Invalid or expired code');
+            }
+
             const user = await this.usersService.findOne(email);
-            if (!user) {
-                throw new UnauthorizedException('User not found');
+            if (!user || user.id !== resetPasswordCode.user_id) {
+                console.log('Invalid email or code');
+                throw new UnauthorizedException('Invalid email or code');
             }
 
             const salt = await bcrypt.genSalt(10);
             user.password_hash = await bcrypt.hash(newPassword, salt);
 
-            await this.usersService.update(user.email, user);
+            await this.usersService.updatePassword(user.id, user.password_hash);
+
+            await this.resetPasswordCodeRepository.delete(resetPasswordCode.id);
+
+            // this.mailService.sendVerificationCodeMail('Password updated successfully', email, user.full_name);
+            return { success: true, message: 'Password updated successfully' };
         } catch (error) {
-            throw error;
+            console.error('Error updating password:', error);
+            throw new UnauthorizedException('Error updating password');
         }
 
     }

@@ -8,17 +8,19 @@ export class MailService {
     sendVerificationCodeMail(code: string, email: string, name: string): void {
         const brevo_base_url = process.env.BREVO_BASE_URL;
         const brevo_api_key = process.env.BREVO_API_KEY;
+        const brevo_mail_sender = process.env.BREVO_MAIL_SENDER;
 
         fetch(`${brevo_base_url}/smtp/email`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'api-key': brevo_api_key,
+                'Accept': 'application/json',
+                'api-key': `${brevo_api_key}`,
             },
             body: JSON.stringify({
                 "sender": {
                     "name": "Navinvest AI",
-                    "email": process.env.BREVO_MAIL_SENDER,
+                    "email": brevo_mail_sender,
                 },
                 "to": [
                     {
@@ -26,11 +28,12 @@ export class MailService {
                         "name": name
                     }
                 ],
-                "htmlContent": `<!DOCTYPE html><html><head></head><body><h1>Olá, Jimmy!</h1><p>Seu código de verificação é: <strong>${code}</strong></p></body></html>`,
+                "htmlContent": `<html><head></head><body><h1>Olá, ${name}!</h1><p>Seu código de verificação é: <strong>${code}</strong></p></body></html>`,
                 "subject": "Código de verificação",
             }),
         }).then(response => {
             if (!response.ok) {
+                console.error(response.statusText, response.status);
                 throw new Error('Network response was not ok');
             }
             return response.json();
