@@ -2,12 +2,19 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { ResetPasswordCodeEntity } from 'entities/reset-password-codes.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { MailService } from 'utils/mail.service';
 
 @Injectable()
 export class AuthService {
     constructor(
         private usersService: UsersService,
-        private jwtService: JwtService
+        private jwtService: JwtService,
+        private mailService: MailService,
+        @InjectRepository(ResetPasswordCodeEntity)
+        private resetPasswordCodeRepository: Repository<ResetPasswordCodeEntity>,
     ) { }
 
     async signIn(email: string, pass: string): Promise<{ accessToken: string }> {
@@ -51,9 +58,9 @@ export class AuthService {
         }
     }
 
-    async updatePassword(userId: string, newPassword: string): Promise<void> {
+    async updatePassword(email: string, newPassword: string, code: string): Promise<void> {
         try {
-            const user = await this.usersService.findById(userId);
+            const user = await this.usersService.findOne(email);
             if (!user) {
                 throw new UnauthorizedException('User not found');
             }
@@ -61,11 +68,39 @@ export class AuthService {
             const salt = await bcrypt.genSalt(10);
             user.password_hash = await bcrypt.hash(newPassword, salt);
 
-            await this.usersService.update(userId, user);
+            await this.usersService.update(user.email, user);
         } catch (error) {
             throw error;
         }
 
+    }
+
+    async resetPassword(email: string): Promise<void> {
+        try {
+            const user = await this.usersService.findOne(email);
+            if (!user) {
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+                return;
+            }
+
+            const userMail = user.email;
+            const userId = user.id;
+            const userName = user.full_name;
+
+            const code = this.generateResetPasswordCode(6);
+            await this.saveResetPasswordCode(userId, code);
+
+            if (!userMail || !userName || !code) {
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+                return;
+            }
+
+            this.mailService.sendVerificationCodeMail(code, userMail, userName);
+
+            console.log(`Reset password code for ${email}: ${code}`);
+        } catch (error) {
+            throw error;
+        }
     }
 
     async getUserFromToken(token: string): Promise<any> {
@@ -97,5 +132,23 @@ export class AuthService {
             return null;
         }
         return authHeader.substring(7);
+    }
+
+    generateResetPasswordCode(codeLength: number): string {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < codeLength; i++) {
+            code += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return code;
+    }
+
+    async saveResetPasswordCode(userId: string, code: string): Promise<void> {
+        const resetPasswordCode = new ResetPasswordCodeEntity();
+        resetPasswordCode.user_id = userId;
+        resetPasswordCode.code = code;
+        resetPasswordCode.expires_at = new Date(Date.now() + 3600000);
+
+        await this.resetPasswordCodeRepository.save(resetPasswordCode);
     }
 }

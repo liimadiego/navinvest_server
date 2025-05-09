@@ -3,6 +3,7 @@ import { UserProfileEntity } from './user-profile.entity';
 import { UserSettingsEntity } from './user-setting.entity';
 import { InvestorProfileEntity } from './investor-profile.entity';
 import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
+import { ResetPasswordCodeEntity } from './reset-password-codes.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -44,4 +45,7 @@ export class UserEntity {
 
     @OneToMany(() => InvestorProfileEntity, (profile) => profile.user, { cascade: true })
     investorProfiles: InvestorProfileEntity[];
+
+    @OneToMany(() => ResetPasswordCodeEntity, (code) => code.user, { cascade: true })
+    resetPasswordCodes: ResetPasswordCodeEntity[];
 }

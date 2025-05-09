@@ -41,18 +41,17 @@ export class AuthController {
         }
     }
 
-    //mexer aqui, deve ser pelo esquema de enviar email, gerar link e depois o usuário clicar no link para atualizar a senha
     @HttpCode(HttpStatus.OK)
     @Post('update-password')
     async updatePassword(@Body() body: any): Promise<any> {
-        const { userId, newPassword } = body;
+        const { email, newPassword, code } = body;
 
-        if (!userId || !newPassword) {
-            throw new BadRequestException('User ID and new password are required');
+        if (!email || !newPassword || !code) {
+            throw new BadRequestException('Mail, code and new password are required');
         }
 
         try {
-            return this.authService.updatePassword(userId, newPassword);
+            return this.authService.updatePassword(email, newPassword, code);
         } catch (error) {
             throw new UnauthorizedException('Password update failed');
         }
@@ -71,6 +70,24 @@ export class AuthController {
             return this.authService.getUserFromToken(token);
         } catch (error) {
             throw new UnauthorizedException('Invalid token');
+        }
+    }
+
+    //resetPassword
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    @Post('reset-password')
+    async resetPassword(@Body() body: any): Promise<any> {
+        const { email } = body;
+
+        if (!email) {
+            throw new BadRequestException('Email is required');
+        }
+
+        try {
+            return this.authService.resetPassword(email);
+        } catch (error) {
+            throw new UnauthorizedException('Reset password failed');
         }
     }
 }
