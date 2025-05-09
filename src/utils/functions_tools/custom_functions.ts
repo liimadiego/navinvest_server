@@ -1,9 +1,5 @@
 import { CustomFunction } from "./custom_functions.dto";
 
-/**
- * Example of a company service function definition.
- */
-
 export const tools: CustomFunction[] = [
     {
         type: 'function',
@@ -18,7 +14,7 @@ export const tools: CustomFunction[] = [
                         description: 'The ticker of the company you want to get information about.',
                     },
                 },
-                required: [ 'company_ticker' ],
+                required: ['company_ticker'],
             }
         }
     },
@@ -35,7 +31,7 @@ export const tools: CustomFunction[] = [
                         description: 'The ticker of the company you want to validate.',
                     },
                 },
-                required: [ 'ticker' ],
+                required: ['ticker'],
             }
         }
     },

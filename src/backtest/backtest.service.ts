@@ -9,7 +9,7 @@ export class BacktestService {
   historicalRatesCache: Record<string, any> = {};
 
   // Pega um ticker como 'TAEE11' e busca na base do yahoo o simbolo usado pelo yahoo, como 'TAEE11.SA' por exemplo.
-  async getYahooSymbol (ticker: string) {
+  async getYahooSymbol(ticker: string) {
     const tickerType = ticker.split(':')[1];
     ticker = ticker.split(':')[0];
 
@@ -17,10 +17,10 @@ export class BacktestService {
       const { quotes } = await yahooFinance.search(ticker + (tickerType === 'CRYPTOCURRENCY' ? '-USD' : ''), { quotesCount: 6, newsCount: 0 });
       for (const q of quotes) {
         if (
-          'symbol' in q && 
+          'symbol' in q &&
           (
-            ((!tickerType) && q.symbol === ticker) || 
-            ((!tickerType) && q.symbol.startsWith(`${ticker}.`)) || 
+            ((!tickerType) && q.symbol === ticker) ||
+            ((!tickerType) && q.symbol.startsWith(`${ticker}.`)) ||
             (tickerType === 'CURRENCY' && q.quoteType === 'CURRENCY' && q.longname.replace('/', '') === ticker && q.shortname.replace('/', '') === ticker) ||
             (tickerType === 'CRYPTOCURRENCY' && q.quoteType === 'CRYPTOCURRENCY' && q.symbol === ticker + '-USD')
           )
@@ -37,7 +37,7 @@ export class BacktestService {
     }
   }
 
-  async fetchHistoricalPrices (symbol: string, startDate: number, endDate: number, returnType: string = "array", pricesToReturn: string | string[] = "") {
+  async fetchHistoricalPrices(symbol: string, startDate: number, endDate: number, returnType: string = "array", pricesToReturn: string | string[] = "") {
     try {
       const start = new Date(startDate).toISOString().split('T')[0];  // Inclusive start date
       const end = new Date(endDate).toISOString().split('T')[0];      // Exclusive end date
@@ -50,7 +50,7 @@ export class BacktestService {
         period2: end,
         interval: '1d',
         return: returnType
-      }); 
+      });
 
       if (returnType === 'array') {
         const { meta: { currency: baseCurrency }, quotes: prices } = chartData;
@@ -63,7 +63,7 @@ export class BacktestService {
 
         return { baseCurrency, prices };
       } else {
-        const { meta: { currency: baseCurrency }, timestamp, indicators: { quote: [ ohlc ], adjclose: [ { adjclose } ] } } = chartData;
+        const { meta: { currency: baseCurrency }, timestamp, indicators: { quote: [ohlc], adjclose: [{ adjclose }] } } = chartData;
 
         if (!timestamp || timestamp.length < 2)
           throw `Dados insuficientes para o symbol: ${symbol}`;
@@ -72,17 +72,17 @@ export class BacktestService {
         const dates = timestamp.map(t => new Date(new Date(t * 1e3).setUTCHours(0, 0, 0, 0)).toISOString());
 
         const prices = { dates, ...ohlc, adjclose };
-        
+
         // Retorna apenas os preços selecionados.
         if (pricesToReturn)
-          return { 
-            baseCurrency, 
+          return {
+            baseCurrency,
             prices: typeof pricesToReturn === 'string' ? prices[pricesToReturn] : pricesToReturn.reduce((obj, priceToReturn) => {
               obj[priceToReturn] = prices[priceToReturn];
               return obj;
-            }, { dates }) 
+            }, { dates })
           };
-        
+
         // Retorna todos os preços.
         return { baseCurrency, prices };
       }
@@ -92,7 +92,9 @@ export class BacktestService {
     }
   }
 
-  async getQuotationsByTicker (ticker: string, period: number): Promise<any> {
+  async getQuotationsByTicker(ticker: string, period: number): Promise<any> {
+    ticker = ticker.toUpperCase();
+
     const currentDate = new Date();
     const endDate = Math.ceil(currentDate.getTime() / 864e5) * 864e5;
     const startDate = Math.floor(currentDate.setUTCMonth(currentDate.getUTCMonth() - period) / 864e5) * 864e5;
@@ -106,17 +108,17 @@ export class BacktestService {
       const step = Math.ceil(dataLength / 20);
 
       const reducedData = historicalPrices.prices.filter((_, index) => index % step === 0);
-      if (reducedData.at(-1).date !==  historicalPrices.prices.at(-1).date) {
+      if (reducedData.at(-1).date !== historicalPrices.prices.at(-1).date) {
         reducedData.push(historicalPrices.prices.at(-1));
       }
 
       historicalPrices.prices = reducedData;
     }
-    
+
     return historicalPrices;
   }
 
-  private async fetchHistoricalRates (symbol: string, startDate: number, endDate: number) {
+  private async fetchHistoricalRates(symbol: string, startDate: number, endDate: number) {
     try {
       const start = new Date(startDate).toISOString().split('T')[0];
       const end = new Date(endDate).toISOString().split('T')[0];
@@ -160,7 +162,7 @@ export class BacktestService {
     }
   }
 
-  calculateDailyLogReturns (assetsPrices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[][], weights: number[]) {
+  calculateDailyLogReturns(assetsPrices: { adjclose?: number; date: Date; high: number; low: number; open: number; close: number; volume: number; }[][], weights: number[]) {
     let dailyLogReturnsMap: Map<number, number[]> = new Map();
     let sum: number[] = [0, 0];
 
@@ -216,7 +218,7 @@ export class BacktestService {
     // return { returns, sum };
   }
 
-  async test (body: BacktestRequestDto) {
+  async test(body: BacktestRequestDto) {
     const { startDate, endDate, baseCurrency: portfolioBaseCurrency, portfolio } = body;
 
     if (!(endDate >= startDate))
