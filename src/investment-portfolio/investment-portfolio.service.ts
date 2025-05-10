@@ -74,6 +74,8 @@ export class InvestmentPortfolioService {
             .leftJoinAndSelect('investment_portfolio.user', 'users')
             .leftJoinAndSelect('investment_portfolio.transactions', 'transactions')
             .leftJoinAndSelect('transactions.ticker', 'ticker')
+            .leftJoinAndSelect('transactions.treasury', 'treasury')
+            .leftJoinAndSelect('transactions.fixed_income_details', 'fixed_income_details')
             .where('investment_portfolio.id = :investmentPortfolioId', { investmentPortfolioId })
             .getOne();
 
@@ -93,11 +95,30 @@ export class InvestmentPortfolioService {
             }
 
             const totalAssets = investmentPortfolio.transactions.reduce((total, transaction) => {
+                const amount = Number(transaction.amount);
+                const quantity = Number(transaction.quantity);
+                const price_per_unit = Number(transaction.price_per_unit);
+                const ticker_current_price = transaction.ticker ? Number(transaction.ticker.current_price) : 0;
+
                 if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
                     if (transaction.transaction_type === 'SELL') {
-                        return total - (transaction.quantity * transaction.price_per_unit);
+                        return total - (quantity * price_per_unit);
                     }
-                    return total + (transaction.quantity * transaction.ticker.current_price);
+                    return total + (quantity * ticker_current_price);
+                }
+
+                if (transaction.asset_type === 'FIXED_INCOME') {
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - (amount);
+                    }
+                    return total + (amount);
+                }
+
+                if (transaction.asset_type === 'TREASURY') {
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - (amount);
+                    }
+                    return total + (amount);
                 }
 
                 return total;
@@ -122,7 +143,31 @@ export class InvestmentPortfolioService {
             }
 
             const totalInvested = investmentPortfolio.transactions.reduce((total, transaction) => {
-                return total + (transaction.quantity * transaction.price_per_unit);
+                const amount = Number(transaction.amount);
+                const quantity = Number(transaction.quantity);
+                const price_per_unit = Number(transaction.price_per_unit);
+                const ticker_current_price = transaction.ticker ? Number(transaction.ticker.current_price) : 0;
+
+                if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - (quantity * price_per_unit);
+                    }
+                    return total + (quantity * price_per_unit);
+                }
+
+                if (transaction.asset_type === 'FIXED_INCOME') {
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - (amount);
+                    }
+                    return total + (amount);
+                }
+
+                if (transaction.asset_type === 'TREASURY') {
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - (amount);
+                    }
+                    return total + (amount);
+                }
             }, 0);
 
             return {
@@ -197,23 +242,18 @@ export class InvestmentPortfolioService {
     async getPortfolioDataByPortfolioId(portfolioId: string, userId: string) {
         const portfolioDataRecord = await this.portfolioDataRecordModel.findOne({ portfolioId });
 
-        if (!portfolioDataRecord) {
-            return {
-                portfolioId: portfolioId,
-                historicalData: [],
-                currentTotalAssets: 0,
-                currentTotalInvested: 0,
-                portfolioName: ''
-            };
-        }
+        let data = [];
+        let filteredData = [];
 
-        const data = portfolioDataRecord.data;
-        const currentDate = new Date();
-        const twelveMonthsAgo = new Date(currentDate.setMonth(currentDate.getMonth() - 12));
-        const filteredData = data.filter((d: any) => {
-            const recordDate = new Date(d.year, d.month - 1, 1);
-            return recordDate >= twelveMonthsAgo;
-        });
+        if (portfolioDataRecord) {
+            data = portfolioDataRecord.data;
+            const currentDate = new Date();
+            const twelveMonthsAgo = new Date(currentDate.setMonth(currentDate.getMonth() - 12));
+            filteredData = data.filter((d: any) => {
+                const recordDate = new Date(d.year, d.month - 1, 1);
+                return recordDate >= twelveMonthsAgo;
+            });
+        }
 
         const currentTotalAssets = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId);
         const currentTotalInvested = await this.getTotalInvestedByInvestmentPortfolioId(portfolioId, userId);
