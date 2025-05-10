@@ -3,11 +3,13 @@ import { PortfolioTransactionsService } from './portfolio-transactions.service';
 import { CreatePortfolioTransactionDto } from './dto/create-portfolio-transaction-dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Multer } from 'multer';
+import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
 
 @Controller('portfolio-transactions')
 export class PortfolioTransactionsController {
   constructor(private readonly portfolioTransactionsService: PortfolioTransactionsService) { }
 
+  @PremiumPlan()
   @Post('import-wallet/:portfolioId')
   @UseInterceptors(FilesInterceptor('file0', 10, {
     limits: {
@@ -80,6 +82,7 @@ export class PortfolioTransactionsController {
     return this.portfolioTransactionsService.getTransactions(portfolioId, false);
   }
 
+  @PremiumPlan()
   @Post('create-transaction-from-wallet-import-data/:portfolioId')
   async createTransactionFromWalletImportData(@Param('portfolioId') portfolioId: string, @Body() data: any): Promise<any> {
     if (!data || !data.data) {

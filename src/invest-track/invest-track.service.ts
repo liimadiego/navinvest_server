@@ -29,6 +29,7 @@ export class InvestTrackService {
             });
 
             return JSON.parse(response.choices[0].message?.content || '{}');
+            return this.buildDescription(action);
         } catch (error) {
             console.error(error);
             throw new HttpException(

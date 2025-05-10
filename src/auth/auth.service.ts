@@ -133,7 +133,8 @@ export class AuthService {
             email: user.email,
             displayName: user.full_name,
             role: user.role,
-            created_at: user.created_at
+            created_at: user.created_at,
+            plan: user.plan,
         }
 
         return { user: userData };

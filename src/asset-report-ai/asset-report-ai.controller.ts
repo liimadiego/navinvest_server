@@ -1,11 +1,13 @@
 import { Body, Controller, HttpException, HttpStatus, Post } from '@nestjs/common';
 import { AssetReportAiService } from './asset-report-ai.service';
 import { log } from 'console';
+import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
 
 @Controller('asset-report-ai')
 export class AssetReportAiController {
   constructor(private readonly assetReportAiService: AssetReportAiService) { }
 
+  @PremiumPlan()
   @Post('generate-report')
   async generateReport(@Body() req: any): Promise<any> {
     try {

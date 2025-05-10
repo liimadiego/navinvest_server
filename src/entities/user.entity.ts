@@ -1,9 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { UserProfileEntity } from './user-profile.entity';
 import { UserSettingsEntity } from './user-setting.entity';
 import { InvestorProfileEntity } from './investor-profile.entity';
 import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 import { ResetPasswordCodeEntity } from './reset-password-codes.entity';
+import { PlanEntity } from './plan.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -48,4 +49,14 @@ export class UserEntity {
 
     @OneToMany(() => ResetPasswordCodeEntity, (code) => code.user, { cascade: true })
     resetPasswordCodes: ResetPasswordCodeEntity[];
+
+    @Column({ type: 'uuid', nullable: true })
+    plan_id: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    plan_expiration: Date | null;
+
+    @ManyToOne(() => PlanEntity, (plan) => plan.users, { nullable: true })
+    @JoinColumn({ name: 'plan_id' })
+    plan: PlanEntity;
 }

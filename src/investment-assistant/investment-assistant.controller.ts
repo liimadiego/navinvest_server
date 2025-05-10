@@ -1,11 +1,13 @@
 import { Controller, Post, Body, HttpException, HttpStatus, Req, Get } from '@nestjs/common';
 import { InvestmentAssistantService } from './investment-assistant.service';
 import { MessageHistoric } from './investment-assistant-interface';
+import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
 
 @Controller('investment-assistant')
 export class InvestmentAssistantController {
   constructor(private readonly investmentAssistantService: InvestmentAssistantService) { }
 
+  @PremiumPlan()
   @Post('ask')
   async ask(@Req() request: Request, @Body() body: { message: string, messageHistoric: MessageHistoric[], chatId: string }) {
     const userId = await this.investmentAssistantService.getUserIdByHeaderRequest(request);
@@ -33,6 +35,7 @@ export class InvestmentAssistantController {
     }
   }
 
+  @PremiumPlan()
   @Get('get-chat')
   async getChat(@Req() request: Request) {
     const userId = await this.investmentAssistantService.getUserIdByHeaderRequest(request);

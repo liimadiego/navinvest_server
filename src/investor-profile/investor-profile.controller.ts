@@ -1,6 +1,7 @@
 import { Body, Query, Controller, HttpException, HttpStatus, Post, Get } from '@nestjs/common';
 import { InvestorProfileService } from './investor-profile.service';
 import { investorProfileAnswers } from './investor-profile-interface';
+import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
 
 @Controller('investor-profile')
 export class InvestorProfileController {
@@ -43,7 +44,7 @@ export class InvestorProfileController {
     return { success: true, data: response };
   }
 
-  //getInvestmentPlan
+  @PremiumPlan()
   @Get('get-investment-plan')
   async getInvestmentPlan(@Query() query: { user_id: string }) {
 

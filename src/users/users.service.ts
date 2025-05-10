@@ -34,6 +34,7 @@ export class UsersService {
     async findById(id: string): Promise<UserEntity | null> {
         return this.userRepository.findOne({
             where: { id },
+            relations: ['plan']
         });
     }
 
@@ -52,5 +53,26 @@ export class UsersService {
                 created_at: 'DESC'
             }
         });
+    }
+
+    async userHasAccess(id: string, plansAllowed: string[]): Promise<boolean> {
+        const user = await this.userRepository.findOne({
+            where: { id },
+            relations: ['plan']
+        });
+
+        if (!user) {
+            return false;
+        }
+
+        if (!user.plan) {
+            return false;
+        }
+
+        if (plansAllowed.length > 0) {
+            return plansAllowed.includes(user.plan.slug) && user.plan_expiration > new Date();
+        }
+
+        return user.plan !== null && user.plan_expiration > new Date();
     }
 }

@@ -1,11 +1,13 @@
 import { Controller, Post, Body, HttpStatus, HttpException } from '@nestjs/common';
 import { InvestTrackService } from './invest-track.service';
 import { UserAction } from './invest-track-interface';
+import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
 
 @Controller('invest-track')
 export class InvestTrackController {
   constructor(private readonly investTrackService: InvestTrackService) { }
 
+  @PremiumPlan()
   @Post('get-ia-opinion')
   async getIAOpinion(@Body() body: { action: UserAction }) {
     const { action } = body;

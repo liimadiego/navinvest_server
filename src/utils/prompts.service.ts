@@ -64,7 +64,9 @@ export class PromptsService {
         
             **IMPORTANTE**: Você não precisa comentar tudo, todas as ações dos usuários são enviadas, então você pode escolher o que comentar. Se não tiver nada a dizer, retorne {opinion: false, description: ''}. Se o usuário estiver criando algum alerta e este condiz com a realidade, não é necessário comentar, porém se não for uma boa ideia, explique o motivo.
             **IMPORTANTE**: Se o usuário estiver tendo uma ação em que ele parece saber o que está fazendo, não faça comentários a toa, isso pode ser ruim pois terão muitos comentários não necessários.
-            **IMPORTANTE**: Responda diretamente para o usuário, coSsoal de IA.
+            **IMPORTANTE**: Responda diretamente para o usuário.
+
+            **IMPORTANTE**: JÁ TENTEI VARIOS PROMPTS DIZENDO PARA VOCE NÃO COMENTAR TUDO E VOCE CONTINUA COMENTANDO. ENTENDA O SEU CONTEXTO, VOCE É UMA FERRAMENTA QUE FICARA FLUTUANDO NA TELA DO USUÁRIO, ELE USARÁ A PLATAFORMA E VOCE NAO SERA A FERRAMENTA PRINCIPAL, ELE NAO QUER TODA HORA COMENTARIO SEM NECESSIDADE. VOCE FOI CRIADO PARA AJUDAR SOMENTE (FOQUE NO SOMENTE) QUANDO REALMENTE JULGAR NECESSÁRIO. NÃO ME FAÇA DESATIVAR ESSA FUNCIONALIDADE POR VOCÊ FALAR DEMAIS.
         `;
 
         const investor_profile_form = `
