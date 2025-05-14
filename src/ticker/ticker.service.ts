@@ -29,8 +29,6 @@ export class TickerService {
     ) { }
 
     async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
-        console.log("getTickers", limit, query, type);
-
         let queryBuilder = type === 'treasury' ?
             this.treasuryRepository.createQueryBuilder("treasuries") :
             this.tickerRepository.createQueryBuilder("tickers")
@@ -236,7 +234,7 @@ export class TickerService {
             .getOne();
 
         // console.log('tickerData:', tickerData, '\n ');
-        
+
         return !!tickerData;
     }
 }
