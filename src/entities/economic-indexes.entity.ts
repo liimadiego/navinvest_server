@@ -14,4 +14,7 @@ export class EconomicIndexesEntity {
 
     @Column({ type: 'numeric', precision: 5, scale: 2 })
     value: number;
+
+    @Column()
+    estimate: boolean;
 }

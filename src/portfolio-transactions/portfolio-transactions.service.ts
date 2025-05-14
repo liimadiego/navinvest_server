@@ -5,9 +5,11 @@ import { TickersEntity } from 'entities/tickers.entity';
 import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
 import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
+import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
+import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, Between } from 'typeorm';
 import { CreatePortfolioTransactionDto } from './dto/create-portfolio-transaction-dto';
 import { LanguagesService } from 'utils/language.service';
 import OpenAI from 'openai';
@@ -29,6 +31,10 @@ export class PortfolioTransactionsService {
         private readonly languagesService: LanguagesService,
         @InjectRepository(FixedIncomeDetailsEntity)
         private readonly fixedIncomeDetailsRepository: Repository<FixedIncomeDetailsEntity>,
+        @InjectRepository(EconomicIndexesEntity)
+        private readonly economicIndexesRepository: Repository<EconomicIndexesEntity>,
+        @InjectRepository(FinancialHolidaysEntity)
+        private readonly financialHolidaysRepository: Repository<FinancialHolidaysEntity>,
         @InjectRepository(TreasuriesEntity)
         private readonly treasuriesRepository: Repository<TreasuriesEntity>,
     ) {
@@ -349,8 +355,122 @@ export class PortfolioTransactionsService {
         return this.consolidatePortfolio(transactions, verbose);
     }
 
-    consolidatePortfolio(transactions: any[], verbose: boolean = true): any[] {
+    async getIndexerRate (indexer: string, sinceDate: Date): Promise<any> {
+        indexer = indexer.toLocaleLowerCase();
+
+        if (indexer !== 'cdi' && indexer !== 'ipca')
+            throw new NotFoundException(`Indexer '${indexer}' not found`);
+
+        if (indexer === 'ipca') // Transform since date to the first day of the month
+            sinceDate = new Date(sinceDate.toISOString().slice(0, 8) + '01T00:00-0300');
+
+        const indexerRates = await this.economicIndexesRepository.find({
+            select: { id: false, slug: true, date: true, value: true, estimate: true },
+            where: { 
+                slug: indexer, 
+                date: MoreThanOrEqual(sinceDate) 
+            },
+            order: { date: 'ASC' },
+        });
+
+        return indexerRates;
+    }
+
+    async getFinancialHolidays (year: number): Promise<FinancialHolidaysEntity[]> {
+        const holidays = await this.financialHolidaysRepository.find({
+            where: { 
+                date: Between(
+                    new Date(year + '-01-01T00:00-0300'), 
+                    new Date((year + 1) + '-01-01T00:00-0300')
+                )
+            },
+            order: { date: 'ASC' },
+        });
+
+        return holidays;
+    }
+
+    async getWorkDaysOfMonth(year: number, month: number): Promise<EconomicIndexesEntity[]> {
+        const monthStr = (month + 1).toString().padStart(2, '0');
+
+        const holidays = await this.getFinancialHolidays(year);
+        const holidaysSet = new Set(holidays.map(holiday => new Date(holiday.date + 'T00:00-0300').toISOString()));
+
+        const workDays: EconomicIndexesEntity[] = [];
+        for (let date = new Date(year + `-${monthStr}-01T00:00-0300`); date.getMonth() === month; date.setDate(date.getDate() + 1)) {
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const isHoliday = holidaysSet.has(date.toISOString());
+
+            if (!isWeekend && !isHoliday) {
+                workDays.push({
+                    date: new Date(date.getTime()),
+                    slug: '',
+                    value: 0,
+                    estimate: false,
+                } as EconomicIndexesEntity);
+            }
+        }
+
+        return workDays;
+    }
+
+    async consolidatePortfolio(transactions: any[], verbose: boolean = true): Promise<any> {
         const grouped: Record<string, any> = {};
+        
+        // Get IPCA and CDI daily rates since the first fixed income transaction.
+        let cdiRates = [];
+        let ipcaRates = [];
+        const firstCDITransaction = transactions.find((transaction) => transaction.asset_type === 'FIXED_INCOME' && transaction.fixed_income_details.indexer.startsWith('CDI'));
+        const firstIPCATransaction = transactions.find((transaction) => transaction.asset_type === 'FIXED_INCOME' && transaction.fixed_income_details.indexer.startsWith('IPCA'));
+        if (firstCDITransaction || firstIPCATransaction) {
+            const firstDate = new Date(Math.min(
+                firstCDITransaction?.transaction_date.getTime() || Infinity,
+                firstIPCATransaction?.transaction_date.getTime() || Infinity
+            ));
+            firstDate.setDate(1); // Set to the first day of the month
+            firstDate.setHours(0, 0, 0, 0);
+
+            const [ _cdiRates, _ipcaRates ] = await Promise.all([
+                this.getIndexerRate('CDI', firstDate),
+                this.getIndexerRate('IPCA', firstDate)
+            ]);
+
+            // Formata '_cdiRates'.
+            _cdiRates.forEach((r: any) => {
+                r.date = new Date(r.date + 'T00:00-0300'); // Converte a data para o formato correto
+                r.value = ((Math.pow(r.value / 100 + 1, 1 / 252) - 1) * 100).toFixed(12); // Converte o CDI anual para diário
+            });
+
+            let dailyIpcaRates = [];
+            for (const monthIpcaRate of _ipcaRates) {
+                const monthIpcaRateDate = new Date(monthIpcaRate.date + 'T00:00-0300');
+                const month = monthIpcaRateDate.getMonth();
+                
+                let workDaysOfMonth = undefined;
+                if (monthIpcaRate.estimate) {
+                    // Se o IPCA for estimado, calcula os dias úteis do mês.
+                    workDaysOfMonth = await this.getWorkDaysOfMonth(monthIpcaRateDate.getFullYear(), month);
+                } else {
+                    // Se o IPCA não for estimado usa como base os dias do CDI.
+                    workDaysOfMonth = _cdiRates.filter((r: EconomicIndexesEntity) => r.date.getMonth() === month && r.date.getFullYear() === monthIpcaRateDate.getFullYear());
+                }
+
+                const avgDailyRate = ((Math.pow(monthIpcaRate.value / 100 + 1, 1 / workDaysOfMonth.length) - 1) * 100).toFixed(12);
+                const monthDailyIpcaRate = workDaysOfMonth
+                    .filter((r: EconomicIndexesEntity) => (r.date.getTime() <= _cdiRates.at(-1).date.getTime()))
+                    .map((r: EconomicIndexesEntity) => ({ ...r, value: avgDailyRate, slug: 'ipca', estimate: monthIpcaRate.estimate }));
+
+                dailyIpcaRates = dailyIpcaRates.concat(monthDailyIpcaRate);
+            }
+            
+            cdiRates = _cdiRates;
+            ipcaRates = dailyIpcaRates;
+        }
+
+        const economicIndexes = {
+            CDI: cdiRates,
+            IPCA: ipcaRates,
+        };
 
         for (const transaction of transactions) {
             const isFixedIncome = transaction.fixed_income_details && !transaction.ticker && !transaction.treasury;
@@ -362,6 +482,7 @@ export class PortfolioTransactionsService {
             let assetCurrency: string = 'BRL';
             let assetImageUrl: string;
             let currentPrice: number = 0;
+            let fixedIncomeReturn: number = 0;
 
             if (isFixedIncome) {
                 assetId = transaction.fixed_income_details.id;
@@ -369,6 +490,24 @@ export class PortfolioTransactionsService {
                 assetType = transaction.asset_type;
                 assetCurrency = transaction.fixed_income_details.currency || 'BRL';
                 assetImageUrl = 'https://investidor10.com.br/assets/front/images/money-check-alt.svg';
+
+                const indexer = transaction.fixed_income_details.indexer.startsWith('CDI') ? 'CDI' : 'IPCA';
+                const pctgOfIndexer = indexer === transaction.fixed_income_details.indexer ? transaction.fixed_income_details.indexer_rate / 100 : 1;
+                const prefixedAnnualRate = indexer === transaction.fixed_income_details.indexer ? 0 : transaction.fixed_income_details.indexer_rate / 100;
+                const prefixedDailyRate = prefixedAnnualRate ? Math.round((Math.pow(prefixedAnnualRate + 1, 1 / 252) - 1) * 1e12) / 1e12 : 0;
+                
+                const firstIdx = economicIndexes[indexer]
+                    .findIndex((i: EconomicIndexesEntity) => 
+                        i.date.getTime() > transaction.transaction_date.getTime()
+                );
+
+                fixedIncomeReturn = 1;
+                for (let i = firstIdx; i < economicIndexes[indexer].length; i++) {
+                    const indexerDailyRate = economicIndexes[indexer][i].value / 100 * pctgOfIndexer;
+                    const dailyRate = indexerDailyRate + prefixedDailyRate;
+                    fixedIncomeReturn *= (1 + dailyRate);
+                }
+
             } else if (isTreasury) {
                 assetId = transaction.treasury.id;
                 assetName = `${transaction.treasury.name}`;
@@ -402,6 +541,7 @@ export class PortfolioTransactionsService {
                     total_quantity: 0,
                     quantity,
                     current_price: currentPrice,
+                    fixed_income_return: fixedIncomeReturn,
                 };
             }
 
@@ -441,7 +581,7 @@ export class PortfolioTransactionsService {
 
                 if (isFixedIncome) {
                     // Lógica para renda fixa
-                    currentValue = asset.total_amount * 1.06; // Lógica simplificada para renda fixa
+                    currentValue = asset.total_amount * asset.fixed_income_return;
                     variation = ((currentValue - asset.total_amount) / asset.total_amount) * 100;
                 } else if (isTreasury) {
                     // Lógica para tesouro direto (aplicar rentabilidade específica)

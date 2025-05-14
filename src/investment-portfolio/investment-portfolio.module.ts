@@ -12,6 +12,8 @@ import { TickersEntity } from 'entities/tickers.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
 import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
+import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
+import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { TreasuriesEntity } from 'entities/treasuries.entity';
       PortfolioTransactionEntity,
       FixedIncomeDetailsEntity,
       TreasuriesEntity,
+      EconomicIndexesEntity,
+      FinancialHolidaysEntity,
       UserEntity
     ]),
   ],

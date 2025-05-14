@@ -1,25 +1,6 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as dotenv from 'dotenv';
-import { UserEntity } from '../entities/user.entity';
-import { UserProfileEntity } from '../entities/user-profile.entity';
-import { UserSettingsEntity } from '../entities/user-setting.entity';
-import { PortfolioTransactionEntity } from '../entities/portfolio-transaction.entity';
-import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
-import { NewsEntity } from '../entities/news.entity';
-import { TickersEntity } from '../entities/tickers.entity';
-import { UserNewsEntity } from '../entities/user-news.entity';
-import { UserTickersSubscribeEntity } from '../entities/user-tickers-subscribe.entity';
-import { InvestorProfileEntity } from '../entities/investor-profile.entity';
-import { TagEntity } from '../entities/tag.entity';
-import { FixedIncomeDetailsEntity } from '../entities/fixed-income-details.entity';
-import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { MongooseModuleOptions } from '@nestjs/mongoose';
-import { CompanyEntity } from 'entities/companies.entity';
-import { ReitEntity } from 'entities/reits.entity';
-import { DividendEntity } from 'entities/dividends.entity';
-import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
-import { ResetPasswordCodeEntity } from 'entities/reset-password-codes.entity';
-import { PlanEntity } from 'entities/plan.entity';
 
 dotenv.config();
 
@@ -36,27 +17,7 @@ export const TypeOrmConfig = () =>
             connectionLimit: 10,
         },
         ssl: !(process.env.ENVIROMENT === 'development') ? { rejectUnauthorized: false } : false,
-        entities: [
-            PlanEntity,
-            ResetPasswordCodeEntity,
-            UserEntity,
-            EconomicIndexesEntity,
-            DividendEntity,
-            TreasuriesEntity,
-            UserProfileEntity,
-            UserSettingsEntity,
-            PortfolioTransactionEntity,
-            FixedIncomeDetailsEntity,
-            InvestmentPortfolioEntity,
-            NewsEntity,
-            TickersEntity,
-            UserNewsEntity,
-            UserTickersSubscribeEntity,
-            InvestorProfileEntity,
-            TagEntity,
-            CompanyEntity,
-            ReitEntity,
-        ],
+        entities: [ __dirname + '/../entities/**/*.entity.{ts,js}' ],
     }) as TypeOrmModuleOptions;
 
 
