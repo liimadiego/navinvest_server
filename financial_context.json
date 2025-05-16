@@ -1,0 +1,26 @@
+{
+  "cenário_global": {
+    "crescimento_econômico": "O crescimento econômico global está desacelerando, influenciado por políticas monetárias restritivas adotadas por bancos centrais, como o Federal Reserve nos EUA, para conter a inflação.",
+    "inflação": "A inflação permanece elevada em economias avançadas, com a Zona do Euro registrando 2,4% nos últimos 12 meses até fevereiro de 2025.",
+    "política_monetária": "O Federal Reserve manteve a taxa de juros entre 4,25% e 4,5%, interrompendo o ciclo de cortes após três reduções consecutivas em 2024.",
+    "mercado_de_trabalho": "Nos EUA, a taxa de desemprego foi de 4,1% em fevereiro de 2025, indicando estabilidade no mercado de trabalho.",
+    "commodities": "Os preços do petróleo bruto WTI estão em torno de $72,7 por barril, refletindo incertezas comerciais nos EUA."
+  },
+  "cenário_brasil": {
+    "crescimento_econômico": "O PIB brasileiro apresentou crescimento acumulado de 2,5% nos últimos 12 meses, impulsionado por setores como agronegócio e indústria de transformação.",
+    "inflação": "O IPCA anual está em torno de 4,2%, próximo ao centro da meta estabelecida pelo Banco Central.",
+    "taxa_de_juros": "A taxa Selic foi elevada para 13,25% em janeiro de 2025, com o Banco Central sinalizando possíveis aumentos adicionais para conter pressões inflacionárias.",
+    "câmbio": "O dólar está cotado a R$ 5,10, com leve apreciação do real devido ao aumento no fluxo de investimentos externos.",
+    "mercado_de_trabalho": "A taxa de desemprego está em 9,5%, indicando uma recuperação gradual, embora ainda em patamares elevados."
+  },
+  "notícias_relevantes": [
+    "O Banco Popular da China anunciou um corte de 25 pontos-base em suas principais taxas de juros para impulsionar a economia.",
+    "O Ibovespa apresentou volatilidade recente, influenciado por expectativas de aumento dos juros nos EUA e preocupações com a Selic no Brasil."
+  ],
+  "indicadores": {
+    "selic": "13,25%",
+    "ipca_anual": "4,2%",
+    "ibov_variacao_7d": "-1,78%",
+    "sp500_variacao_7d": "-1,4%"
+  }
+}
