@@ -21,6 +21,7 @@ export class CronNewsService implements OnModuleInit {
     private async startCronJob() {
         // cron.schedule('* * * * *', async () => {
         //      await this.functionGetFinancialContextWithAI(); //rodar todos os dias
+        //      this.getFinancialNewsWithAI(); //rodar todos os dias
         //      await this.saveNewsInDatabase();
         //      await this.sendNewsToSubscribers();
         // });
@@ -173,6 +174,95 @@ export class CronNewsService implements OnModuleInit {
             console.log(`⏳ Aguardando... tentativa ${i + 1}`);
         }
     }
+
+    private async getFinancialNewsWithAI() {
+        const todayFormatted = new Date().toLocaleDateString('pt-BR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).replace(/\//g, '/');
+
+        const prompt = `Você é o responsável por um jornal digital que atende milhares de usuários, trazendo as principais notícias do mundo financeiro e afins. Você é quem pesquisa, filtra e organiza as notícias. Seu padrão é trazer notícias de fontes confiáveis, você traz notícias sobre o contexto macro econômico, notícias sobre ações, commodities, criptomoedas e tudo que envolve o mundo dos investimentos. Você traz do contexto Brasil e do Mundo. Pesquise as principais notícias de hoje (${todayFormatted}) que forem importantes para o investidor experiênte e traga no formato JSON.
+
+        Não de pequenos tópicos, senão parece ter sido feito as pressas ou por uma máquina. Desenvolva os assuntos e traga um jornal rápido, porém completo para o investidor.
+
+        NÃO SE ESQUEÇA DE UTILIZAR <QUEBRA_LINHA> para quebrar as linhas, pois o front irá fazer um replace para <br>. EU PRECISO QUE SIGA ESSA REGRA, POIS É O QUE O FRONT ESPERA. NÃO ME FAÇA DESATIVAR ESSA FEATURE POR VOCÊ MANDAR ERRADO.
+        
+        Modelo: {
+            "answer": RESPOSTA AQUI EM TEXTO COM <QUEBRA_LINHA> para quebra de linha,
+            "links": [
+                {
+                    "fromWhere": "NOMEAQUI"
+                    "url": "https://link-da-noticia.com"
+                },
+                {
+                    "fromWhere": "NOMEAQUI"
+                    "url": "https://link-da-noticia.com"
+                }
+            ]
+        }
+            
+        é importante seguir o modelo (JSON) pois ele será utilizado e espera esse padrão
+        
+        Entregue o JSON como se fosse a versão final para o usuario ler dentro do answer. Use <QUEBRA_LINHA> para quebra de linha, pois usarei um replace no front para trocar por <br>.
+        `;
+
+        const response = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+                'OpenAI-Beta': 'tools=v1'
+            },
+            body: JSON.stringify({
+                model: process.env.OPEN_AI_MODEL,
+                input: prompt,
+                instructions: 'Use a ferramenta web search para buscar informações atualizadas.',
+                tools: [{ type: 'web_search' }],
+                tool_choice: 'auto',
+                temperature: 0.7,
+                top_p: 1.0,
+                store: true,
+            }),
+        });
+
+        const initialData = await response.json();
+        const id = initialData.id;
+
+        for (let i = 0; i < 20; i++) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const final = await fetch(`https://api.openai.com/v1/responses/${id}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'OpenAI-Beta': 'tools=v1'
+                }
+            });
+
+            const finalData = await final.json();
+
+            const hasMessageType = finalData.output.some((item: any) => item.type === 'message');
+            if (hasMessageType) {
+                const messageItem = finalData.output.find((item: any) => item.type === 'message');
+                if (messageItem && messageItem.content && messageItem.content.length > 0) {
+                    try {
+                        // Sanitize JSON string by removing control characters
+                        const sanitizedText = messageItem.content[0].text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+                        const parsedJson = JSON.parse(sanitizedText);
+                        fs.writeFileSync('financial_news.json', JSON.stringify(parsedJson, null, 2));
+                    } catch (error) {
+                        fs.writeFileSync('financial_news.json', messageItem.content[0].text);
+                        console.error('Erro ao fazer o parse do JSON:', error);
+                    }
+                }
+                return;
+            }
+            console.log(`⏳ Aguardando... tentativa ${i + 1}`);
+        }
+    }
+
 
 
 }
