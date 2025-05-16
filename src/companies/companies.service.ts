@@ -42,7 +42,7 @@ export class CompaniesService {
         return this.companyRepository.find();
     }
 
-    async getCompanyByTicker (ticker: string): Promise<any> {
+    async getCompanyByTicker(ticker: string, comparing = false): Promise<any> {
         const tickerData = await this.tickersRepository.findOne({
             where: { ticker },
             relations: ['company']
@@ -51,6 +51,9 @@ export class CompaniesService {
         if (!tickerData) {
             throw new Error('Ticker not found');
         }
+
+        const company = tickerData.company;
+        const sector = company.b3_sector;
 
         const companyId = tickerData.company.id;
 
@@ -152,12 +155,14 @@ export class CompaniesService {
         const allYearsReturn = await Promise.all(promises);
 
         return {
-            companyMarketData: allYearsReturn,
+            current_price: tickerData.current_price,
+            companyMarketData: comparing ? allYearsReturn[0] : allYearsReturn,
+            sector,
             cagrNetSales5Y,
             cagrNetIncome5Y,
             tickerCompanyInfo: tickerData,
-            historicalDividendYieldData: historicalDividendYieldObj,
-            historicalQuotesData: historicalQuotesObj,
+            historicalDividendYieldData: comparing ? null : historicalDividendYieldObj,
+            historicalQuotesData: comparing ? null : historicalQuotesObj,
         };
     }
 
@@ -190,16 +195,16 @@ export class CompaniesService {
         const grossDebtEquity = balance.equity ? ratios.gross_debt / balance.equity : null;
         const current_liquidity = ratios?.current_liquidity;
 
-        if (balance?.assets && market_ratios.assets_per_share) {
+        if (balance?.assets && market_ratios?.assets_per_share) {
             totalShares = balance.assets / market_ratios.assets_per_share;
         }
 
-        if (ratios?.working_capital && market_ratios.price && totalShares) {
+        if (ratios?.working_capital && market_ratios?.price && totalShares) {
             const aclPerShare = ratios.working_capital / totalShares;
             p_acl = market_ratios.price / aclPerShare;
         }
 
-        if (dividendsOfCompanyCurrentPeriod.totalDividends && incomes?.net_income && totalShares) {
+        if (dividendsOfCompanyCurrentPeriod?.totalDividends && incomes?.net_income && totalShares) {
             payout = (dividendsOfCompanyCurrentPeriod?.totalDividends * totalShares) / incomes?.net_income;
         }
 
@@ -227,9 +232,9 @@ export class CompaniesService {
             P_EBITDA = market_ratios?.price / (EBITDA / totalShares)
         }
 
-        const taxRate = incomes.taxes && incomes.profit_before_taxes ? Math.abs(incomes.taxes / incomes.profit_before_taxes) : null;
+        const taxRate = incomes?.taxes && incomes?.profit_before_taxes ? Math.abs(incomes.taxes / incomes.profit_before_taxes) : null;
         const nopat = taxRate && EBIT ? EBIT * (1 - taxRate) : null;
-        const capitalInvested = balance.assets && balance.cash ? balance.assets - balance.cash : null;
+        const capitalInvested = balance?.assets && balance.cash ? balance.assets - balance.cash : null;
         const ROIC = capitalInvested && nopat ? (capitalInvested > 0 ? nopat / capitalInvested : null) : null;
 
         return {
@@ -268,5 +273,422 @@ export class CompaniesService {
         const years = companyDataObj.incomes.map((item: any, index: number) => { return { year: item.period_end.split('-')[0], index } });
 
         return years;
+    }
+
+    async compareCompanies(tickers: string[]): Promise<any> {
+        const companies = [];
+        let companiesFiltered = {};
+
+        for (const ticker of tickers) {
+            const company = await this.getCompanyByTicker(ticker, true);
+            companies.push(company);
+        }
+
+        const companiesFormatted = companies.reduce((acc: any, company: any) => {
+            const ticker = company.tickerCompanyInfo.ticker;
+            acc[ticker] = {
+                ...company.companyMarketData,
+                ...company.others,
+                historicalDividendYieldData: company.historicalDividendYieldData,
+                historicalQuotesData: company.historicalQuotesData,
+                sector: company.sector,
+                current_price: company.current_price,
+            };
+
+            return acc;
+        }, {});
+
+        for (const ticker of tickers) {
+            // First, collect all comparable values in temporary objects
+            const priceEarningsValues = {};
+            const priceToBookValues = {};
+            const priceToSalesValues = {};
+            const priceToAssetsValues = {};
+            const priceToCashFlowValues = {};
+            const evEbitValues = {};
+            const evEbitdaValues = {};
+            const pEbitValues = {};
+            const pEbitdaValues = {};
+            const roeValues = {};
+            const roaValues = {};
+            const roicValues = {};
+            const lpaValues = {};
+            const grossMarginValues = {};
+            const ebitMarginValues = {};
+            const ebitdaMarginValues = {};
+            const netMarginValues = {};
+            const netDebtValues = {};
+            const netDebtEquityValues = {};
+            const netDebtEbitdaValues = {};
+            const grossDebtEquityValues = {};
+            const currentLiquidityValues = {};
+            const quickLiquidityValues = {};
+            const cashLiquidityValues = {};
+            const workingCapitalValues = {};
+            const netSalesValues = {};
+            const netIncomeValues = {};
+            const ebitValues = {};
+            const ebitdaValues = {};
+            const dividendYieldValues = {};
+            const payoutValues = {};
+            const assetsValues = {};
+            const equityValues = {};
+
+            // Collect values for all tickers
+            for (const ticker of tickers) {
+                priceEarningsValues[ticker] = companiesFormatted[ticker].market_ratios.price_earnings;
+                priceToBookValues[ticker] = companiesFormatted[ticker].market_ratios.price_to_book;
+                priceToSalesValues[ticker] = companiesFormatted[ticker].market_ratios.price_to_sales;
+                priceToAssetsValues[ticker] = companiesFormatted[ticker].market_ratios.price_to_assets;
+                priceToCashFlowValues[ticker] = companiesFormatted[ticker].market_ratios.price_to_cash_flow;
+                evEbitValues[ticker] = companiesFormatted[ticker].others.EV_EBIT;
+                evEbitdaValues[ticker] = companiesFormatted[ticker].others.EV_EBITDA;
+                pEbitValues[ticker] = companiesFormatted[ticker].others.P_EBIT;
+                pEbitdaValues[ticker] = companiesFormatted[ticker].others.P_EBITDA;
+                roeValues[ticker] = companiesFormatted[ticker].ratios.return_on_equity;
+                roaValues[ticker] = companiesFormatted[ticker].ratios.return_on_assets;
+                roicValues[ticker] = companiesFormatted[ticker].others.ROIC;
+                lpaValues[ticker] = companiesFormatted[ticker].market_ratios.earnings_per_share;
+                grossMarginValues[ticker] = companiesFormatted[ticker].ratios.gross_margin;
+                ebitMarginValues[ticker] = companiesFormatted[ticker].ratios.ebit_margin;
+                ebitdaMarginValues[ticker] = companiesFormatted[ticker].ratios.ebitda_margin;
+                netMarginValues[ticker] = companiesFormatted[ticker].ratios.net_margin;
+                netDebtValues[ticker] = companiesFormatted[ticker].others.netDebt;
+                netDebtEquityValues[ticker] = companiesFormatted[ticker].others.netDebtEquity;
+                netDebtEbitdaValues[ticker] = companiesFormatted[ticker].others.netDebtEBITDA;
+                grossDebtEquityValues[ticker] = companiesFormatted[ticker].others.grossDebtEquity;
+                currentLiquidityValues[ticker] = companiesFormatted[ticker].ratios.current_liquidity;
+                quickLiquidityValues[ticker] = companiesFormatted[ticker].ratios.quick_liquidity;
+                cashLiquidityValues[ticker] = companiesFormatted[ticker].ratios.cash_liquidity;
+                workingCapitalValues[ticker] = companiesFormatted[ticker].ratios.working_capital;
+                netSalesValues[ticker] = companiesFormatted[ticker].incomes.net_sales;
+                netIncomeValues[ticker] = companiesFormatted[ticker].incomes.net_income;
+                ebitValues[ticker] = companiesFormatted[ticker].incomes.ebit;
+                ebitdaValues[ticker] = companiesFormatted[ticker].ratios.ebitda;
+                dividendYieldValues[ticker] = companiesFormatted[ticker].dividendYieldLast12Months;
+                payoutValues[ticker] = companiesFormatted[ticker].others.payout;
+                assetsValues[ticker] = companiesFormatted[ticker].balance.assets;
+                equityValues[ticker] = companiesFormatted[ticker].balance.equity;
+            }
+
+            // Now for each ticker, determine winners
+            for (const ticker of tickers) {
+                //Informações Gerais
+                const price = companiesFormatted[ticker].current_price;
+                const sector = companiesFormatted[ticker].sector;
+
+                //Valuation
+                const priceEarnings = companiesFormatted[ticker].market_ratios.price_earnings;
+                const priceToBook = companiesFormatted[ticker].market_ratios.price_to_book;
+                const priceToSales = companiesFormatted[ticker].market_ratios.price_to_sales;
+                const priceToAssets = companiesFormatted[ticker].market_ratios.price_to_assets;
+                const priceToCashFlow = companiesFormatted[ticker].market_ratios.price_to_cash_flow;
+                const evEbit = companiesFormatted[ticker].others.EV_EBIT;
+                const evEbitda = companiesFormatted[ticker].others.EV_EBITDA;
+                const pEbit = companiesFormatted[ticker].others.P_EBIT;
+                const pEbitda = companiesFormatted[ticker].others.P_EBITDA;
+
+                //Rentabilidade
+                const returnOnEquity = companiesFormatted[ticker].ratios.return_on_equity; // ROE
+                const returnOnAssets = companiesFormatted[ticker].ratios.return_on_assets; // ROA
+                const roic = companiesFormatted[ticker].others.ROIC;
+                const earningsPerShare = companiesFormatted[ticker].market_ratios.earnings_per_share;
+
+                //Margens
+                const grossMargin = companiesFormatted[ticker].ratios.gross_margin;
+                const ebitMargin = companiesFormatted[ticker].ratios.ebit_margin;
+                const ebitdaMargin = companiesFormatted[ticker].ratios.ebitda_margin;
+                const netMargin = companiesFormatted[ticker].ratios.net_margin;
+
+                //Endividamento
+                const netDebt = companiesFormatted[ticker].others.netDebt;
+                const netDebtEquity = companiesFormatted[ticker].others.netDebtEquity;
+                const netDebtEbitda = companiesFormatted[ticker].others.netDebtEBITDA;
+                const grossDebtEquity = companiesFormatted[ticker].others.grossDebtEquity;
+                const totalDebt = companiesFormatted[ticker].ratios.total_debt;
+
+                //Liquidez e Capital de Giro
+                const currentLiquidity = companiesFormatted[ticker].ratios.current_liquidity;
+                const quickLiquidity = companiesFormatted[ticker].ratios.quick_liquidity;
+                const cashLiquidity = companiesFormatted[ticker].ratios.cash_liquidity;
+                const workingCapital = companiesFormatted[ticker].ratios.working_capital;
+
+                //Receita e Lucro
+                const netSales = companiesFormatted[ticker].incomes.net_sales;
+                const netIncome = companiesFormatted[ticker].incomes.net_income;
+                const ebit = companiesFormatted[ticker].incomes.ebit;
+                const ebitda = companiesFormatted[ticker].ratios.ebitda;
+
+                //Outros Indicadores
+                const dividendYield = companiesFormatted[ticker].dividendYieldLast12Months;
+                const payout = companiesFormatted[ticker].others.payout;
+                const assets = companiesFormatted[ticker].balance.assets;
+                const equity = companiesFormatted[ticker].balance.equity;
+
+                // Function to determine if a value is the winner (smallest) among valid values
+                const isSmallestWinner = (valuesObj: any, currentValue: any) => {
+                    if (Object.values(valuesObj).some(v => v === null)) return null;
+
+                    if (currentValue === null || currentValue === undefined) return null;
+                    const validValues = Object.values(valuesObj).filter(v => v !== null && v !== undefined) as number[];
+                    if (validValues.length === 0) return null;
+                    return currentValue === Math.min(...validValues);
+                };
+
+                // Function to determine if a value is the winner (largest) among valid values
+                const isLargestWinner = (valuesObj: any, currentValue: any) => {
+                    if (Object.values(valuesObj).some(v => v === null)) return null;
+
+                    if (currentValue === null || currentValue === undefined) return null;
+                    const validValues = Object.values(valuesObj).filter(v => v !== null && v !== undefined) as number[];
+                    if (validValues.length === 0) return null;
+                    return currentValue === Math.max(...validValues);
+                };
+
+                companiesFiltered[ticker] = {
+                    generalInfo: {
+                        ticker: { value: ticker, translation: 'Ticker', tooltip: 'Código da ação na bolsa' },
+                        price: { value: price ? this.fCurrency(price) : '-', translation: 'Preço', tooltip: 'Preço atual da ação' },
+                        sector: { value: sector, translation: 'Setor', tooltip: 'Setor da empresa' },
+                    },
+                    valuation: {
+                        priceEarnings: {
+                            value: priceEarnings ? priceEarnings.toFixed(2) : '-',
+                            translation: 'P/L',
+                            tooltip: 'Preço da ação dividido pelo lucro por ação',
+                            winner: isSmallestWinner(priceEarningsValues, priceEarnings)
+                        },
+                        priceToBook: {
+                            value: priceToBook ? priceToBook.toFixed(2) : '-',
+                            translation: 'P/VP',
+                            tooltip: 'Preço da ação dividido pelo valor patrimonial por ação',
+                            winner: isSmallestWinner(priceToBookValues, priceToBook)
+                        },
+                        priceToSales: {
+                            value: priceToSales ? priceToSales.toFixed(2) : '-',
+                            translation: 'P/Receita',
+                            tooltip: 'Preço da ação dividido pela receita por ação',
+                            winner: isSmallestWinner(priceToSalesValues, priceToSales)
+                        },
+                        priceToAssets: {
+                            value: priceToAssets ? priceToAssets.toFixed(2) : '-',
+                            translation: 'P/Ativo',
+                            tooltip: 'Preço da ação dividido pelos ativos por ação',
+                            winner: isSmallestWinner(priceToAssetsValues, priceToAssets)
+                        },
+                        priceToCashFlow: {
+                            value: priceToCashFlow ? priceToCashFlow.toFixed(2) : '-',
+                            translation: 'P/FCO',
+                            tooltip: 'Preço da ação dividido pelo fluxo de caixa operacional por ação',
+                            winner: isSmallestWinner(priceToCashFlowValues, priceToCashFlow)
+                        },
+                        evEbit: {
+                            value: evEbit ? evEbit.toFixed(2) : '-',
+                            translation: 'EV/EBIT',
+                            tooltip: 'Valor da empresa dividido pelo EBIT',
+                            winner: isSmallestWinner(evEbitValues, evEbit)
+                        },
+                        evEbitda: {
+                            value: evEbitda ? evEbitda.toFixed(2) : '-',
+                            translation: 'EV/EBITDA',
+                            tooltip: 'Valor da empresa dividido pelo EBITDA',
+                            winner: isSmallestWinner(evEbitdaValues, evEbitda)
+                        },
+                        pEbit: {
+                            value: pEbit ? pEbit.toFixed(2) : '-',
+                            translation: 'P/EBIT',
+                            tooltip: 'Preço da ação dividido pelo EBIT por ação',
+                            winner: isSmallestWinner(pEbitValues, pEbit)
+                        },
+                        pEbitda: {
+                            value: pEbitda ? pEbitda.toFixed(2) : '-',
+                            translation: 'P/EBITDA',
+                            tooltip: 'Preço da ação dividido pelo EBITDA por ação',
+                            winner: isSmallestWinner(pEbitdaValues, pEbitda)
+                        }
+                    },
+                    profitability: {
+                        returnOnEquity: {
+                            value: returnOnEquity ? `${(returnOnEquity).toFixed(2)}%` : '-',
+                            translation: 'ROE',
+                            tooltip: 'Retorno sobre o patrimônio líquido',
+                            winner: isLargestWinner(roeValues, returnOnEquity)
+                        },
+                        returnOnAssets: {
+                            value: returnOnAssets ? `${(returnOnAssets * 100).toFixed(2)}%` : '-',
+                            translation: 'ROA',
+                            tooltip: 'Retorno sobre os ativos',
+                            winner: isLargestWinner(roaValues, returnOnAssets)
+                        },
+                        roic: {
+                            value: roic ? `${(roic * 100).toFixed(2)}%` : '-',
+                            translation: 'ROIC',
+                            tooltip: 'Retorno sobre o capital investido',
+                            winner: isLargestWinner(roicValues, roic)
+                        },
+                        earningsPerShare: {
+                            value: earningsPerShare ? this.fCurrency(earningsPerShare) : '-',
+                            translation: 'LPA',
+                            tooltip: 'Lucro por ação',
+                            winner: isLargestWinner(lpaValues, earningsPerShare)
+                        }
+                    },
+                    margins: {
+                        grossMargin: {
+                            value: grossMargin ? `${(grossMargin).toFixed(2)}%` : '-',
+                            translation: 'Margem Bruta',
+                            tooltip: 'Lucro bruto dividido pela receita líquida',
+                            winner: isLargestWinner(grossMarginValues, grossMargin)
+                        },
+                        ebitMargin: {
+                            value: ebitMargin ? `${(ebitMargin).toFixed(2)}%` : '-',
+                            translation: 'Margem EBIT',
+                            tooltip: 'EBIT dividido pela receita líquida',
+                            winner: isLargestWinner(ebitMarginValues, ebitMargin)
+                        },
+                        ebitdaMargin: {
+                            value: ebitdaMargin ? `${(ebitdaMargin).toFixed(2)}%` : '-',
+                            translation: 'Margem EBITDA',
+                            tooltip: 'EBITDA dividido pela receita líquida',
+                            winner: isLargestWinner(ebitdaMarginValues, ebitdaMargin)
+                        },
+                        netMargin: {
+                            value: netMargin ? `${(netMargin).toFixed(2)}%` : '-',
+                            translation: 'Margem Líquida',
+                            tooltip: 'Lucro líquido dividido pela receita líquida',
+                            winner: isLargestWinner(netMarginValues, netMargin)
+                        }
+                    },
+                    debt: {
+                        netDebt: {
+                            value: netDebt ? this.fCurrency(netDebt) : '-',
+                            translation: 'Dívida Líquida',
+                            tooltip: 'Dívida total menos caixa e equivalentes',
+                            winner: isSmallestWinner(netDebtValues, netDebt)
+                        },
+                        netDebtEquity: {
+                            value: netDebtEquity ? netDebtEquity.toFixed(2) : '-',
+                            translation: 'Dívida Líq./PL',
+                            tooltip: 'Dívida líquida dividida pelo patrimônio líquido',
+                            winner: isSmallestWinner(netDebtEquityValues, netDebtEquity)
+                        },
+                        netDebtEbitda: {
+                            value: netDebtEbitda ? netDebtEbitda.toFixed(2) : '-',
+                            translation: 'Dívida Líq./EBITDA',
+                            tooltip: 'Dívida líquida dividida pelo EBITDA',
+                            winner: isSmallestWinner(netDebtEbitdaValues, netDebtEbitda)
+                        },
+                        grossDebtEquity: {
+                            value: grossDebtEquity ? grossDebtEquity.toFixed(2) : '-',
+                            translation: 'Dívida Bruta/PL',
+                            tooltip: 'Dívida bruta dividida pelo patrimônio líquido',
+                            winner: isSmallestWinner(grossDebtEquityValues, grossDebtEquity)
+                        },
+                    },
+                    liquidity: {
+                        currentLiquidity: {
+                            value: currentLiquidity ? currentLiquidity.toFixed(2) : '-',
+                            translation: 'Liquidez Corrente',
+                            tooltip: 'Ativos circulantes divididos pelos passivos circulantes',
+                            winner: isLargestWinner(currentLiquidityValues, currentLiquidity)
+                        },
+                        quickLiquidity: {
+                            value: quickLiquidity ? quickLiquidity.toFixed(2) : '-',
+                            translation: 'Liquidez Seca',
+                            tooltip: 'Ativos circulantes menos estoques, divididos pelos passivos circulantes',
+                            winner: isLargestWinner(quickLiquidityValues, quickLiquidity)
+                        },
+                        cashLiquidity: {
+                            value: cashLiquidity ? cashLiquidity.toFixed(2) : '-',
+                            translation: 'Liquidez Imediata',
+                            tooltip: 'Disponibilidades divididas pelos passivos circulantes',
+                            winner: isLargestWinner(cashLiquidityValues, cashLiquidity)
+                        },
+                        workingCapital: {
+                            value: workingCapital ? this.fCurrency(workingCapital) : '-',
+                            translation: 'Capital de Giro',
+                            tooltip: 'Ativos circulantes menos passivos circulantes',
+                            winner: isLargestWinner(workingCapitalValues, workingCapital)
+                        }
+                    },
+                    revenueAndProfit: {
+                        netSales: {
+                            value: netSales ? this.fCurrency(netSales) : '-',
+                            translation: 'Receita Líquida',
+                            tooltip: 'Receita total após deduções',
+                            winner: isLargestWinner(netSalesValues, netSales)
+                        },
+                        netIncome: {
+                            value: netIncome ? this.fCurrency(netIncome) : '-',
+                            translation: 'Lucro Líquido',
+                            tooltip: 'Lucro após todas as despesas e impostos',
+                            winner: isLargestWinner(netIncomeValues, netIncome)
+                        },
+                        ebit: {
+                            value: ebit ? this.fCurrency(ebit) : '-',
+                            translation: 'EBIT',
+                            tooltip: 'Lucro antes de juros e impostos',
+                            winner: isLargestWinner(ebitValues, ebit)
+                        },
+                        ebitda: {
+                            value: ebitda ? this.fCurrency(ebitda) : '-',
+                            translation: 'EBITDA',
+                            tooltip: 'Lucro antes de juros, impostos, depreciação e amortização',
+                            winner: isLargestWinner(ebitdaValues, ebitda)
+                        }
+                    },
+                    otherIndicators: {
+                        dividendYield: {
+                            value: dividendYield ? `${(dividendYield * 100).toFixed(2)}%` : '-',
+                            translation: 'Dividend Yield',
+                            tooltip: 'Rendimento de dividendos em relação ao preço da ação',
+                            winner: isLargestWinner(dividendYieldValues, dividendYield)
+                        },
+                        payout: {
+                            value: payout ? `${(payout * 100).toFixed(2)}%` : '-',
+                            translation: 'Payout',
+                            tooltip: 'Percentual do lucro distribuído como dividendos',
+                            winner: isLargestWinner(payoutValues, payout)
+                        },
+                        assets: {
+                            value: assets ? this.fCurrency(assets) : '-',
+                            translation: 'Ativos Totais',
+                            tooltip: 'Soma de todos os ativos da empresa',
+                            winner: isLargestWinner(assetsValues, assets)
+                        },
+                        equity: {
+                            value: equity ? this.fCurrency(equity) : '-',
+                            translation: 'Patrimônio Líquido',
+                            tooltip: 'Valor líquido dos ativos após subtrair os passivos',
+                            winner: isLargestWinner(equityValues, equity)
+                        }
+                    },
+                };
+            }
+        }
+
+        return companiesFiltered;
+
+    }
+
+    fCurrency(inputValue: number | string, currency = 'BRL') {
+        const locale = currency === 'BRL'
+            ? { code: 'pt-BR', currency: 'BRL' }
+            : { code: 'en-US', currency: 'USD' };
+
+        const number = Number(inputValue);
+        if (isNaN(number)) return '';
+
+        return new Intl.NumberFormat(locale.code, {
+            style: 'currency',
+            currency: locale.currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(number);
+    }
+
+    processInput(inputValue: number | string) {
+        if (inputValue == null || Number.isNaN(inputValue)) return null;
+        return Number(inputValue);
     }
 }

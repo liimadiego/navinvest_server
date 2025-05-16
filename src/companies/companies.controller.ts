@@ -5,6 +5,15 @@ import { CompaniesService } from './companies.service';
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) { }
 
+  @Get('compare')
+  async compareCompanies(@Query('tickers') tickers: string[]): Promise<any> {
+    if (!tickers || tickers.length === 0) {
+      throw new Error('Tickers are required');
+    }
+    console.log('tickers', tickers);
+    return this.companiesService.compareCompanies(tickers);
+  }
+
   @Get(':ticker')
   async getCompanyData(@Param('ticker') ticker: string): Promise<any> {
     if (!ticker) {
@@ -12,4 +21,5 @@ export class CompaniesController {
     }
     return this.companiesService.getCompanyByTicker(ticker);
   }
+
 }
