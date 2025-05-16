@@ -491,9 +491,9 @@ export class PortfolioTransactionsService {
                 assetCurrency = transaction.fixed_income_details.currency || 'BRL';
                 assetImageUrl = 'https://investidor10.com.br/assets/front/images/money-check-alt.svg';
 
-                const indexer = transaction.fixed_income_details.indexer.startsWith('CDI') ? 'CDI' : 'IPCA';
-                const pctgOfIndexer = indexer === transaction.fixed_income_details.indexer ? transaction.fixed_income_details.indexer_rate / 100 : 1;
-                const prefixedAnnualRate = indexer === transaction.fixed_income_details.indexer ? 0 : transaction.fixed_income_details.indexer_rate / 100;
+                const indexer = transaction.fixed_income_details.indexer.replace('+', '');
+                const pctgOfIndexer = transaction.fixed_income_details.indexer.includes('+') ? 1 : transaction.fixed_income_details.indexer_rate / 100;
+                const prefixedAnnualRate = transaction.fixed_income_details.indexer.includes('+') ? transaction.fixed_income_details.indexer_rate / 100 : 0;
                 const prefixedDailyRate = prefixedAnnualRate ? Math.round((Math.pow(prefixedAnnualRate + 1, 1 / 252) - 1) * 1e12) / 1e12 : 0;
                 
                 const firstIdx = economicIndexes[indexer]
