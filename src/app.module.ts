@@ -22,6 +22,7 @@ import { UsersModule } from './users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CompaniesModule } from './companies/companies.module';
 import { AuthModule } from './auth/auth.module';
+import { FiisModule } from './fiis/fiis.module';
 
 @Module({
   controllers: [AppController],
@@ -47,6 +48,7 @@ import { AuthModule } from './auth/auth.module';
     UsersModule,
     CompaniesModule,
     AuthModule,
+    FiisModule,
   ],
 })
 export class AppModule { }
