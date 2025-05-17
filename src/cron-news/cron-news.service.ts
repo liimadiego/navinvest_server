@@ -1,17 +1,20 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as cron from 'node-cron';
+import * as fs from 'fs';
+import fetch from 'node-fetch';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { NewsService } from '../news/news.service';
 import { TickerService } from '../ticker/ticker.service';
-import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
-//importa o fs
-import * as fs from 'fs';
+import { UsersService } from '../users/users.service';
+import { MailService } from 'utils/mail.service';
 
 @Injectable()
 export class CronNewsService implements OnModuleInit {
     constructor(
         private readonly tickerService: TickerService,
-        private readonly newsService: NewsService
+        private readonly newsService: NewsService,
+        private readonly usersService: UsersService,
+        private readonly mailService: MailService
     ) { }
 
     onModuleInit() {
@@ -21,7 +24,8 @@ export class CronNewsService implements OnModuleInit {
     private async startCronJob() {
         // cron.schedule('* * * * *', async () => {
         //      await this.functionGetFinancialContextWithAI(); //rodar todos os dias
-        //      this.getFinancialNewsWithAI(); //rodar todos os dias
+        //      await this.getFinancialNewsWithAI(); //rodar todos os dias
+        //      await this.sendDailyNewsToSubscribers(); //rodar todos os dias
         //      await this.saveNewsInDatabase();
         //      await this.sendNewsToSubscribers();
         // });
@@ -182,14 +186,19 @@ export class CronNewsService implements OnModuleInit {
             day: '2-digit'
         }).replace(/\//g, '/');
 
-        const prompt = `Você é o responsável por um jornal digital que atende milhares de usuários, trazendo as principais notícias do mundo financeiro e afins. Você é quem pesquisa, filtra e organiza as notícias. Seu padrão é trazer notícias de fontes confiáveis, você traz notícias sobre o contexto macro econômico, notícias sobre ações, commodities, criptomoedas e tudo que envolve o mundo dos investimentos. Você traz do contexto Brasil e do Mundo. Pesquise as principais notícias de hoje (${todayFormatted}) que forem importantes para o investidor experiênte e traga no formato JSON.
+        const prompt = `
+        **REGRA, PARA TITULOS, APENAS A PARTIR DE H2, POIS EU JA UTILIZO UMA TAG H1 PARA TITULO DO EMAIL.**
+
+        Você é o responsável por um jornal digital que atende milhares de usuários, trazendo as principais notícias do mundo financeiro e afins. Você é quem pesquisa, filtra e organiza as notícias. Seu padrão é trazer notícias de fontes confiáveis, você traz notícias sobre o contexto macro econômico, notícias sobre ações, commodities, criptomoedas e tudo que envolve o mundo dos investimentos. Você traz do contexto Brasil e do Mundo. Pesquise as principais notícias de hoje (${todayFormatted}) que forem importantes para o investidor experiênte e traga no formato JSON.
 
         Não de pequenos tópicos, senão parece ter sido feito as pressas ou por uma máquina. Desenvolva os assuntos e traga um jornal rápido, porém completo para o investidor.
 
-        NÃO SE ESQUEÇA DE UTILIZAR <QUEBRA_LINHA> para quebrar as linhas, pois o front irá fazer um replace para <br>. EU PRECISO QUE SIGA ESSA REGRA, POIS É O QUE O FRONT ESPERA. NÃO ME FAÇA DESATIVAR ESSA FEATURE POR VOCÊ MANDAR ERRADO.
+        NÃO SE ESQUEÇA DE UTILIZAR TAGS HTML o front irá utilizar. EU PRECISO QUE SIGA ESSA REGRA, POIS É O QUE O FRONT ESPERA. NÃO ME FAÇA DESATIVAR ESSA FEATURE POR VOCÊ MANDAR ERRADO. UTILIZE HTML POIS SERA ENVIADO POR EMAIL.
+
+        **REGRA, PARA TITULOS, APENAS A PARTIR DE H2, POIS EU JA UTILIZO UMA TAG H1 PARA TITULO DO EMAIL.**
         
         Modelo: {
-            "answer": RESPOSTA AQUI EM TEXTO COM <QUEBRA_LINHA> para quebra de linha,
+            "answer": RESPOSTA AQUI EM HTML,
             "links": [
                 {
                     "fromWhere": "NOMEAQUI"
@@ -263,6 +272,34 @@ export class CronNewsService implements OnModuleInit {
         }
     }
 
+    private async sendDailyNewsToSubscribers() {
+        try {
+            const news: string = fs.readFileSync('financial_news.json', 'utf-8');
 
+            if (!news) {
+                console.error('Nenhuma notícia encontrada.');
+                return;
+            }
 
+            const newsData = JSON.parse(news);
+            const newsLinks = newsData.links.map((link: any) => {
+                return `<a href="${link.url}">${link.fromWhere}</a><br>`;
+            }).join('');
+            const newsAnswer = newsData.answer.replace(/\(\[[^\]]+\]\(https?:\/\/[^\)]+\)\)/g, '');
+
+            const allUsers = await this.usersService.getAllUsers();
+
+            for (const user of allUsers) {
+                const userMail = user.email;
+                if (userMail.endsWith('@navinvest.ai')) {
+                    continue;
+                }
+
+                this.mailService.sendDailyNewsMail(userMail, user.full_name, newsAnswer, newsLinks);
+            }
+
+        } catch (error) {
+            console.error('Erro ao ler o arquivo financial_news.json:', error);
+        }
+    }
 }

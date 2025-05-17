@@ -10,6 +10,15 @@ export class UsersService {
         private readonly userRepository: Repository<UserEntity>
     ) { }
 
+    async getAllUsers(): Promise<UserEntity[]> {
+        return this.userRepository.find({
+            relations: ['plan'],
+            order: {
+                created_at: 'DESC'
+            }
+        });
+    }
+
     async findOne(email: string): Promise<UserEntity | null> {
         return this.userRepository.findOne({
             where: { email },
