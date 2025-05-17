@@ -2,12 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { UserEntity } from '../entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { TokenUsageEntity } from 'entities/token-usage.entity';
 
 @Injectable()
 export class UsersService {
+    private readonly TOKEN_LIMIT = 1_000_000;
+
     constructor(
         @InjectRepository(UserEntity)
-        private readonly userRepository: Repository<UserEntity>
+        private readonly userRepository: Repository<UserEntity>,
+        @InjectRepository(TokenUsageEntity)
+        private readonly tokenUsageRepository: Repository<TokenUsageEntity>,
     ) { }
 
     async getAllUsers(): Promise<UserEntity[]> {
@@ -83,5 +88,19 @@ export class UsersService {
         }
 
         return user.plan !== null && user.plan_expiration > new Date();
+    }
+
+    async canUseTokens(user_id: string): Promise<boolean> {
+        const tokenUsage = await this.tokenUsageRepository.findOne({ where: { user_id } }) || await this.tokenUsageRepository.save({ user_id, tokens_used: 0 });
+        return tokenUsage.tokens_used <= this.TOKEN_LIMIT;
+    }
+
+    async addTokens(user_id: string, tokens: number): Promise<void> {
+        let tokenUsage = await this.tokenUsageRepository.findOne({ where: { user_id } });
+        if (!tokenUsage) {
+            tokenUsage = this.tokenUsageRepository.create({ user_id, tokens_used: 0 });
+        }
+        tokenUsage.tokens_used += tokens;
+        await this.tokenUsageRepository.save(tokenUsage);
     }
 }

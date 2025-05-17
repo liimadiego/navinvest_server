@@ -10,6 +10,10 @@ import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
+import { JwtHelper } from 'utils/jwt.service';
+import { UsersService } from 'users/users.service';
+import { TokenUsageEntity } from 'entities/token-usage.entity';
+import { UserEntity } from 'entities/user.entity';
 
 @Module({
   imports: [
@@ -21,10 +25,12 @@ import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
       TreasuriesEntity,
       EconomicIndexesEntity,
       FinancialHolidaysEntity,
+      TokenUsageEntity,
+      UserEntity,
     ]),
   ],
   controllers: [PortfolioTransactionsController],
-  providers: [PortfolioTransactionsService, LanguagesService],
+  providers: [PortfolioTransactionsService, LanguagesService, JwtHelper, UsersService],
   exports: [PortfolioTransactionsService],
 })
 export class PortfolioTransactionsModule { }

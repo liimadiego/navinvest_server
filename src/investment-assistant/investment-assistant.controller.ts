@@ -10,28 +10,33 @@ export class InvestmentAssistantController {
   @PremiumPlan()
   @Post('ask')
   async ask(@Req() request: Request, @Body() body: { message: string, messageHistoric: MessageHistoric[], chatId: string }) {
-    const userId = await this.investmentAssistantService.getUserIdByHeaderRequest(request);
-
-    if (!userId) {
-      throw new HttpException('User not found.', HttpStatus.UNAUTHORIZED);
-    }
-
-    const { message, chatId } = body;
-
-    if (!message || message.trim() === '') {
-      throw new HttpException('Mensagem não pode estar vazia.', HttpStatus.BAD_REQUEST);
-    }
-
-    if (!chatId) {
-      throw new HttpException('chatId não pode estar vazio.', HttpStatus.BAD_REQUEST);
-    }
-
-    const response = await this.investmentAssistantService.interactWithAI(message, chatId, userId);
-
     try {
-      return { success: true, data: response };
+      const userId = await this.investmentAssistantService.getUserIdByHeaderRequest(request);
+
+      if (!userId) {
+        throw new HttpException('User not found.', HttpStatus.UNAUTHORIZED);
+      }
+
+      const { message, chatId } = body;
+
+      if (!message || message.trim() === '') {
+        throw new HttpException('Mensagem não pode estar vazia.', HttpStatus.BAD_REQUEST);
+      }
+
+      if (!chatId) {
+        throw new HttpException('chatId não pode estar vazio.', HttpStatus.BAD_REQUEST);
+      }
+
+      const response = await this.investmentAssistantService.interactWithAI(message, chatId, userId);
+
+      try {
+        return { success: true, data: response };
+      } catch (error) {
+        return { success: false, message: 'Erro ao processar a resposta da IA.', data: response };
+      }
     } catch (error) {
-      return { success: false, message: 'Erro ao processar a resposta da IA.', data: response };
+      console.error('Error in ask method:', error);
+      throw new HttpException(error, error.status);
     }
   }
 

@@ -1,17 +1,23 @@
 import { JwtService } from '@nestjs/jwt';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import OpenAI from 'openai';
-import { PromptsService } from '../utils/prompts.service';
-import { MessageHistoric } from './investment-assistant-interface';
-import { TickersEntity } from 'entities/tickers.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { TickerService } from '../ticker/ticker.service';
-import { CompaniesService } from 'companies/companies.service';
-import { CustomFunction } from 'utils/functions_tools/custom_functions.dto';
-import { tools } from 'utils/functions_tools/custom_functions';
-import { BacktestService } from 'backtest/backtest.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { v4 as uuidv4 } from 'uuid';
+
+import { PromptsService } from '../utils/prompts.service';
+import { TickerService } from '../ticker/ticker.service';
+import { CompaniesService } from 'companies/companies.service';
+import { BacktestService } from 'backtest/backtest.service';
+import { UsersService } from 'users/users.service';
+
+import { MessageHistoric } from './investment-assistant-interface';
+
+import { TickersEntity } from 'entities/tickers.entity';
+
+import { CustomFunction } from 'utils/functions_tools/custom_functions.dto';
+import { tools } from 'utils/functions_tools/custom_functions';
+
 import {
     InvestmentAssistantChatRecord,
     InvestmentAssistantChatRecordDocument
@@ -29,6 +35,7 @@ export class InvestmentAssistantService {
         private readonly tickerService: TickerService,
         private readonly companiesService: CompaniesService,
         private readonly backtestService: BacktestService,
+        private readonly usersService: UsersService,
         @InjectRepository(TickersEntity)
         private readonly tickersRepository: TickersEntity,
         @InjectModel(InvestmentAssistantChatRecord.name)
@@ -46,6 +53,12 @@ export class InvestmentAssistantService {
 
     async interactWithAI(message: string, chatId: string, userId: string): Promise<any> {
         try {
+            let canUseTokens = await this.usersService.canUseTokens(userId);
+
+            if (!canUseTokens) {
+                throw new HttpException('Limite de tokens excedido.', 429);
+            }
+
             let chatRecord = await this.investmentAssistantChatRecordModel.findOne({ chat_id: chatId });
 
             if (!chatRecord) {
@@ -86,6 +99,8 @@ export class InvestmentAssistantService {
                 tools,
                 response_format: { "type": "json_object" }
             });
+
+            await this.usersService.addTokens(userId, response.usage.total_tokens ? response.usage.total_tokens : 1500);
 
             while (response.choices[0].message?.tool_calls) {
                 const toolCall = response.choices[0].message.tool_calls[0];
@@ -149,6 +164,8 @@ export class InvestmentAssistantService {
                     tools,
                     response_format: { "type": "json_object" }
                 });
+
+                await this.usersService.addTokens(userId, response.usage.total_tokens ? response.usage.total_tokens : 1500);
             }
 
             const { valid_question, ...content } = JSON.parse(response.choices[0].message?.content);
@@ -163,12 +180,17 @@ export class InvestmentAssistantService {
             }
 
             chatRecord.messages.push(messageToSave);
-            const savedRecord = await chatRecord.save();
+            await chatRecord.save();
 
             return { valid_question, data: [{ messageType: 'text', ...content }] };
 
         } catch (error) {
-            console.error('Error in interaction:', error, '\n ');
+            if (error.status === 429) {
+                throw new HttpException(
+                    'Limite de tokens excedido.',
+                    HttpStatus.TOO_MANY_REQUESTS,
+                );
+            }
 
             throw new HttpException(
                 'Erro ao se comunicar com a IA. Já estamos trabalhando nisso.',

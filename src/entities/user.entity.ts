@@ -5,6 +5,7 @@ import { InvestorProfileEntity } from './investor-profile.entity';
 import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 import { ResetPasswordCodeEntity } from './reset-password-codes.entity';
 import { PlanEntity } from './plan.entity';
+import { TokenUsageEntity } from './token-usage.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -59,4 +60,7 @@ export class UserEntity {
     @ManyToOne(() => PlanEntity, (plan) => plan.users, { nullable: true })
     @JoinColumn({ name: 'plan_id' })
     plan: PlanEntity;
+
+    @OneToMany(() => TokenUsageEntity, (tokenUsage) => tokenUsage.user, { cascade: true })
+    tokenUsages: TokenUsageEntity[];
 }

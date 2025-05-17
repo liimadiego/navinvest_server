@@ -14,12 +14,15 @@ import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from '../schemas/historical-quotes.schema';
 import { HistoricalDividendYieldRecord, HistoricalDividendYieldRecordSchema } from 'schemas/historical-dividend-yield.schema';
 import { DividendEntity } from 'entities/dividends.entity';
+import { UserEntity } from 'entities/user.entity';
+import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { BacktestService } from 'backtest/backtest.service';
 import { InvestmentAssistantChatRecord, InvestmentAssistantChatRecordSchema } from 'schemas/investment-assistant-chat.schema';
+import { UsersService } from 'users/users.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TickersEntity, TagEntity, TreasuriesEntity, CompanyEntity, EconomicIndexesEntity, DividendEntity]),
+    TypeOrmModule.forFeature([TickersEntity, TagEntity, TreasuriesEntity, CompanyEntity, EconomicIndexesEntity, DividendEntity, UserEntity, TokenUsageEntity]),
     MongooseModule.forFeature([
       { name: StockDataRecord.name, schema: StockDataRecordSchema },
       { name: HistoricalQuotesRecord.name, schema: HistoricalQuotesRecordSchema },
@@ -28,7 +31,7 @@ import { InvestmentAssistantChatRecord, InvestmentAssistantChatRecordSchema } fr
     ]),
   ],
   controllers: [InvestmentAssistantController],
-  providers: [InvestmentAssistantService, TickerService, CompaniesService, BacktestService],
+  providers: [InvestmentAssistantService, TickerService, CompaniesService, BacktestService, UsersService],
   exports: [InvestmentAssistantService]
 })
 export class InvestmentAssistantModule { }

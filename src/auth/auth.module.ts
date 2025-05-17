@@ -11,11 +11,12 @@ import { jwtConstants } from './constants';
 import { AuthGuard } from './auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { MailService } from 'utils/mail.service';
+import { TokenUsageEntity } from 'entities/token-usage.entity';
 
 @Module({
   imports: [
     UsersModule,
-    TypeOrmModule.forFeature([UserEntity, ResetPasswordCodeEntity]),
+    TypeOrmModule.forFeature([UserEntity, ResetPasswordCodeEntity, TokenUsageEntity]),
     JwtModule.register({
       global: true,
       secret: jwtConstants.secret,

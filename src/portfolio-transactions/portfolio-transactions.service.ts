@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as csv from 'csv-parser';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { TickersEntity } from 'entities/tickers.entity';
 import { InvestmentPortfolioEntity } from '../entities/investment-portfolio.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
@@ -15,6 +15,7 @@ import { LanguagesService } from 'utils/language.service';
 import OpenAI from 'openai';
 import { Multer } from 'multer';
 import { PromptsService } from '../utils/prompts.service';
+import { UsersService } from 'users/users.service';
 
 @Injectable()
 export class PortfolioTransactionsService {
@@ -37,6 +38,7 @@ export class PortfolioTransactionsService {
         private readonly financialHolidaysRepository: Repository<FinancialHolidaysEntity>,
         @InjectRepository(TreasuriesEntity)
         private readonly treasuriesRepository: Repository<TreasuriesEntity>,
+        private readonly usersService: UsersService,
     ) {
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
@@ -355,7 +357,7 @@ export class PortfolioTransactionsService {
         return this.consolidatePortfolio(transactions, verbose);
     }
 
-    async getIndexerRate (indexer: string, sinceDate: Date): Promise<any> {
+    async getIndexerRate(indexer: string, sinceDate: Date): Promise<any> {
         indexer = indexer.toLocaleLowerCase();
 
         if (indexer !== 'cdi' && indexer !== 'ipca')
@@ -366,9 +368,9 @@ export class PortfolioTransactionsService {
 
         const indexerRates = await this.economicIndexesRepository.find({
             select: { id: false, slug: true, date: true, value: true, estimate: true },
-            where: { 
-                slug: indexer, 
-                date: MoreThanOrEqual(sinceDate) 
+            where: {
+                slug: indexer,
+                date: MoreThanOrEqual(sinceDate)
             },
             order: { date: 'ASC' },
         });
@@ -376,11 +378,11 @@ export class PortfolioTransactionsService {
         return indexerRates;
     }
 
-    async getFinancialHolidays (year: number): Promise<FinancialHolidaysEntity[]> {
+    async getFinancialHolidays(year: number): Promise<FinancialHolidaysEntity[]> {
         const holidays = await this.financialHolidaysRepository.find({
-            where: { 
+            where: {
                 date: Between(
-                    new Date(year + '-01-01T00:00-0300'), 
+                    new Date(year + '-01-01T00:00-0300'),
                     new Date((year + 1) + '-01-01T00:00-0300')
                 )
             },
@@ -416,7 +418,7 @@ export class PortfolioTransactionsService {
 
     async consolidatePortfolio(transactions: any[], verbose: boolean = true): Promise<any> {
         const grouped: Record<string, any> = {};
-        
+
         // Get IPCA and CDI daily rates since the first fixed income transaction.
         let cdiRates = [];
         let ipcaRates = [];
@@ -430,7 +432,7 @@ export class PortfolioTransactionsService {
             firstDate.setDate(1); // Set to the first day of the month
             firstDate.setHours(0, 0, 0, 0);
 
-            const [ _cdiRates, _ipcaRates ] = await Promise.all([
+            const [_cdiRates, _ipcaRates] = await Promise.all([
                 this.getIndexerRate('CDI', firstDate),
                 this.getIndexerRate('IPCA', firstDate)
             ]);
@@ -445,7 +447,7 @@ export class PortfolioTransactionsService {
             for (const monthIpcaRate of _ipcaRates) {
                 const monthIpcaRateDate = new Date(monthIpcaRate.date + 'T00:00-0300');
                 const month = monthIpcaRateDate.getMonth();
-                
+
                 let workDaysOfMonth = undefined;
                 if (monthIpcaRate.estimate) {
                     // Se o IPCA for estimado, calcula os dias úteis do mês.
@@ -462,7 +464,7 @@ export class PortfolioTransactionsService {
 
                 dailyIpcaRates = dailyIpcaRates.concat(monthDailyIpcaRate);
             }
-            
+
             cdiRates = _cdiRates;
             ipcaRates = dailyIpcaRates;
         }
@@ -495,11 +497,15 @@ export class PortfolioTransactionsService {
                 const pctgOfIndexer = transaction.fixed_income_details.indexer.includes('+') ? 1 : transaction.fixed_income_details.indexer_rate / 100;
                 const prefixedAnnualRate = transaction.fixed_income_details.indexer.includes('+') ? transaction.fixed_income_details.indexer_rate / 100 : 0;
                 const prefixedDailyRate = prefixedAnnualRate ? Math.round((Math.pow(prefixedAnnualRate + 1, 1 / 252) - 1) * 1e12) / 1e12 : 0;
-                
-                const firstIdx = economicIndexes[indexer]
-                    .findIndex((i: EconomicIndexesEntity) => 
+
+                let firstIdx = economicIndexes[indexer]
+                    .findIndex((i: EconomicIndexesEntity) =>
                         i.date.getTime() > transaction.transaction_date.getTime()
-                );
+                    );
+
+                if (firstIdx === -1) {
+                    firstIdx = economicIndexes[indexer].length;
+                }
 
                 fixedIncomeReturn = 1;
                 for (let i = firstIdx; i < economicIndexes[indexer].length; i++) {
@@ -658,7 +664,13 @@ export class PortfolioTransactionsService {
         return this.prompts[name] || null;
     }
 
-    async processWalletImport(files: Multer.File[]): Promise<any> {
+    async processWalletImport(files: Multer.File[], userId: string): Promise<any> {
+        let canUseTokens = await this.usersService.canUseTokens(userId);
+
+        if (!canUseTokens) {
+            throw new HttpException('Limite de tokens excedido.', 429);
+        }
+
         try {
             const filesContent = await Promise.all(
                 files.map(async (file) => {
@@ -723,7 +735,7 @@ export class PortfolioTransactionsService {
             });
 
             const aiResponse = JSON.parse(response.choices[0].message?.content || '{}');
-
+            await this.usersService.addTokens(userId, response.usage.total_tokens ? response.usage.total_tokens : 1500);
             //estrutura de erro { success: false, message: 'Erro' }
 
             try {

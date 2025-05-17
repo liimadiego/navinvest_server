@@ -2,13 +2,16 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserAction } from './invest-track-interface';
 import OpenAI from 'openai';
 import { PromptsService } from '../utils/prompts.service';
+import { UsersService } from 'users/users.service';
 
 @Injectable()
 export class InvestTrackService {
     private openai: OpenAI;
     private prompts = new PromptsService().getPrompts();
 
-    constructor() {
+    constructor(
+        private readonly usersService: UsersService
+    ) {
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
         });
@@ -18,7 +21,13 @@ export class InvestTrackService {
         return this.prompts[name] || null;
     }
 
-    async getIAOpinion(action: UserAction): Promise<any> {
+    async getIAOpinion(action: UserAction, userId: string): Promise<any> {
+        let canUseTokens = await this.usersService.canUseTokens(userId);
+
+        if (!canUseTokens) {
+            throw new HttpException('Limite de tokens excedido.', 429);
+        }
+
         try {
             const response = await this.openai.chat.completions.create({
                 model: process.env.OPEN_AI_MODEL,
@@ -28,8 +37,9 @@ export class InvestTrackService {
                 response_format: { "type": "json_object" }
             });
 
+            await this.usersService.addTokens(userId, response.usage.total_tokens ? response.usage.total_tokens : 1500);
             return JSON.parse(response.choices[0].message?.content || '{}');
-            return this.buildDescription(action);
+            // return this.buildDescription(action);
         } catch (error) {
             console.error(error);
             throw new HttpException(

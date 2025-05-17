@@ -1,13 +1,17 @@
-import { Controller, Post, Body, Get, Param, Put, Delete, UseInterceptors, BadRequestException, UploadedFiles } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put, Delete, UseInterceptors, BadRequestException, UploadedFiles, Req } from '@nestjs/common';
 import { PortfolioTransactionsService } from './portfolio-transactions.service';
 import { CreatePortfolioTransactionDto } from './dto/create-portfolio-transaction-dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Multer } from 'multer';
 import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
+import { JwtHelper } from 'utils/jwt.service';
 
 @Controller('portfolio-transactions')
 export class PortfolioTransactionsController {
-  constructor(private readonly portfolioTransactionsService: PortfolioTransactionsService) { }
+  constructor(
+    private readonly portfolioTransactionsService: PortfolioTransactionsService,
+    private readonly jwtHelper: JwtHelper
+  ) { }
 
   @PremiumPlan()
   @Post('import-wallet/:portfolioId')
@@ -31,7 +35,12 @@ export class PortfolioTransactionsController {
       }
     }
   }))
-  async importWallet(@UploadedFiles() files: Multer.File[], @Param('portfolioId') portfolioId: string): Promise<any> {
+  async importWallet(@UploadedFiles() files: Multer.File[], @Param('portfolioId') portfolioId: string, @Req() request: any): Promise<any> {
+    const userId = await this.jwtHelper.extractUserIdFromRequest(request);
+    if (!userId) {
+      throw new BadRequestException('Usuário não encontrado');
+    }
+
     if (!files || files.length === 0) {
       throw new BadRequestException('Nenhum arquivo fornecido');
     }
@@ -40,7 +49,7 @@ export class PortfolioTransactionsController {
       throw new BadRequestException('ID da carteira é obrigatório');
     }
 
-    const response = await this.portfolioTransactionsService.processWalletImport(files);
+    const response = await this.portfolioTransactionsService.processWalletImport(files, userId);
 
     if (!response || !response.success) {
       throw new BadRequestException(response?.message || 'Erro ao processar o arquivo');

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InvestorProfileEntity } from '../entities/investor-profile.entity';
 import { UserEntity } from '../entities/user.entity';
@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { investorProfileAnswers, InvestorProfile } from './investor-profile-interface';
 import OpenAI from 'openai';
 import { PromptsService } from '../utils/prompts.service';
+import { UsersService } from 'users/users.service';
 
 @Injectable()
 export class InvestorProfileService {
@@ -19,7 +20,8 @@ export class InvestorProfileService {
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
         @InjectRepository(TagEntity)
-        private readonly tagRepository: Repository<TagEntity>
+        private readonly tagRepository: Repository<TagEntity>,
+        private readonly usersService: UsersService,
     ) {
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
@@ -82,26 +84,28 @@ export class InvestorProfileService {
 
     }
 
-    async getInvestmentPlan(user_id: string): Promise<any> {
+    async getInvestmentPlan(userId: string): Promise<any> {
+        let canUseTokens = await this.usersService.canUseTokens(userId);
+
+        if (!canUseTokens) {
+            throw new HttpException('Limite de tokens excedido.', 429);
+        }
+
         try {
             const tags = await this.tagRepository.find();
             const tags_string = tags.map(tag => tag.name).join(",\n ");
 
             const investorProfile = await this.investorProfileRepository.createQueryBuilder('investor_profile')
-                .where('investor_profile.user_id = :user_id', { user_id })
+                .where('investor_profile.user_id = :user_id', { user_id: userId })
                 .getOne();
 
             if (!investorProfile) {
                 throw new Error('Perfil de investidor não encontrado.');
             }
 
-            const prompt_investment_plan = this.prompts["get_investment_plan_context"];
-
             const user_answers_and_profile = `As respostas deste usuário para o questionário foram: 1 - ${investorProfile.experience} | 2 - ${investorProfile.risk_tolerance} | 3 - ${investorProfile.investment_horizon} | 4 - ${investorProfile.market_reaction} | 5 - ${investorProfile.investment_goal} | Perfil de investidor: ${investorProfile.profile}`;
 
             const tags_prompt = `As tags possíveis são as seguintes (lembre-se de devolver exatamente igual, case sensitive. Se você falhar, posso ter um possível churn): ${tags_string}`;
-
-            // return { prompt_investment_plan, user_answers_and_profile, tags_prompt };
 
             const response = await this.openai.chat.completions.create({
                 model: process.env.OPEN_AI_MODEL,
@@ -114,6 +118,7 @@ export class InvestorProfileService {
                 response_format: { "type": "json_object" }
             });
 
+            await this.usersService.addTokens(userId, response.usage.total_tokens ? response.usage.total_tokens : 1500);
             return JSON.parse(response.choices[0].message?.content || '{}');
         } catch (error) {
             throw new Error(error.message);

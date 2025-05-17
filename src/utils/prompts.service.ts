@@ -176,13 +176,12 @@ export class PromptsService {
             As informações e tags disponíveis serão fornecidas abaixo. Gere um plano diversificado e atrativo para o investidor com base nisso.
         `;
 
+        // ${params?.sector_name && params?.sector_average ? "Leve também em consideração a média do setor (" + params.sector_name + "):" : ""}
+        // ${params?.sector_average}
         const asset_report_ai = `
             Você é um analista de investimentos e deve gerar um relatório interpretativo, conciso e acessível, com base nos seguintes dados fundamentalistas da empresa listada. O objetivo é explicar ao investidor pessoa física qual é o "momento da empresa" com base nos números atuais, tendências de rentabilidade e saúde financeira. Use linguagem simples, clara, e evite jargões técnicos não explicados.
 
             O usuário enviará apenas os dados da empresa e você deve gerar com base nas instruções.
-
-            ${params?.sector_name && params?.sector_average ? "Leve também em consideração a média do setor (" + params.sector_name + "):" : ""}
-            ${params?.sector_average}
 
             Instruções de estilo:
 

@@ -14,6 +14,8 @@ import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
+import { UsersService } from 'users/users.service';
+import { TokenUsageEntity } from 'entities/token-usage.entity';
 
 @Module({
   imports: [
@@ -27,11 +29,12 @@ import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
       TreasuriesEntity,
       EconomicIndexesEntity,
       FinancialHolidaysEntity,
-      UserEntity
+      UserEntity,
+      TokenUsageEntity,
     ]),
   ],
   controllers: [InvestmentPortfolioController],
-  providers: [InvestmentPortfolioService, LanguagesService, PortfolioTransactionsService],
+  providers: [InvestmentPortfolioService, LanguagesService, PortfolioTransactionsService, UsersService],
   exports: [InvestmentPortfolioService],
 })
 export class InvestmentPortfolioModule { }
