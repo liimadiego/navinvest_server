@@ -103,4 +103,23 @@ export class UsersService {
         tokenUsage.tokens_used += tokens;
         await this.tokenUsageRepository.save(tokenUsage);
     }
+
+    async getTokenUsageByUserId(userId: string): Promise<any> {
+        let tokenUsage = await this.tokenUsageRepository.findOne({
+            where: { user_id: userId },
+        });
+
+        if (!tokenUsage) {
+            tokenUsage = this.tokenUsageRepository.create({ user_id: userId, tokens_used: 0 });
+            await this.tokenUsageRepository.save(tokenUsage);
+        }
+
+        delete tokenUsage.user_id;
+        delete tokenUsage.id;
+
+        //retorna a porcentagem em uso
+        tokenUsage.tokens_used = tokenUsage.tokens_used / this.TOKEN_LIMIT;
+
+        return tokenUsage;
+    }
 }
