@@ -4,14 +4,14 @@ import { TagEntity } from '../entities/tag.entity';
 import { TickersEntity } from '../entities/tickers.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
-import { Repository } from 'typeorm';
+import { DividendEntity } from 'entities/dividends.entity';
+import { Repository, Raw } from 'typeorm';
 import {
     HistoricalQuotesRecord,
     HistoricalQuotesRecordDocument
 } from '../schemas/historical-quotes.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { minDate } from 'class-validator';
 
 @Injectable()
 export class TickerService {
@@ -26,6 +26,8 @@ export class TickerService {
         private readonly economicIndexesRepository: Repository<EconomicIndexesEntity>,
         @InjectModel(HistoricalQuotesRecord.name)
         private historicalQuotesRecordModel: Model<HistoricalQuotesRecordDocument>,
+        @InjectRepository(DividendEntity)
+        private readonly dividendRepository: Repository<DividendEntity>
     ) { }
 
     async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
@@ -225,7 +227,6 @@ export class TickerService {
         return filteredData;
     }
 
-
     async validateTicker(ticker: string): Promise<boolean> {
         ticker = ticker.toUpperCase()
 
@@ -236,5 +237,40 @@ export class TickerService {
         // console.log('tickerData:', tickerData, '\n ');
 
         return !!tickerData;
+    }
+
+    async getAllDividends(month: number, year: number): Promise<DividendEntity[]> {
+        if (!month || !year) {
+            throw new Error('Month and year are required');
+        }
+
+        const dividends = await this.dividendRepository.find({
+            select: {
+                id: true,
+                ticker: true,
+                ex_date: true,
+                payable_date: true,
+                adj_amount: true,
+                reit: {
+                    name: true,
+                },
+                company: {
+                    name: true,
+                },
+                tickerInfo: {
+                    currency: true,
+                    current_price: true,
+                }
+            },
+            where: {
+                payable_date: Raw(alias => `EXTRACT(MONTH FROM ${alias}) = ${month} AND EXTRACT(YEAR FROM ${alias}) = ${year}`)
+            },
+            relations: ['reit', 'company', 'tickerInfo'],
+            order: {
+                payable_date: 'ASC'
+            }
+        })
+
+        return dividends;
     }
 }

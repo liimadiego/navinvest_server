@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
 import { CompanyEntity } from './companies.entity';
 import { ReitEntity } from './reits.entity';
+import { TickersEntity } from './tickers.entity';
 
 @Entity('dividends')
 export class DividendEntity {
@@ -50,4 +51,11 @@ export class DividendEntity {
 
     @UpdateDateColumn({ type: 'timestamp' })
     updated_at: Date;
+
+    @ManyToOne(() => TickersEntity, (ticker) => ticker.dividends, {
+        nullable: true,
+        onDelete: 'SET NULL',
+    })
+    @JoinColumn({ name: 'ticker', referencedColumnName: 'ticker' })
+    tickerInfo: TickersEntity;
 }

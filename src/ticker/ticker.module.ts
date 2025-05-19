@@ -8,6 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LanguagesService } from '../utils/language.service';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
+import { DividendEntity } from 'entities/dividends.entity';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
 
 @Module({
@@ -20,6 +21,7 @@ import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/hi
       TagEntity,
       TreasuriesEntity,
       EconomicIndexesEntity,
+      DividendEntity,
     ]),
   ],
   controllers: [TickerController],

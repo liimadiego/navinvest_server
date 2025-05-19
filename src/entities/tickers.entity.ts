@@ -12,6 +12,7 @@ import {
 import { TagEntity } from './tag.entity';
 import { PortfolioTransactionEntity } from './portfolio-transaction.entity';
 import { CompanyEntity } from './companies.entity';
+import { DividendEntity } from './dividends.entity';
 
 @Entity('tickers')
 export class TickersEntity {
@@ -71,4 +72,9 @@ export class TickersEntity {
     @ManyToOne(() => CompanyEntity, (company) => company.tickers)
     @JoinColumn({ name: 'company_id', referencedColumnName: 'id' })
     company: CompanyEntity;
+
+    @OneToMany(() => DividendEntity, (dividend) => dividend.tickerInfo)
+    dividends: DividendEntity[];
+
+
 }

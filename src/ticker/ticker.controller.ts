@@ -9,6 +9,24 @@ export class TickerController {
     private readonly languageService: LanguagesService
   ) { }
 
+
+  @Get('get-all-dividends')
+  async getAllDividends(@Query('month') month: number, @Query('year') year: number) {
+    let missingFields = [];
+    if (!month) {
+      missingFields.push('month');
+    }
+    if (!year) {
+      missingFields.push('year');
+    }
+
+    if (missingFields.length > 0) {
+      throw new BadRequestException(`${this.languageService.getPhrase('MISSING_REQUIRED_PARAMETERS')}: ${missingFields.join(', ')}`);
+    }
+
+    return this.tickerService.getAllDividends(month, year);
+  }
+
   @Get("/:query")
   async getTickers(@Query('limit') limit: number = 0, @Param('query') query: string = '', @Query('type') type: string = '') {
     return this.tickerService.getTickers(limit, query, type);
