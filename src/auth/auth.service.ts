@@ -20,6 +20,10 @@ export class AuthService {
     async signIn(email: string, pass: string): Promise<{ accessToken: string }> {
         const user = await this.usersService.findOne(email);
 
+        if (!user) {
+            throw new UnauthorizedException('E-mail ou senha inválidos');
+        }
+
         const passwordMatch = await bcrypt.compare(pass, user.password_hash);
         if (!passwordMatch) {
             throw new UnauthorizedException();
