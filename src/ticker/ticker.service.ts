@@ -256,6 +256,7 @@ export class TickerService {
                 },
                 company: {
                     name: true,
+                    trade_name: true,
                 },
                 tickerInfo: {
                     currency: true,
