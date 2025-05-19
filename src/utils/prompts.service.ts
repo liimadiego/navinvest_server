@@ -248,7 +248,7 @@ export class PromptsService {
             issuer: string
             investment_type ('LCI', 'CDB', 'LCA', 'LC', 'LF', 'RDB', 'DEBENTURE', 'CRI', 'CRA', 'CCB')
             indexation_type ('PRE_FIXED', 'POST_FIXED')
-            indexer ('CDI', 'CDI+', 'IPCA+')
+            indexer ('+', 'CDI', 'CDI+', 'IPCA+')
             indexer_rate: float (porcentagem. Ex: 100% = 100 - 43,4% = 43.4) 
 
             OS VALORES DE RENDA FIXA PODEM VIR NULO (exceto transaction_type) CASO VOCÊ NÃO IDENTIFIQUE OU NÃO TENHA CERTEZA, MANDE OS QUE IDENTIFICOU, EXISTE UMA TELA APÓS ESSE PROCESSAMENTO PARA O USUÁRIO PREENCHER OS QUE FALTAM. 

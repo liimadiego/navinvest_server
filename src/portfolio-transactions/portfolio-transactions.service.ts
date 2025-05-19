@@ -424,18 +424,20 @@ export class PortfolioTransactionsService {
         let ipcaRates = [];
         const firstCDITransaction = transactions.find((transaction) => transaction.asset_type === 'FIXED_INCOME' && transaction.fixed_income_details.indexer.startsWith('CDI'));
         const firstIPCATransaction = transactions.find((transaction) => transaction.asset_type === 'FIXED_INCOME' && transaction.fixed_income_details.indexer.startsWith('IPCA'));
-        if (firstCDITransaction || firstIPCATransaction) {
+        const firstPrefixedTransaction = transactions.find((transaction) => transaction.asset_type === 'FIXED_INCOME' && transaction.fixed_income_details.indexer === '+');
+        if (firstCDITransaction || firstIPCATransaction || firstPrefixedTransaction) {
             const firstDate = new Date(Math.min(
                 firstCDITransaction?.transaction_date.getTime() || Infinity,
-                firstIPCATransaction?.transaction_date.getTime() || Infinity
+                firstIPCATransaction?.transaction_date.getTime() || Infinity,
+                firstPrefixedTransaction?.transaction_date.getTime() || Infinity
             ));
             firstDate.setDate(1); // Set to the first day of the month
             firstDate.setHours(0, 0, 0, 0);
 
-            const [_cdiRates, _ipcaRates] = await Promise.all([
-                this.getIndexerRate('CDI', firstDate),
-                this.getIndexerRate('IPCA', firstDate)
-            ]);
+            const promises = [ this.getIndexerRate('CDI', firstDate) ];
+            if (firstIPCATransaction) promises.push(this.getIndexerRate('IPCA', firstDate));
+
+            const [_cdiRates, _ipcaRates] = await Promise.all(promises);
 
             // Formata '_cdiRates'.
             _cdiRates.forEach((r: any) => {
@@ -444,25 +446,27 @@ export class PortfolioTransactionsService {
             });
 
             let dailyIpcaRates = [];
-            for (const monthIpcaRate of _ipcaRates) {
-                const monthIpcaRateDate = new Date(monthIpcaRate.date + 'T00:00-0300');
-                const month = monthIpcaRateDate.getMonth();
+            if (_ipcaRates) {
+                for (const monthIpcaRate of _ipcaRates) {
+                    const monthIpcaRateDate = new Date(monthIpcaRate.date + 'T00:00-0300');
+                    const month = monthIpcaRateDate.getMonth();
 
-                let workDaysOfMonth = undefined;
-                if (monthIpcaRate.estimate) {
-                    // Se o IPCA for estimado, calcula os dias úteis do mês.
-                    workDaysOfMonth = await this.getWorkDaysOfMonth(monthIpcaRateDate.getFullYear(), month);
-                } else {
-                    // Se o IPCA não for estimado usa como base os dias do CDI.
-                    workDaysOfMonth = _cdiRates.filter((r: EconomicIndexesEntity) => r.date.getMonth() === month && r.date.getFullYear() === monthIpcaRateDate.getFullYear());
+                    let workDaysOfMonth = undefined;
+                    if (monthIpcaRate.estimate) {
+                        // Se o IPCA for estimado, calcula os dias úteis do mês.
+                        workDaysOfMonth = await this.getWorkDaysOfMonth(monthIpcaRateDate.getFullYear(), month);
+                    } else {
+                        // Se o IPCA não for estimado usa como base os dias do CDI.
+                        workDaysOfMonth = _cdiRates.filter((r: EconomicIndexesEntity) => r.date.getMonth() === month && r.date.getFullYear() === monthIpcaRateDate.getFullYear());
+                    }
+
+                    const avgDailyRate = ((Math.pow(monthIpcaRate.value / 100 + 1, 1 / workDaysOfMonth.length) - 1) * 100).toFixed(12);
+                    const monthDailyIpcaRate = workDaysOfMonth
+                        .filter((r: EconomicIndexesEntity) => (r.date.getTime() <= _cdiRates.at(-1).date.getTime()))
+                        .map((r: EconomicIndexesEntity) => ({ ...r, value: avgDailyRate, slug: 'ipca', estimate: monthIpcaRate.estimate }));
+
+                    dailyIpcaRates = dailyIpcaRates.concat(monthDailyIpcaRate);
                 }
-
-                const avgDailyRate = ((Math.pow(monthIpcaRate.value / 100 + 1, 1 / workDaysOfMonth.length) - 1) * 100).toFixed(12);
-                const monthDailyIpcaRate = workDaysOfMonth
-                    .filter((r: EconomicIndexesEntity) => (r.date.getTime() <= _cdiRates.at(-1).date.getTime()))
-                    .map((r: EconomicIndexesEntity) => ({ ...r, value: avgDailyRate, slug: 'ipca', estimate: monthIpcaRate.estimate }));
-
-                dailyIpcaRates = dailyIpcaRates.concat(monthDailyIpcaRate);
             }
 
             cdiRates = _cdiRates;
@@ -472,6 +476,7 @@ export class PortfolioTransactionsService {
         const economicIndexes = {
             CDI: cdiRates,
             IPCA: ipcaRates,
+            '': cdiRates && cdiRates.map((r: any) => ({ ...r, value: 0, slug: '+', estimate: false })), // "Pre fixed" rates (always 0)
         };
 
         for (const transaction of transactions) {
@@ -498,14 +503,8 @@ export class PortfolioTransactionsService {
                 const prefixedAnnualRate = transaction.fixed_income_details.indexer.includes('+') ? transaction.fixed_income_details.indexer_rate / 100 : 0;
                 const prefixedDailyRate = prefixedAnnualRate ? Math.round((Math.pow(prefixedAnnualRate + 1, 1 / 252) - 1) * 1e12) / 1e12 : 0;
 
-                let firstIdx = economicIndexes[indexer]
-                    .findIndex((i: EconomicIndexesEntity) =>
-                        i.date.getTime() > transaction.transaction_date.getTime()
-                    );
-
-                if (firstIdx === -1) {
-                    firstIdx = economicIndexes[indexer].length;
-                }
+                let firstIdx = economicIndexes[indexer].findIndex((i: EconomicIndexesEntity) => i.date.getTime() > transaction.transaction_date.getTime());
+                if (firstIdx === -1) firstIdx = economicIndexes[indexer].length;
 
                 fixedIncomeReturn = 1;
                 for (let i = firstIdx; i < economicIndexes[indexer].length; i++) {

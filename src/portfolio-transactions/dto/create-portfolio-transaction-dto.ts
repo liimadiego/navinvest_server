@@ -53,8 +53,8 @@ export class CreatePortfolioTransactionDto {
     expiration_date?: Date;
 
     @IsOptional()
-    @IsIn(['CDI', 'CDI+', 'IPCA+'])
-    indexer?: 'CDI' | 'CDI+' | 'IPCA+';
+    @IsIn(['+', 'CDI', 'CDI+', 'IPCA+'])
+    indexer?: '+' | 'CDI' | 'CDI+' | 'IPCA+';
 
     @IsOptional()
     @IsIn(['BRL', 'USD'])
