@@ -21,8 +21,8 @@ export class FixedIncomeDetailsEntity {
     @Column({ type: 'timestamp' })
     expiration_date: Date;
 
-    @Column({ type: 'enum', enum: ['CDI', 'CDI+', 'IPCA+'] })
-    indexer: 'CDI' | 'CDI+' | 'IPCA+';
+    @Column({ type: 'enum', enum: ['+', 'CDI', 'CDI+', 'IPCA+'] })
+    indexer: '+' | 'CDI' | 'CDI+' | 'IPCA+';
 
     @Column({ type: 'enum', enum: ['BRL', 'USD'] })
     currency: 'BRL' | 'USD';
