@@ -1,13 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export type StockDataRecordDocument = StockDataRecord & Document;
+export type CompanyDataRecordDocument = CompanyDataRecord & Document;
 
 @Schema({
     timestamps: true,
-    collection: 'stockData'
+    collection: 'companyData'
 })
-export class StockDataRecord {
+export class CompanyDataRecord {
     @Prop({ required: true })
     companyId: string;
 
@@ -30,4 +30,4 @@ export class StockDataRecord {
     shares: Record<string, any>;
 }
 
-export const StockDataRecordSchema = SchemaFactory.createForClass(StockDataRecord);
+export const CompanyDataRecordSchema = SchemaFactory.createForClass(CompanyDataRecord);

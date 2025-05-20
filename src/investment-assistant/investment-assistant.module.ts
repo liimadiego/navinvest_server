@@ -9,7 +9,7 @@ import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { CompanyEntity } from '../entities/companies.entity';
 import { CompaniesService } from 'companies/companies.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { StockDataRecord, StockDataRecordSchema } from '../schemas/stock-data-record.schema';
+import { CompanyDataRecord, CompanyDataRecordSchema } from '../schemas/company-data-record.schema';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from '../schemas/historical-quotes.schema';
 import { HistoricalDividendYieldRecord, HistoricalDividendYieldRecordSchema } from 'schemas/historical-dividend-yield.schema';
@@ -24,7 +24,7 @@ import { UsersService } from 'users/users.service';
   imports: [
     TypeOrmModule.forFeature([TickersEntity, TagEntity, TreasuriesEntity, CompanyEntity, EconomicIndexesEntity, DividendEntity, UserEntity, TokenUsageEntity]),
     MongooseModule.forFeature([
-      { name: StockDataRecord.name, schema: StockDataRecordSchema },
+      { name: CompanyDataRecord.name, schema: CompanyDataRecordSchema },
       { name: HistoricalQuotesRecord.name, schema: HistoricalQuotesRecordSchema },
       { name: HistoricalDividendYieldRecord.name, schema: HistoricalDividendYieldRecordSchema },
       { name: InvestmentAssistantChatRecord.name, schema: InvestmentAssistantChatRecordSchema }

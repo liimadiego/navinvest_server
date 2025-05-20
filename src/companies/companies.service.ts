@@ -5,9 +5,9 @@ import { DividendEntity } from 'entities/dividends.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
-    StockDataRecord,
-    StockDataRecordDocument
-} from '../schemas/stock-data-record.schema';
+    CompanyDataRecord,
+    CompanyDataRecordDocument
+} from '../schemas/company-data-record.schema';
 import {
     HistoricalDividendYieldRecord,
     HistoricalDividendYieldRecordDocument
@@ -26,8 +26,8 @@ export class CompaniesService {
     constructor(
         @InjectRepository(CompanyEntity)
         private readonly companyRepository: Repository<CompanyEntity>,
-        @InjectModel(StockDataRecord.name)
-        private stockDataRecordModel: Model<StockDataRecordDocument>,
+        @InjectModel(CompanyDataRecord.name)
+        private companyDataRecordModel: Model<CompanyDataRecordDocument>,
         @InjectRepository(TickersEntity)
         private readonly tickersRepository: Repository<TickersEntity>,
         @InjectModel(HistoricalDividendYieldRecord.name)
@@ -72,7 +72,7 @@ export class CompaniesService {
             dividendYieldLast12Months = (totalDividendsLast12MonthsValue / tickerData.current_price);
         }
 
-        const companyData = await this.stockDataRecordModel.findOne({ companyId });
+        const companyData = await this.companyDataRecordModel.findOne({ companyId });
 
         if (!companyData) {
             throw new Error('Company data not found');
@@ -113,18 +113,18 @@ export class CompaniesService {
         const promises = yearsAvailable.map(async (item: any) => {
             const index = item.index;
             const year = item.year;
-            const formattedStockData: any = {};
+            const formattedCompanyData: any = {};
 
             Object.keys(companyDataObj).forEach((key) => {
                 if (key === 'market_ratios' && Array.isArray(marketRatiosFiltered) && marketRatiosFiltered.length > 0) {
                     marketRatiosFiltered.sort((a: any, b: any) => {
                         return new Date(b.reference_date).getTime() - new Date(a.reference_date).getTime();
                     });
-                    formattedStockData[key] = marketRatiosFiltered[index];
+                    formattedCompanyData[key] = marketRatiosFiltered[index];
                 } else if (Array.isArray(companyDataObj[key]) && companyDataObj[key].length > 0) {
-                    formattedStockData[key] = companyDataObj[key][index];
+                    formattedCompanyData[key] = companyDataObj[key][index];
                 } else {
-                    formattedStockData[key] = companyDataObj[key];
+                    formattedCompanyData[key] = companyDataObj[key];
                 }
             });
 
@@ -137,14 +137,14 @@ export class CompaniesService {
                 .andWhere('dividends.ex_date <= :endDate', { endDate: `${year}-12-31 23:59:59` })
                 .getRawOne();
 
-            const extraData = await this.buildOtherData(formattedStockData, dividendsOfCompanyCurrentPeriod);
+            const extraData = await this.buildOtherData(formattedCompanyData, dividendsOfCompanyCurrentPeriod);
 
-            delete formattedStockData._id;
-            delete formattedStockData.companyId;
+            delete formattedCompanyData._id;
+            delete formattedCompanyData.companyId;
 
             return {
                 year,
-                ...formattedStockData,
+                ...formattedCompanyData,
                 dividendYieldLast12Months,
                 others: {
                     ...extraData,
@@ -166,7 +166,7 @@ export class CompaniesService {
         };
     }
 
-    async buildOtherData(formattedStockData: any, dividendsOfCompanyCurrentPeriod: any) {
+    async buildOtherData(formattedCompanyData: any, dividendsOfCompanyCurrentPeriod: any) {
         const {
             balance,
             cash_flows,
@@ -174,7 +174,7 @@ export class CompaniesService {
             market_ratios,
             ratios,
             shares,
-        } = formattedStockData || {};
+        } = formattedCompanyData || {};
 
         let totalShares = null
         let EV = null;
@@ -261,7 +261,7 @@ export class CompaniesService {
     }
 
     async getYearsCompanyData(companyId: string): Promise<any> {
-        const companyData = await this.stockDataRecordModel.findOne({ companyId });
+        const companyData = await this.companyDataRecordModel.findOne({ companyId });
 
         if (!companyData) {
             throw new Error('Company data not found');
