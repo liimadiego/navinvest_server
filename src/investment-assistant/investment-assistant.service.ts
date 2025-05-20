@@ -187,6 +187,7 @@ export class InvestmentAssistantService {
             return { valid_question, data: [{ messageType: 'text', ...content }] };
 
         } catch (error) {
+            console.log('Error in interactWithAI:', error);
             if (error.status === 429) {
                 throw new HttpException(
                     'Limite de tokens excedido.',
