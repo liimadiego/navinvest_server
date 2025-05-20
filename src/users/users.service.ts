@@ -91,7 +91,12 @@ export class UsersService {
     }
 
     async canUseTokens(user_id: string): Promise<boolean> {
-        const tokenUsage = await this.tokenUsageRepository.findOne({ where: { user_id } }) || await this.tokenUsageRepository.save({ user_id, tokens_used: 0 });
+        let tokenUsage = await this.tokenUsageRepository.findOne({ where: { user_id } });
+        if (!tokenUsage) {
+            tokenUsage = this.tokenUsageRepository.create({ user_id, tokens_used: 0 });
+            await this.tokenUsageRepository.save(tokenUsage);
+        }
+
         return tokenUsage.tokens_used <= this.TOKEN_LIMIT;
     }
 
