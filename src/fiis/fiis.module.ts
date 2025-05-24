@@ -3,8 +3,9 @@ import { FiisController } from './fiis.controller';
 import { FiisService } from './fiis.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { FiisData, FiisDataSchema } from '../schemas/fiis-data.schema';
-import { TickersEntity } from 'entities/tickers.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TickersEntity } from 'entities/tickers.entity';
+import { DividendEntity } from 'entities/dividends.entity';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ]),
     TypeOrmModule.forFeature([
       TickersEntity,
+      DividendEntity,
     ]),
   ],
   controllers: [ FiisController ],
