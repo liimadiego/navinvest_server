@@ -24,6 +24,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CompaniesModule } from './companies/companies.module';
 import { AuthModule } from './auth/auth.module';
 import { FiisModule } from './fiis/fiis.module';
+import { CheckoutModule } from './checkout/checkout.module';
 
 @Module({
   controllers: [AppController],
@@ -50,7 +51,8 @@ import { FiisModule } from './fiis/fiis.module';
     CompaniesModule,
     AuthModule,
     FiisModule,
-    CronUserTokenUsageModule
+    CronUserTokenUsageModule,
+    CheckoutModule
   ],
 })
 export class AppModule { }
