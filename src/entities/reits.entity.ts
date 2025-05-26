@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { TickersEntity } from './tickers.entity';
 
 @Entity('reits')
 export class ReitEntity {
@@ -46,4 +47,7 @@ export class ReitEntity {
 
     @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
     updatedAt: Date;
+    
+    @OneToMany(() => TickersEntity, (ticker) => ticker.company)
+    tickers: TickersEntity[];
 }

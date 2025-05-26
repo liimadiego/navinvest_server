@@ -13,6 +13,7 @@ import { TagEntity } from './tag.entity';
 import { PortfolioTransactionEntity } from './portfolio-transaction.entity';
 import { CompanyEntity } from './companies.entity';
 import { DividendEntity } from './dividends.entity';
+import { ReitEntity } from './reits.entity';
 
 @Entity('tickers')
 export class TickersEntity {
@@ -73,8 +74,10 @@ export class TickersEntity {
     @JoinColumn({ name: 'company_id', referencedColumnName: 'id' })
     company: CompanyEntity;
 
+    @ManyToOne(() => ReitEntity, (company) => company.tickers)
+    @JoinColumn({ name: 'reit_id', referencedColumnName: 'id' })
+    reit: ReitEntity;
+
     @OneToMany(() => DividendEntity, (dividend) => dividend.tickerInfo)
     dividends: DividendEntity[];
-
-
 }
