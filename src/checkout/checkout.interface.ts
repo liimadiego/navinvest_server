@@ -6,6 +6,8 @@ export type SubscriptionDataReq = {
         billingPreference: string;
         paymentMethod: string;
         nextDueDate: string;
+        phone?: string;
+        password?: string;
     };
     creditCard: {
         cardNumber: string | null;

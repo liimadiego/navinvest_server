@@ -36,7 +36,7 @@ export class AuthService {
         };
     }
 
-    async signUp(email: string, pass: string, full_name: string, phone_number: string): Promise<{ accessToken: string }> {
+    async signUp(email: string, pass: string, full_name: string, phone_number: string): Promise<{ accessToken: string, userId: string }> {
         try {
             const existingMail = await this.usersService.findOne(email);
             const existingPhone = await this.usersService.findByPhoneNumber(phone_number);
@@ -56,6 +56,7 @@ export class AuthService {
 
             return {
                 accessToken: await this.jwtService.signAsync(payload),
+                userId: user.id,
             };
         } catch (error) {
             throw new UnauthorizedException(error);

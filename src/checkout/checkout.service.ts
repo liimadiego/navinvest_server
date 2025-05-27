@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { SubscriptionDataReq, SubscriptionDataRes } from './checkout.interface';
+import { UserEntity } from 'entities/user.entity';
 
 @Injectable()
 export class CheckoutService {
-    async createSubscription(userId: string, data: SubscriptionDataReq): Promise<any> {
+    async createSubscription(userId: string, data: SubscriptionDataReq, user: UserEntity): Promise<any> {
         const checkoutBaseUrl = process.env.CHECKOUT_BASE_URL;
 
         if (!checkoutBaseUrl) {
@@ -49,16 +50,17 @@ export class CheckoutService {
     handleData(data: SubscriptionDataReq): SubscriptionDataRes {
         const { general, creditCard, billingAddress } = data;
 
-        //daqui 7 dias
-        const nextDueDateSubst = new Date();
-        nextDueDateSubst.setDate(nextDueDateSubst.getDate() + 7);
+        const nextDueDate = new Date();
 
+        if (general.paymentMethod === 'credit_card') {
+            nextDueDate.setDate(nextDueDate.getDate() + 7);
+        }
 
         const subscriptionData: SubscriptionDataRes = {
             general: {
                 cycle_type: general.billingPreference === 'monthly' ? 'monthly' : 'yearly',
                 billing_type: general.paymentMethod === 'credit_card' ? 'credit_card' : 'pix',
-                next_due_date: general.nextDueDate || nextDueDateSubst.toISOString().split('T')[0]
+                next_due_date: nextDueDate.toISOString().split('T')[0]
             },
             customer: {
                 name: general.fullName,
