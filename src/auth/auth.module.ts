@@ -26,7 +26,6 @@ import { TokenUsageEntity } from 'entities/token-usage.entity';
   controllers: [AuthController],
   providers: [
     AuthService,
-    UsersService,
     MailService,
     {
       provide: APP_GUARD,

@@ -18,10 +18,11 @@ import { UserEntity } from 'entities/user.entity';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { BacktestService } from 'backtest/backtest.service';
 import { InvestmentAssistantChatRecord, InvestmentAssistantChatRecordSchema } from 'schemas/investment-assistant-chat.schema';
-import { UsersService } from 'users/users.service';
+import { UsersModule } from 'users/users.module';
 
 @Module({
   imports: [
+    UsersModule,
     TypeOrmModule.forFeature([TickersEntity, TagEntity, TreasuriesEntity, CompanyEntity, EconomicIndexesEntity, DividendEntity, UserEntity, TokenUsageEntity]),
     MongooseModule.forFeature([
       { name: CompanyDataRecord.name, schema: CompanyDataRecordSchema },
@@ -31,7 +32,7 @@ import { UsersService } from 'users/users.service';
     ]),
   ],
   controllers: [InvestmentAssistantController],
-  providers: [InvestmentAssistantService, TickerService, CompaniesService, BacktestService, UsersService],
+  providers: [InvestmentAssistantService, TickerService, CompaniesService, BacktestService],
   exports: [InvestmentAssistantService]
 })
 export class InvestmentAssistantModule { }

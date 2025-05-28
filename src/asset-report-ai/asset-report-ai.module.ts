@@ -6,12 +6,14 @@ import { UserEntity } from 'entities/user.entity';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtHelper } from 'utils/jwt.service';
+import { UsersModule } from 'users/users.module';
 
 @Module({
   imports: [
+    UsersModule,
     TypeOrmModule.forFeature([UserEntity, TokenUsageEntity]),
   ],
   controllers: [AssetReportAiController],
-  providers: [AssetReportAiService, UsersService, JwtHelper],
+  providers: [AssetReportAiService, JwtHelper],
 })
 export class AssetReportAiModule { }

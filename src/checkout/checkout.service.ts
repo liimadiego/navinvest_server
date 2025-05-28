@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { SubscriptionDataReq, SubscriptionDataRes } from './checkout.interface';
 import { UserEntity } from 'entities/user.entity';
+import { UsersService } from 'users/users.service';
 
 @Injectable()
 export class CheckoutService {
+    constructor(private readonly usersService: UsersService) { }
+
     async createSubscription(userId: string, data: SubscriptionDataReq, user: UserEntity): Promise<any> {
         const checkoutBaseUrl = process.env.CHECKOUT_BASE_URL;
 
@@ -42,7 +45,15 @@ export class CheckoutService {
             };
         }
 
-        if (res.subscription.billingType === 'CREDIT_CARD' && res.payment.status === 'PENDING') return { success: true };
+        if (res.subscription.billingType === 'CREDIT_CARD' && res.payment.status === 'PENDING') {
+            const updatedUser = await this.usersService.makeUserPremium(userId, 'premium', subscriptionData.general.cycle_type, true);
+
+            if (!updatedUser) {
+                throw new Error('Failed to update user to premium status');
+            }
+
+            return { success: true };
+        }
 
         throw new Error(`Failed to create subscription: ${res.message}`);
     }

@@ -3,6 +3,7 @@ import { UserEntity } from '../entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
+import { PlanEntity } from 'entities/plan.entity';
 
 @Injectable()
 export class UsersService {
@@ -13,6 +14,8 @@ export class UsersService {
         private readonly userRepository: Repository<UserEntity>,
         @InjectRepository(TokenUsageEntity)
         private readonly tokenUsageRepository: Repository<TokenUsageEntity>,
+        @InjectRepository(PlanEntity)
+        private readonly planRepository: Repository<PlanEntity>,
     ) { }
 
     async getAllUsers(): Promise<UserEntity[]> {
@@ -22,6 +25,45 @@ export class UsersService {
                 created_at: 'DESC'
             }
         });
+    }
+
+    async makeUserPremium(id: string, plan_slug: string, plan_cycle: string, trial7days: boolean = false): Promise<UserEntity | null> {
+        if (plan_cycle !== 'monthly' && plan_cycle !== 'yearly') {
+            throw new Error('Invalid plan cycle. Must be "monthly" or "yearly".');
+        }
+
+        let user = await this.userRepository.findOne({
+            where: { id }
+        });
+
+        if (!user) {
+            return null;
+        }
+
+        const plan = await this.planRepository.findOne({
+            where: { slug: plan_slug }
+        });
+
+        if (!plan) {
+            return null;
+        }
+
+        const planId = plan.id;
+        const planExpiration = new Date();
+        const trial = trial7days ? 7 : 0;
+
+        if (plan_cycle === 'monthly') {
+            planExpiration.setMonth(planExpiration.getMonth() + 1);
+            planExpiration.setDate(planExpiration.getDate() + 3 + trial); // Add 3 extra days for monthly plan
+        } else if (plan_cycle === 'yearly') {
+            planExpiration.setFullYear(planExpiration.getFullYear() + 1);
+            planExpiration.setDate(planExpiration.getDate() + 5 + trial); // Add 5 extra days for yearly plan
+        }
+
+        user.plan_id = planId;
+        user.plan_expiration = planExpiration;
+
+        return this.userRepository.save(user);
     }
 
     async findOne(email: string): Promise<UserEntity | null> {

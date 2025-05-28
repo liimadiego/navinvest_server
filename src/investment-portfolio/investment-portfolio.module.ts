@@ -14,11 +14,12 @@ import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
-import { UsersService } from 'users/users.service';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
+import { UsersModule } from 'users/users.module';
 
 @Module({
   imports: [
+    UsersModule,
     MongooseModule.forFeature([
       { name: PortfolioDataRecord.name, schema: PortfolioDataRecordSchema }]),
     TypeOrmModule.forFeature([
@@ -34,7 +35,7 @@ import { TokenUsageEntity } from 'entities/token-usage.entity';
     ]),
   ],
   controllers: [InvestmentPortfolioController],
-  providers: [InvestmentPortfolioService, LanguagesService, PortfolioTransactionsService, UsersService],
+  providers: [InvestmentPortfolioService, LanguagesService, PortfolioTransactionsService],
   exports: [InvestmentPortfolioService],
 })
 export class InvestmentPortfolioModule { }

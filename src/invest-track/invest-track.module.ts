@@ -2,16 +2,19 @@ import { Module } from '@nestjs/common';
 import { InvestTrackService } from './invest-track.service';
 import { InvestTrackController } from './invest-track.controller';
 import { JwtHelper } from 'utils/jwt.service';
-import { UsersService } from 'users/users.service';
+import { UsersModule } from 'users/users.module';
 import { UserEntity } from 'entities/user.entity';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { PlanEntity } from 'entities/plan.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, TokenUsageEntity]),
+    UsersModule,
+    TypeOrmModule.forFeature([UserEntity, TokenUsageEntity, PlanEntity]),
   ],
   controllers: [InvestTrackController],
-  providers: [InvestTrackService, JwtHelper, UsersService],
+  providers: [InvestTrackService, JwtHelper],
+
 })
 export class InvestTrackModule { }

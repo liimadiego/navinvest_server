@@ -8,9 +8,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtHelper } from 'utils/jwt.service';
 import { UsersService } from 'users/users.service';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
-
+import { UsersModule } from 'users/users.module';
 @Module({
   imports: [
+    UsersModule,
     TypeOrmModule.forFeature([
       InvestorProfileEntity,
       UserEntity,
@@ -19,6 +20,6 @@ import { TokenUsageEntity } from 'entities/token-usage.entity';
     ])
   ],
   controllers: [InvestorProfileController],
-  providers: [InvestorProfileService, JwtHelper, UsersService],
+  providers: [InvestorProfileService, JwtHelper],
 })
 export class InvestorProfileModule { }

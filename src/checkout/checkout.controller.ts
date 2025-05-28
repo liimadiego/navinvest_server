@@ -33,7 +33,6 @@ export class CheckoutController {
       data.billingAddress.neighborhood = viaApiData.bairro;
     }
 
-
     if (!userId) {
       userExists = false;
       const { fullName, email, phone, password } = data.general;
@@ -56,12 +55,14 @@ export class CheckoutController {
     }
 
     if (!userId) {
+      console.error('User ID not found after signup');
       throw new HttpException('Usuário não autenticado', HttpStatus.UNAUTHORIZED);
     }
 
     const user = await this.usersService.findById(userId);
 
     if (!user) {
+      console.error(`User with ID ${userId} not found`);
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
