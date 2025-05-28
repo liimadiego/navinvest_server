@@ -79,7 +79,7 @@ export class CheckoutController {
     }
 
     return {
-      subscription: this.checkoutService.createSubscription(userId, data, user),
+      subscription: await this.checkoutService.createSubscription(userId, data, user),
       accessToken: accessToken || null,
     };
   }
