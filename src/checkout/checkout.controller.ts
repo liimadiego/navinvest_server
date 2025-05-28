@@ -1,4 +1,4 @@
-import { Body, Controller, HttpException, HttpStatus, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Req } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { JwtHelper } from 'utils/jwt.service';
 import { SubscriptionDataReq, updateSubscription } from './checkout.interface';
@@ -20,6 +20,7 @@ export class CheckoutController {
   @Post('subscribe')
   async createSubscription(@Body() data: SubscriptionDataReq, @Req() request: any): Promise<any> {
     let userExists = true
+    let accessToken = null;
     let userId = await this.jwtHelper.extractUserIdFromRequest(request);
 
     if (!data.billingAddress.neighborhood || data.billingAddress.neighborhood.trim() === "") {
@@ -53,6 +54,7 @@ export class CheckoutController {
       }
 
       userId = newUser.userId;
+      accessToken = newUser.accessToken;
     }
 
     if (!userId) {
@@ -76,7 +78,10 @@ export class CheckoutController {
       data.general.phone = user.phone_number;
     }
 
-    return this.checkoutService.createSubscription(userId, data, user);
+    return {
+      subscription: this.checkoutService.createSubscription(userId, data, user),
+      accessToken: accessToken || null,
+    };
   }
 
   @Webhook()
@@ -87,5 +92,18 @@ export class CheckoutController {
     }
 
     return this.checkoutService.updateSubscription(data);
+  }
+
+  @Get('confirm-subscription')
+  async verifySubscription(@Req() request: any): Promise<any> {
+    const userId = await this.jwtHelper.extractUserIdFromRequest(request);
+
+    if (!userId) {
+      throw new HttpException('Usuário não autenticado', HttpStatus.UNAUTHORIZED);
+    }
+
+    return {
+      subscriptionStatus: await this.checkoutService.verifySubscription(userId) ? 'active' : 'inactive'
+    };
   }
 }

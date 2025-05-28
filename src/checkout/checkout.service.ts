@@ -85,8 +85,7 @@ export class CheckoutService {
 
         if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
             await this.usersService.update(user.id, {
-                checkoutSubscriptionStatus: status,
-                plan_expiration: nextDueDate ? new Date(nextDueDate) : null,
+                checkoutSubscriptionStatus: status
             });
             console.log(`User ${user.id} subscription status updated to ${status}`);
 
@@ -99,6 +98,8 @@ export class CheckoutService {
             }
             return;
         }
+
+        return;
 
     }
 
@@ -151,5 +152,19 @@ export class CheckoutService {
         }
 
         return subscriptionData;
+    }
+
+    async verifySubscription(userId: string): Promise<any> {
+        if (!userId) {
+            throw new Error('User ID is required to verify subscription');
+        }
+
+        const user = await this.usersService.findById(userId);
+
+        if (!user) {
+            throw new Error(`User with ID ${userId} not found`);
+        }
+
+        return await this.usersService.isUserPremium(userId);
     }
 }

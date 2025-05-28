@@ -211,4 +211,17 @@ export class UsersService {
         Object.assign(user, data);
         return this.userRepository.save(user);
     }
+
+    async isUserPremium(userId: string): Promise<boolean> {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            relations: ['plan']
+        });
+
+        if (!user || !user.plan) {
+            return false;
+        }
+
+        return user.plan.slug === 'premium' && user.plan_expiration > new Date();
+    }
 }
