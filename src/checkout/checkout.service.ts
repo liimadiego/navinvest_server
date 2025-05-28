@@ -31,6 +31,8 @@ export class CheckoutService {
 
         const res = await response.json();
 
+        await this.usersService.savePaymentSubscriptionId(userId, res.subscription.id);
+
         if (!res.success) {
             throw new Error(`Failed to create subscription: ${res.message}`);
         }
@@ -56,6 +58,10 @@ export class CheckoutService {
         }
 
         throw new Error(`Failed to create subscription: ${res.message}`);
+    }
+
+    async updateSubscription(userId: string, data: SubscriptionDataReq): Promise<any> {
+
     }
 
     handleData(data: SubscriptionDataReq): SubscriptionDataRes {

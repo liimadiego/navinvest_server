@@ -57,6 +57,12 @@ export class UserEntity {
     @Column({ type: 'timestamp', nullable: true })
     plan_expiration: Date | null;
 
+    @Column({ type: 'varchar', length: 255, name: 'checkout_subscription_id' })
+    checkoutSubscriptionId: string;
+
+    @Column({ type: 'varchar', length: 255, name: 'checkout_subscription_status' })
+    checkoutSubscriptionStatus: string;
+
     @ManyToOne(() => PlanEntity, (plan) => plan.users, { nullable: true })
     @JoinColumn({ name: 'plan_id' })
     plan: PlanEntity;

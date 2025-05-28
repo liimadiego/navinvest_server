@@ -150,6 +150,21 @@ export class UsersService {
         return tokenUsage.tokens_used <= this.TOKEN_LIMIT;
     }
 
+    async savePaymentSubscriptionId(userId: string, subscriptionId: string): Promise<void> {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        if (!subscriptionId) {
+            throw new Error('Payment ID and Subscription ID are required');
+        }
+
+        user.checkoutSubscriptionId = subscriptionId;
+
+        await this.userRepository.save(user);
+    }
+
     async addTokens(user_id: string, tokens: number): Promise<void> {
         let tokenUsage = await this.tokenUsageRepository.findOne({ where: { user_id } });
         if (!tokenUsage) {
