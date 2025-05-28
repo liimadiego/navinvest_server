@@ -68,6 +68,7 @@ export class CheckoutService {
 
         if (!user) {
             console.error(`User not found for subscription ID: ${subscriptionId}`);
+            console.log('payload', data);
             throw new Error('User not found for the given subscription ID');
         }
 
@@ -79,7 +80,7 @@ export class CheckoutService {
 
         if (event === 'PAYMENT_OVERDUE') {
             await this.usersService.update(user.id, { checkoutSubscriptionStatus: 'overdue' });
-            console.log(`User ${user.id} subscription is overdue`);
+            console.log(`User ${user.id} subscription is overdue :/`);
             return;
         }
 
