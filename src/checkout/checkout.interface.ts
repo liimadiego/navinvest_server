@@ -59,3 +59,11 @@ export type SubscriptionDataRes = {
         };
     };
 }
+
+export interface updateSubscription {
+    subscriptionId: string;
+    event: string;
+    status: 'PENDING' | 'RECEIVED' | 'CONFIRMED' | 'OVERDUE' | 'REFUNDED' | 'RECEIVED_IN_CASH' | 'REFUND_REQUESTED' | 'REFUND_IN_PROGRESS' | 'CHARGEBACK_REQUESTED' | 'CHARGEBACK_DISPUTE' | 'AWAITING_CHARGEBACK_REVERSAL' | 'DUNNING_REQUESTED' | 'DUNNING_RECEIVED' | 'AWAITING_RISK_ANALYSIS';
+    isTheLastPaymentOverdue: boolean;
+    nextDueDate: string;
+}

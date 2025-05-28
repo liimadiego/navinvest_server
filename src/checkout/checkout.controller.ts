@@ -1,8 +1,9 @@
 import { Body, Controller, HttpException, HttpStatus, Post, Req } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { JwtHelper } from 'utils/jwt.service';
-import { SubscriptionDataReq } from './checkout.interface';
+import { SubscriptionDataReq, updateSubscription } from './checkout.interface';
 import { Public } from 'decorators/public.decorator';
+import { Webhook } from 'decorators/webhook.decorator';
 import { AuthService } from 'auth/auth.service';
 import { UsersService } from 'users/users.service';
 
@@ -76,5 +77,15 @@ export class CheckoutController {
     }
 
     return this.checkoutService.createSubscription(userId, data, user);
+  }
+
+  @Webhook()
+  @Post('update-subscription')
+  async updateSubscription(@Body() data: updateSubscription, @Req() request: any): Promise<any> {
+    if (!data || !data.subscriptionId || !data.status || !data.event || !data.nextDueDate) {
+      throw new HttpException('Dados inválidos', HttpStatus.BAD_REQUEST);
+    }
+
+    return this.checkoutService.updateSubscription(data);
   }
 }

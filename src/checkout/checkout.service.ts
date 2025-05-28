@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SubscriptionDataReq, SubscriptionDataRes } from './checkout.interface';
+import { SubscriptionDataReq, SubscriptionDataRes, updateSubscription } from './checkout.interface';
 import { UserEntity } from 'entities/user.entity';
 import { UsersService } from 'users/users.service';
 
@@ -39,6 +39,7 @@ export class CheckoutService {
 
         if (res.subscription.billingType === 'PIX') {
             return {
+                paymentId: res.payment.id,
                 success: true,
                 billingType: res.subscription.billingType,
                 qrCodeBase64: res.pix_info.qrCodeBase64,
@@ -60,7 +61,44 @@ export class CheckoutService {
         throw new Error(`Failed to create subscription: ${res.message}`);
     }
 
-    async updateSubscription(userId: string, data: SubscriptionDataReq): Promise<any> {
+    async updateSubscription(data: updateSubscription): Promise<any> {
+        const { subscriptionId, event, status, isTheLastPaymentOverdue, nextDueDate } = data;
+
+        const user = await this.usersService.findUserByCheckoutSubscriptionId(subscriptionId);
+
+        if (!user) {
+            console.error(`User not found for subscription ID: ${subscriptionId}`);
+            throw new Error('User not found for the given subscription ID');
+        }
+
+        if (isTheLastPaymentOverdue) {
+            await this.usersService.update(user.id, { checkoutSubscriptionStatus: 'overdue' });
+            console.log(`User ${user.id} subscription is overdue`);
+            return;
+        }
+
+        if (event === 'PAYMENT_OVERDUE' && isTheLastPaymentOverdue) {
+            await this.usersService.update(user.id, { checkoutSubscriptionStatus: 'overdue' });
+            console.log(`User ${user.id} subscription is overdue`);
+            return;
+        }
+
+        if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
+            await this.usersService.update(user.id, {
+                checkoutSubscriptionStatus: status,
+                plan_expiration: nextDueDate ? new Date(nextDueDate) : null,
+            });
+            console.log(`User ${user.id} subscription status updated to ${status}`);
+
+            if (status === 'CONFIRMED' || status === 'RECEIVED') {
+                const updatedUser = await this.usersService.makeUserPremium(user.id, 'premium', 'monthly', false);
+                if (!updatedUser) {
+                    console.error('Failed to update user to premium status');
+                    throw new Error('Failed to update user to premium status');
+                }
+            }
+            return;
+        }
 
     }
 

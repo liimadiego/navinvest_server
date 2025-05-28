@@ -192,4 +192,23 @@ export class UsersService {
 
         return tokenUsage;
     }
+
+    async findUserByCheckoutSubscriptionId(subscriptionId: string): Promise<UserEntity | null> {
+        return this.userRepository.findOne({
+            where: { checkoutSubscriptionId: subscriptionId },
+        });
+    }
+
+    async update(userId: string, data: Partial<UserEntity>): Promise<UserEntity | null> {
+        const user = await this.userRepository.findOne({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            return null;
+        }
+
+        Object.assign(user, data);
+        return this.userRepository.save(user);
+    }
 }

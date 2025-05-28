@@ -11,6 +11,7 @@ import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from 'decorators/public.decorator';
 import { IS_STARTER_PLAN_KEY, IS_PRO_PLAN_KEY, IS_PREMIUM_PLAN_KEY } from 'decorators/plans.decorator';
+import { IS_WEBHOOK_KEY } from 'decorators/webhook.decorator';
 import { UsersService } from 'users/users.service';
 
 @Injectable()
@@ -28,6 +29,34 @@ export class AuthGuard implements CanActivate {
         ]);
         if (isPublic) {
             return true;
+        }
+
+        const isWebhook = this.reflector.getAllAndOverride<boolean>(IS_WEBHOOK_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+
+        if (isWebhook) {
+            const request = context.switchToHttp().getRequest();
+            const xAccessToken = request.headers['x-access-token'];
+            if (!xAccessToken) {
+                throw new UnauthorizedException('Missing x-access-token header');
+            }
+            try {
+                const webhook_key = process.env.WEBHOOK_SECRET;
+
+                if (!webhook_key) {
+                    throw new UnauthorizedException('Webhook secret not configured');
+                }
+
+                if (xAccessToken !== webhook_key) {
+                    throw new UnauthorizedException('Invalid x-access-token');
+                }
+
+                return true;
+            } catch (error) {
+                throw new UnauthorizedException('Invalid x-access-token');
+            }
         }
 
         const request = context.switchToHttp().getRequest();
