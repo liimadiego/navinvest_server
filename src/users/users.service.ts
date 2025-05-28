@@ -52,12 +52,20 @@ export class UsersService {
         const planExpiration = new Date();
         const trial = trial7days ? 7 : 0;
 
-        if (plan_cycle === 'monthly') {
-            planExpiration.setMonth(planExpiration.getMonth() + 1);
-            planExpiration.setDate(planExpiration.getDate() + 3 + trial); // Add 3 extra days for monthly plan
-        } else if (plan_cycle === 'yearly') {
-            planExpiration.setFullYear(planExpiration.getFullYear() + 1);
-            planExpiration.setDate(planExpiration.getDate() + 5 + trial); // Add 5 extra days for yearly plan
+        if (trial7days) {
+            if (plan_cycle === 'monthly') {
+                planExpiration.setDate(planExpiration.getDate() + trial);
+            } else if (plan_cycle === 'yearly') {
+                planExpiration.setDate(planExpiration.getDate() + trial);
+            }
+        } else {
+            if (plan_cycle === 'monthly') {
+                planExpiration.setMonth(planExpiration.getMonth() + 1);
+                planExpiration.setDate(planExpiration.getDate() + 2);
+            } else if (plan_cycle === 'yearly') {
+                planExpiration.setFullYear(planExpiration.getFullYear() + 1);
+                planExpiration.setDate(planExpiration.getDate() + 2);
+            }
         }
 
         user.plan_id = planId;
