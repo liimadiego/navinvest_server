@@ -71,13 +71,13 @@ export class CheckoutService {
             throw new Error('User not found for the given subscription ID');
         }
 
-        if (isTheLastPaymentOverdue) {
-            await this.usersService.update(user.id, { checkoutSubscriptionStatus: 'overdue' });
-            console.log(`User ${user.id} subscription is overdue`);
-            return;
-        }
+        // if (isTheLastPaymentOverdue) {
+        //     await this.usersService.update(user.id, { checkoutSubscriptionStatus: 'overdue' });
+        //     console.log(`User ${user.id} subscription is overdue`);
+        //     return;
+        // }
 
-        if (event === 'PAYMENT_OVERDUE' && isTheLastPaymentOverdue) {
+        if (event === 'PAYMENT_OVERDUE') {
             await this.usersService.update(user.id, { checkoutSubscriptionStatus: 'overdue' });
             console.log(`User ${user.id} subscription is overdue`);
             return;
