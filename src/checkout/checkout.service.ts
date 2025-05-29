@@ -31,7 +31,7 @@ export class CheckoutService {
 
         const res = await response.json();
 
-        await this.usersService.savePaymentSubscriptionId(userId, res.subscription.id);
+        await this.usersService.savePaymentSubscriptionId(userId, res.subscription.id, res.subscription.billingType === 'CREDIT_CARD');
 
         if (!res.success) {
             throw new Error(`Failed to create subscription: ${res.message}`);
