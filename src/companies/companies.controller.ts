@@ -16,10 +16,14 @@ export class CompaniesController {
 
   @Get(':ticker')
   async getCompanyData(@Param('ticker') ticker: string): Promise<any> {
-    if (!ticker) {
-      throw new Error('Ticker is required');
+    try {
+      if (!ticker) {
+        throw new Error('Ticker is required');
+      }
+      return this.companiesService.getCompanyByTicker(ticker);
+    } catch (error) {
+      throw new Error(`Error fetching data for ticker ${ticker}: ${error.message}`);
     }
-    return this.companiesService.getCompanyByTicker(ticker);
   }
 
 }

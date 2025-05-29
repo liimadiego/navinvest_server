@@ -55,8 +55,6 @@ export class InvestmentAssistantService {
         try {
             let canUseTokens = await this.usersService.canUseTokens(userId);
 
-            console.log('canUseTokens', canUseTokens);
-
             if (!canUseTokens) {
                 throw new HttpException('Limite de tokens excedido.', 429);
             }

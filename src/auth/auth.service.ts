@@ -18,22 +18,26 @@ export class AuthService {
     ) { }
 
     async signIn(email: string, pass: string): Promise<{ accessToken: string }> {
-        const user = await this.usersService.findOne(email);
+        try {
+            const user = await this.usersService.findOne(email);
 
-        if (!user) {
+            if (!user) {
+                throw new UnauthorizedException('E-mail ou senha inválidos');
+            }
+
+            const passwordMatch = await bcrypt.compare(pass, user.password_hash);
+            if (!passwordMatch) {
+                throw new UnauthorizedException();
+            }
+
+            const payload = { sub: user.id, username: user.full_name, email: user.email };
+
+            return {
+                accessToken: await this.jwtService.signAsync(payload),
+            };
+        } catch (error) {
             throw new UnauthorizedException('E-mail ou senha inválidos');
         }
-
-        const passwordMatch = await bcrypt.compare(pass, user.password_hash);
-        if (!passwordMatch) {
-            throw new UnauthorizedException();
-        }
-
-        const payload = { sub: user.id, username: user.full_name, email: user.email };
-
-        return {
-            accessToken: await this.jwtService.signAsync(payload),
-        };
     }
 
     async signUp(email: string, pass: string, full_name: string, phone_number: string): Promise<{ accessToken: string, userId: string }> {

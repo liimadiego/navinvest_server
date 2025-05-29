@@ -20,7 +20,11 @@ export class AuthController {
         try {
             return this.authService.signIn(email, password);
         } catch (error) {
-            throw new UnauthorizedException('Invalid credentials');
+            // throw new UnauthorizedException({
+            //     statusCode: HttpStatus.UNAUTHORIZED,
+            //     message: 'Login failed: Invalid email or password',
+            //     error: 'Unauthorized'
+            // });
         }
     }
 

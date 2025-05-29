@@ -7,7 +7,7 @@ import { PlanEntity } from 'entities/plan.entity';
 
 @Injectable()
 export class UsersService {
-    private readonly TOKEN_LIMIT = 1_000_000;
+    private readonly TOKEN_LIMIT = 2_000_000;
 
     constructor(
         @InjectRepository(UserEntity)
