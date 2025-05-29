@@ -35,7 +35,20 @@ export class CheckoutController {
       data.billingAddress.neighborhood = viaApiData.bairro;
     }
 
-    if (!userId) {
+    const existingUser = await this.usersService.findOne(data.general.email);
+
+    if (!userId && existingUser) {
+      try {
+        const loginResponse = await this.authService.signIn(data.general.email, data.general.password);
+        userId = existingUser.id;
+        accessToken = loginResponse.accessToken;
+      } catch (error) {
+        console.error('Login failed:', error);
+        throw new HttpException('Usuário não autenticado', HttpStatus.UNAUTHORIZED);
+      }
+    }
+
+    if (!userId && !existingUser) {
       userExists = false;
       const { fullName, email, phone, password } = data.general;
       if (!fullName || !email || !phone || !password) {
