@@ -163,7 +163,7 @@ export class UsersService {
         user.checkoutSubscriptionId = subscriptionId;
 
         if (trial) {
-            user.checkoutSubscriptionStatus = 'trial';
+            user.checkoutSubscriptionStatus = 'TRIAL';
         }
 
         await this.userRepository.save(user);
