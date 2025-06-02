@@ -11,6 +11,7 @@ import { NewsModule } from './news/news.module';
 import { CronNewsService } from './cron-news/cron-news.service';
 import { CronTotalAssetsService } from './cron-users/portfolio-data/cron-portfolio-data.service';
 import { CronUserTokenUsageModule } from './cron-users/portfolio-data/cron-user-token-usage.module';
+import { CronUserSubscriptionModule } from './cron-users/portfolio-data/cron-user-subscription.module';
 import { TickerModule } from './ticker/ticker.module';
 import { InvestorProfileModule } from './investor-profile/investor-profile.module';
 import { TagModule } from './tag/tag.module';
@@ -52,7 +53,8 @@ import { CheckoutModule } from './checkout/checkout.module';
     AuthModule,
     FiisModule,
     CronUserTokenUsageModule,
-    CheckoutModule
+    CheckoutModule,
+    CronUserSubscriptionModule,
   ],
 })
 export class AppModule { }

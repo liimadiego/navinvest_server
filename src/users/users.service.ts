@@ -228,4 +228,17 @@ export class UsersService {
 
         return user.plan.slug === 'premium' && user.plan_expiration > new Date();
     }
+
+    async requestSubscriptionCancellation(userId: string): Promise<void> {
+        const user = await this.userRepository.findOne({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        user.cancellationRequested = true;
+        await this.userRepository.save(user);
+    }
 }

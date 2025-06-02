@@ -63,6 +63,9 @@ export class UserEntity {
     @Column({ type: 'varchar', length: 255, name: 'checkout_subscription_status' })
     checkoutSubscriptionStatus: string;
 
+    @Column({ type: 'boolean', default: false, name: 'cancellation_requested' })
+    cancellationRequested: boolean;
+
     @ManyToOne(() => PlanEntity, (plan) => plan.users, { nullable: true })
     @JoinColumn({ name: 'plan_id' })
     plan: PlanEntity;

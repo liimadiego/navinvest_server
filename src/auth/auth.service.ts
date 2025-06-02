@@ -137,13 +137,17 @@ export class AuthService {
             throw new UnauthorizedException('Invalid token');
         }
 
+        delete user.plan.price_cents;
+
         const userData = {
             id: user.id,
             email: user.email,
             displayName: user.full_name,
+            phone: user.phone_number,
             role: user.role,
             created_at: user.created_at,
             plan: user.plan,
+            plan_expiration: user.plan_expiration
         }
 
         return { user: userData };
