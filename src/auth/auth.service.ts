@@ -110,7 +110,7 @@ export class AuthService {
             return { success: true, message: 'Password updated successfully' };
         } catch (error) {
             console.error('Error updating password:', error);
-            throw new UnauthorizedException('Error updating password');
+            throw new UnauthorizedException(error);
         }
 
     }
