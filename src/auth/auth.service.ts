@@ -42,6 +42,7 @@ export class AuthService {
 
     async signUp(email: string, pass: string, full_name: string, phone_number: string): Promise<{ accessToken: string, userId: string }> {
         try {
+
             const existingMail = await this.usersService.findOne(email);
             const existingPhone = await this.usersService.findByPhoneNumber(phone_number);
 
@@ -51,6 +52,10 @@ export class AuthService {
 
             if (existingPhone) {
                 throw new UnauthorizedException('O celular digitado já está cadastrado');
+            }
+
+            if (!this.validatePasswordComplexity(pass)) {
+                throw new UnauthorizedException('A senha deve conter pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais.');
             }
 
             const salt = await bcrypt.genSalt(10);
@@ -67,8 +72,21 @@ export class AuthService {
         }
     }
 
+    validatePasswordComplexity(password: string): boolean {
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasNumbers = /\d/.test(password);
+        const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        const isValidLength = password.length >= 8;
+        return hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChars && isValidLength;
+    }
+
     async updatePassword(email: string, newPassword: string, code: string): Promise<any> {
         try {
+            if (!this.validatePasswordComplexity(newPassword)) {
+                throw new UnauthorizedException('A senha deve conter pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais.');
+            }
+
             const resetPasswordCode = await this.resetPasswordCodeRepository.findOne({ where: { code } });
             if (!resetPasswordCode || resetPasswordCode.expires_at < new Date()) {
                 console.log('Invalid or expired code');
@@ -137,7 +155,9 @@ export class AuthService {
             throw new UnauthorizedException('Invalid token');
         }
 
-        delete user.plan.price_cents;
+        if (user.plan && user.plan.price_cents) {
+            delete user.plan.price_cents;
+        }
 
         const userData = {
             id: user.id,
