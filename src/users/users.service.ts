@@ -241,4 +241,17 @@ export class UsersService {
         user.cancellationRequested = true;
         await this.userRepository.save(user);
     }
+
+    async updateAccessAttempts(userId: string, attempts: number): Promise<void> {
+        const user = await this.userRepository.findOne({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        user.accessAttempts = attempts;
+        await this.userRepository.save(user);
+    }
 }

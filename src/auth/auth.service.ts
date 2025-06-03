@@ -19,7 +19,15 @@ export class AuthService {
 
     async signIn(email: string, pass: string): Promise<{ accessToken: string }> {
         try {
+            if (!email || !pass) {
+                throw new UnauthorizedException('E-mail e senha são obrigatórios');
+            }
+
             const user = await this.usersService.findOne(email);
+
+            if (user.accessAttempts && user.accessAttempts >= 4) {
+                throw new UnauthorizedException('Muitas tentativas de acesso. Entre em contato com o suporte.');
+            }
 
             if (!user) {
                 throw new UnauthorizedException('E-mail ou senha inválidos');
@@ -27,16 +35,20 @@ export class AuthService {
 
             const passwordMatch = await bcrypt.compare(pass, user.password_hash);
             if (!passwordMatch) {
-                throw new UnauthorizedException();
+                user.accessAttempts = (user.accessAttempts || 0) + 1;
+                await this.usersService.updateAccessAttempts(user.id, user.accessAttempts);
+                throw new UnauthorizedException('E-mail ou senha inválidos');
             }
 
             const payload = { sub: user.id, username: user.full_name, email: user.email };
+
+            await this.usersService.updateAccessAttempts(user.id, 0);
 
             return {
                 accessToken: await this.jwtService.signAsync(payload),
             };
         } catch (error) {
-            throw new UnauthorizedException('E-mail ou senha inválidos');
+            throw new UnauthorizedException(error.message || 'Erro ao fazer login');
         }
     }
 

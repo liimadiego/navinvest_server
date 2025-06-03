@@ -66,6 +66,9 @@ export class UserEntity {
     @Column({ type: 'boolean', default: false, name: 'cancellation_requested' })
     cancellationRequested: boolean;
 
+    @Column({ type: 'int', default: 0, name: 'access_attempts' })
+    accessAttempts: number;
+
     @ManyToOne(() => PlanEntity, (plan) => plan.users, { nullable: true })
     @JoinColumn({ name: 'plan_id' })
     plan: PlanEntity;
