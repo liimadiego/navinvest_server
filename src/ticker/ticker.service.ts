@@ -51,7 +51,19 @@ export class TickerService {
             queryBuilder = queryBuilder.take(limit);
         }
 
-        return queryBuilder.getMany();
+        const tickersResult = await queryBuilder.getMany();
+
+        if (type !== 'treasury') {
+            const tickers = tickersResult as TickersEntity[];
+            const btcIndex = tickers.findIndex(ticker => ticker.ticker === 'BTC');
+            if (btcIndex !== -1) {
+                const btcTicker = tickers.splice(btcIndex, 1)[0];
+                tickers.unshift(btcTicker);
+            }
+        }
+
+        return tickersResult;
+
     }
 
     async getTickersToSearchNews(limit = 0): Promise<TickersEntity[]> {
