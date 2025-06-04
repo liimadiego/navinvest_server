@@ -214,7 +214,7 @@ export class CompaniesService {
             console.log('companyData', util.inspect(companyData, { depth: null }));
 
             if (!companyData) {
-                throw new Error('Company data not found');
+                throw new Error('Company data not found (stockId: ' + stockId + ')');
             }
 
             let companyDataObj: any = {};
