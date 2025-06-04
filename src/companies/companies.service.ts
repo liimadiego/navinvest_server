@@ -9,6 +9,10 @@ import {
     CompanyDataRecordDocument
 } from '../schemas/company-data-record.schema';
 import {
+    StockDataRecord,
+    StockDataRecordDocument
+} from '../schemas/stock-data-record.schema';
+import {
     HistoricalDividendYieldRecord,
     HistoricalDividendYieldRecordDocument
 } from '../schemas/historical-dividend-yield.schema';
@@ -34,6 +38,8 @@ export class CompaniesService {
         private historicalDividendYieldRecordModel: Model<HistoricalDividendYieldRecordDocument>,
         @InjectModel(HistoricalQuotesRecord.name)
         private historicalQuotesRecordModel: Model<HistoricalQuotesRecordDocument>,
+        @InjectModel(StockDataRecord.name)
+        private stockDataRecordModel: Model<StockDataRecordDocument>,
         @InjectRepository(DividendEntity)
         private readonly dividendsRepository: Repository<DividendEntity>
     ) { }
@@ -42,7 +48,7 @@ export class CompaniesService {
         return this.companyRepository.find();
     }
 
-    async getCompanyByTicker(ticker: string, comparing = false): Promise<any> {
+    async getBRCompanyByTicker(ticker: string, comparing = false): Promise<any> {
         try {
             const tickerData = await this.tickersRepository.findOne({
                 where: { ticker, company: Not(IsNull()) },
@@ -166,9 +172,98 @@ export class CompaniesService {
                 historicalQuotesData: comparing ? null : historicalQuotesObj,
             };
         } catch (error) {
-            console.error('Error in getCompanyByTicker:', error);
+            console.error('Error in getBRCompanyByTicker:', error);
             throw new Error(error.message || 'An error occurred while fetching company data');
         }
+    }
+
+    async getUSCompanyByTicker(ticker: string, comparing = false): Promise<any> {
+        try {
+            const tickerData = await this.tickersRepository.findOne({
+                where: { ticker, stock: Not(IsNull()) },
+                relations: ['stock']
+            });
+
+            if (!tickerData) {
+                throw new Error('Ticker not found');
+            }
+
+            if (!tickerData.stock) {
+                throw new Error('Stock data not found for the ticker');
+            }
+
+            const sector = tickerData.stock.sector;
+            const stockId = tickerData.stock.id;
+
+            const totalDividendsLast12Months: any = await this.dividendsRepository
+                .createQueryBuilder('dividends')
+                .select('SUM(dividends.amount)', 'totalDividendsLast12Months')
+                .where('dividends.stock.id = :stockId', { stockId })
+                .andWhere('dividends.ex_date >= CURRENT_DATE - INTERVAL \'12 months\'')
+                .andWhere('dividends.ticker = :ticker', { ticker })
+                .getRawOne();
+
+            const totalDividendsLast12MonthsValue = totalDividendsLast12Months.totalDividendsLast12Months || 0;
+            let dividendYieldLast12Months = 0;
+
+            if (totalDividendsLast12MonthsValue > 0) {
+                dividendYieldLast12Months = (totalDividendsLast12MonthsValue / tickerData.current_price);
+            }
+
+            const companyData = await this.stockDataRecordModel.findOne({ stockId });
+
+            if (!companyData) {
+                throw new Error('Company data not found');
+            }
+
+            let companyDataObj: any = {};
+            companyDataObj = companyData.toObject();
+
+            const historicalQuotesData = await this.historicalQuotesRecordModel.findOne({ tickerId: tickerData.id });
+            let historicalQuotesObj: any = {};
+
+            if (historicalQuotesData) {
+                historicalQuotesObj = historicalQuotesData.toObject().quotes;
+            }
+
+            const yearsAvailable = await this.getYearsCompanyData(stockId, true);
+
+            const promises = yearsAvailable.map(async (item: any) => {
+                const year = item.year;
+                const formattedStockData: any = {};
+
+                let stockData = companyDataObj.indicators.filter((item: any) => {
+                    return item.year == year;
+                });
+
+                stockData = stockData.length > 0 ? stockData[0] : {};
+
+                return {
+                    year,
+                    ...formattedStockData,
+                    stockData
+                };
+            });
+
+            const allYearsReturn = await Promise.all(promises);
+
+            return {
+                current_price: tickerData.current_price,
+                companyMarketData: comparing ? allYearsReturn[0] : allYearsReturn,
+                sector: this.camelize(sector),
+                tickerCompanyInfo: tickerData,
+                historicalQuotesData: comparing ? null : historicalQuotesObj,
+            };
+        } catch (error) {
+            console.error('Error in getUSCompanyByTicker:', error);
+            throw new Error(error.message || 'An error occurred while fetching US company data');
+        }
+    }
+
+    camelize(str: string): string {
+        return str.replace(/(?:^\w|[A-Z]|\b\w)/g, function (word, index) {
+            return index === 0 ? word.toUpperCase() : word.toLowerCase();
+        }).replace(/\s+/g, '');
     }
 
     async buildOtherData(formattedCompanyData: any, dividendsOfCompanyCurrentPeriod: any) {
@@ -265,8 +360,8 @@ export class CompaniesService {
         };
     }
 
-    async getYearsCompanyData(companyId: string): Promise<any> {
-        const companyData = await this.companyDataRecordModel.findOne({ companyId });
+    async getYearsCompanyData(companyId: string, usData: boolean = false): Promise<any> {
+        const companyData = !usData ? await this.companyDataRecordModel.findOne({ companyId }) : await this.stockDataRecordModel.findOne({ stockId: companyId });
 
         if (!companyData) {
             throw new Error('Company data not found');
@@ -275,9 +370,11 @@ export class CompaniesService {
         let companyDataObj: any = {};
         companyDataObj = companyData.toObject();
 
-        const years = companyDataObj.incomes.map((item: any, index: number) => { return { year: item.period_end.split('-')[0], index } });
-
-        return years;
+        if (usData) {
+            return companyDataObj.indicators.map((item: any, index: number) => { return { year: item.year, index } });
+        } else {
+            return companyDataObj.incomes.map((item: any, index: number) => { return { year: item.period_end.split('-')[0], index } });
+        }
     }
 
     async compareCompanies(tickers: string[]): Promise<any> {
@@ -285,7 +382,7 @@ export class CompaniesService {
         let companiesFiltered = {};
 
         for (const ticker of tickers) {
-            const company = await this.getCompanyByTicker(ticker, true);
+            const company = await this.getBRCompanyByTicker(ticker, true);
             companies.push(company);
         }
 

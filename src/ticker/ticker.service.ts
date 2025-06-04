@@ -6,6 +6,7 @@ import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { DividendEntity } from 'entities/dividends.entity';
 import { Repository, Raw } from 'typeorm';
+import { CompaniesService } from '../companies/companies.service';
 import {
     HistoricalQuotesRecord,
     HistoricalQuotesRecordDocument
@@ -27,7 +28,8 @@ export class TickerService {
         @InjectModel(HistoricalQuotesRecord.name)
         private historicalQuotesRecordModel: Model<HistoricalQuotesRecordDocument>,
         @InjectRepository(DividendEntity)
-        private readonly dividendRepository: Repository<DividendEntity>
+        private readonly dividendRepository: Repository<DividendEntity>,
+        private readonly companiesService: CompaniesService
     ) { }
 
     async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
@@ -285,5 +287,45 @@ export class TickerService {
         })
 
         return dividends;
+    }
+
+    async getTickerData(ticker: string): Promise<any> {
+        if (!ticker) {
+            throw new Error('Ticker is required');
+        }
+
+        ticker = ticker.toUpperCase();
+
+        const tickerData = await this.tickerRepository.createQueryBuilder("tickers")
+            .where("tickers.ticker = :ticker", { ticker })
+            .getOne();
+
+        if (!tickerData) {
+            throw new Error('Ticker not found');
+        }
+
+        const tickerType = tickerData.asset_type;
+        const tickerCurrency = tickerData.currency;
+
+        if (tickerType === 'stock' && tickerCurrency === 'BRL') {
+            const companyData = await this.companiesService.getBRCompanyByTicker(ticker);
+            const proftability = await this.getProftabilityByTicker(ticker);
+            return {
+                assetType: `br_${tickerType}`,
+                ...companyData,
+                proftability
+            };
+        }
+
+        if (tickerType === 'stock' && tickerCurrency === 'USD') {
+            const companyData = await this.companiesService.getUSCompanyByTicker(ticker);
+            // const proftability = await this.getProftabilityByTicker(ticker);
+            return {
+                assetType: `us_${tickerType}`,
+                ...companyData,
+                // proftability
+            };
+        }
+
     }
 }

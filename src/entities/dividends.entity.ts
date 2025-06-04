@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { CompanyEntity } from './companies.entity';
 import { ReitEntity } from './reits.entity';
 import { TickersEntity } from './tickers.entity';
+import { StockEntity } from './stocks.entity';
 
 @Entity('dividends')
 export class DividendEntity {
@@ -15,6 +16,10 @@ export class DividendEntity {
     @ManyToOne(() => ReitEntity, { nullable: true, onDelete: 'SET NULL' })
     @JoinColumn({ name: 'reit_id' })
     reit: ReitEntity;
+
+    @ManyToOne(() => StockEntity, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'stock_id' })
+    stock: StockEntity;
 
     @Column({ type: 'numeric', precision: 15, scale: 6, nullable: true })
     amount: number;

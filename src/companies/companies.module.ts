@@ -7,6 +7,7 @@ import { TickersEntity } from 'entities/tickers.entity';
 import { DividendEntity } from 'entities/dividends.entity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CompanyDataRecord, CompanyDataRecordSchema } from '../schemas/company-data-record.schema';
+import { StockDataRecord, StockDataRecordSchema } from '../schemas/stock-data-record.schema';
 import { HistoricalDividendYieldRecord, HistoricalDividendYieldRecordSchema } from '../schemas/historical-dividend-yield.schema';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
 
@@ -16,6 +17,7 @@ import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/hi
       { name: CompanyDataRecord.name, schema: CompanyDataRecordSchema },
       { name: HistoricalDividendYieldRecord.name, schema: HistoricalDividendYieldRecordSchema },
       { name: HistoricalQuotesRecord.name, schema: HistoricalQuotesRecordSchema },
+      { name: StockDataRecord.name, schema: StockDataRecordSchema },
     ]),
     TypeOrmModule.forFeature([
       CompanyEntity,

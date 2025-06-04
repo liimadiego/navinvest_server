@@ -14,6 +14,7 @@ import { PortfolioTransactionEntity } from './portfolio-transaction.entity';
 import { CompanyEntity } from './companies.entity';
 import { DividendEntity } from './dividends.entity';
 import { ReitEntity } from './reits.entity';
+import { StockEntity } from './stocks.entity';
 
 @Entity('tickers')
 export class TickersEntity {
@@ -77,6 +78,11 @@ export class TickersEntity {
     @ManyToOne(() => ReitEntity, (company) => company.tickers)
     @JoinColumn({ name: 'reit_id', referencedColumnName: 'id' })
     reit: ReitEntity;
+
+    @ManyToOne(() => StockEntity, (stock) => stock.tickers)
+    @JoinColumn({ name: 'stock_id', referencedColumnName: 'id' })
+    stock: StockEntity;
+
 
     @OneToMany(() => DividendEntity, (dividend) => dividend.tickerInfo)
     dividends: DividendEntity[];

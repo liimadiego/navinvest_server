@@ -10,6 +10,7 @@ import { LanguagesService } from '../utils/language.service';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { DividendEntity } from 'entities/dividends.entity';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
+import { CompaniesModule } from 'companies/companies.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/hi
       EconomicIndexesEntity,
       DividendEntity,
     ]),
+    CompaniesModule,
   ],
   controllers: [TickerController],
   providers: [TickerService, LanguagesService],

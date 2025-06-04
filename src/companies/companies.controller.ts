@@ -14,16 +14,4 @@ export class CompaniesController {
     return this.companiesService.compareCompanies(tickers);
   }
 
-  @Get(':ticker')
-  async getCompanyData(@Param('ticker') ticker: string): Promise<any> {
-    try {
-      if (!ticker) {
-        throw new Error('Ticker is required');
-      }
-      return this.companiesService.getCompanyByTicker(ticker);
-    } catch (error) {
-      throw new Error(`Error fetching data for ticker ${ticker}: ${error.message}`);
-    }
-  }
-
 }

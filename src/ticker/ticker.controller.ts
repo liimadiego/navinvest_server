@@ -6,7 +6,7 @@ import { LanguagesService } from '../utils/language.service';
 export class TickerController {
   constructor(
     private readonly tickerService: TickerService,
-    private readonly languageService: LanguagesService
+    private readonly languageService: LanguagesService,
   ) { }
 
 
@@ -58,5 +58,22 @@ export class TickerController {
       .catch((error) => {
         throw new BadRequestException(error.message);
       });
+  }
+
+  @Get('get-ticker-data/:ticker')
+  async getTickerData(@Param('ticker') ticker: string) {
+    const missingFields = [];
+
+    if (!ticker) {
+      missingFields.push('ticker');
+    }
+
+    if (missingFields.length > 0) {
+      throw new BadRequestException(`${this.languageService.getPhrase('MISSING_REQUIRED_PARAMETERS')}: ${missingFields.join(', ')}`);
+    }
+
+    const tickerData = await this.tickerService.getTickerData(ticker.toUpperCase())
+
+    return tickerData;
   }
 }
