@@ -82,7 +82,7 @@ export class CompaniesService {
             const companyData = await this.companyDataRecordModel.findOne({ companyId });
 
             if (!companyData) {
-                throw new Error('Company data not found');
+                throw new Error('Company data not found (companyId: ' + companyId + ')');
             }
 
             let companyDataObj: any = {};
@@ -365,7 +365,7 @@ export class CompaniesService {
         const companyData = !usData ? await this.companyDataRecordModel.findOne({ companyId }) : await this.stockDataRecordModel.findOne({ stockId: companyId });
 
         if (!companyData) {
-            throw new Error('Company data not found');
+            throw new Error('Company data not found (companyId: ' + companyId + ', usData: ' + usData + ')');
         }
 
         let companyDataObj: any = {};
