@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { InvestmentAssistantService } from './investment-assistant.service';
 import { InvestmentAssistantController } from './investment-assistant.controller';
-import { TickerService } from '../ticker/ticker.service';
+import { TickerModule } from 'ticker/ticker.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TickersEntity } from '../entities/tickers.entity';
 import { TagEntity } from 'entities/tag.entity';
@@ -23,6 +23,7 @@ import { UsersModule } from 'users/users.module';
 @Module({
   imports: [
     CompaniesModule,
+    TickerModule,
     UsersModule,
     TypeOrmModule.forFeature([TickersEntity, TagEntity, TreasuriesEntity, CompanyEntity, EconomicIndexesEntity, DividendEntity, UserEntity, TokenUsageEntity]),
     MongooseModule.forFeature([
@@ -33,7 +34,7 @@ import { UsersModule } from 'users/users.module';
     ]),
   ],
   controllers: [InvestmentAssistantController],
-  providers: [InvestmentAssistantService, TickerService, BacktestService],
+  providers: [InvestmentAssistantService, BacktestService],
   exports: [InvestmentAssistantService]
 })
 export class InvestmentAssistantModule { }

@@ -26,6 +26,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { AuthModule } from './auth/auth.module';
 import { FiisModule } from './fiis/fiis.module';
 import { CheckoutModule } from './checkout/checkout.module';
+import { CriptosModule } from './criptos/criptos.module';
 
 @Module({
   controllers: [AppController],
@@ -55,6 +56,7 @@ import { CheckoutModule } from './checkout/checkout.module';
     CronUserTokenUsageModule,
     CheckoutModule,
     CronUserSubscriptionModule,
+    CriptosModule,
   ],
 })
 export class AppModule { }

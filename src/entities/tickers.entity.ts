@@ -5,7 +5,6 @@ import {
     OneToMany,
     ManyToMany,
     JoinTable,
-    OneToOne,
     ManyToOne,
     JoinColumn,
 } from 'typeorm';
@@ -15,6 +14,7 @@ import { CompanyEntity } from './companies.entity';
 import { DividendEntity } from './dividends.entity';
 import { ReitEntity } from './reits.entity';
 import { StockEntity } from './stocks.entity';
+import { CriptoEntity } from './criptos.entity';
 
 @Entity('tickers')
 export class TickersEntity {
@@ -26,9 +26,6 @@ export class TickersEntity {
 
     @Column()
     asset_name: string;
-
-    // @Column({ nullable: true })
-    // company_id: string;
 
     @Column({ nullable: true })
     asset_image_url: string;
@@ -75,7 +72,7 @@ export class TickersEntity {
     @JoinColumn({ name: 'company_id', referencedColumnName: 'id' })
     company: CompanyEntity;
 
-    @ManyToOne(() => ReitEntity, (company) => company.tickers)
+    @ManyToOne(() => ReitEntity, (reit) => reit.tickers)
     @JoinColumn({ name: 'reit_id', referencedColumnName: 'id' })
     reit: ReitEntity;
 
@@ -83,6 +80,9 @@ export class TickersEntity {
     @JoinColumn({ name: 'stock_id', referencedColumnName: 'id' })
     stock: StockEntity;
 
+    @ManyToOne(() => CriptoEntity, (cripto) => cripto.tickers)
+    @JoinColumn({ name: 'cripto_id', referencedColumnName: 'id' })
+    cripto: CriptoEntity;
 
     @OneToMany(() => DividendEntity, (dividend) => dividend.tickerInfo)
     dividends: DividendEntity[];

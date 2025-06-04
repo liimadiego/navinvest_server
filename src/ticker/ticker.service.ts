@@ -13,6 +13,7 @@ import {
 } from '../schemas/historical-quotes.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { CriptosService } from 'criptos/criptos.service';
 
 @Injectable()
 export class TickerService {
@@ -29,7 +30,8 @@ export class TickerService {
         private historicalQuotesRecordModel: Model<HistoricalQuotesRecordDocument>,
         @InjectRepository(DividendEntity)
         private readonly dividendRepository: Repository<DividendEntity>,
-        private readonly companiesService: CompaniesService
+        private readonly companiesService: CompaniesService,
+        private readonly criptosService: CriptosService
     ) { }
 
     async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
@@ -57,6 +59,12 @@ export class TickerService {
 
         if (type !== 'treasury') {
             const tickers = tickersResult as TickersEntity[];
+            const ethIndex = tickers.findIndex(ticker => ticker.ticker === 'ETH');
+            if (ethIndex !== -1) {
+                const ethTicker = tickers.splice(ethIndex, 1)[0];
+                tickers.unshift(ethTicker);
+            }
+
             const btcIndex = tickers.findIndex(ticker => ticker.ticker === 'BTC');
             if (btcIndex !== -1) {
                 const btcTicker = tickers.splice(btcIndex, 1)[0];
@@ -309,7 +317,12 @@ export class TickerService {
 
         if (tickerType === 'stock' && tickerCurrency === 'BRL') {
             const companyData = await this.companiesService.getBRCompanyByTicker(ticker);
+            if (!companyData) {
+                throw new Error('Company not found for the given ticker');
+            }
+
             const proftability = await this.getProftabilityByTicker(ticker);
+
             return {
                 assetType: `br_${tickerType}`,
                 ...companyData,
@@ -318,12 +331,27 @@ export class TickerService {
         }
 
         if (tickerType === 'stock' && tickerCurrency === 'USD') {
-            const companyData = await this.companiesService.getUSCompanyByTicker(ticker);
+            const stockData = await this.companiesService.getUSCompanyByTicker(ticker);
             // const proftability = await this.getProftabilityByTicker(ticker);
+            if (!stockData) {
+                throw new Error('Company not found for the given ticker');
+            }
             return {
                 assetType: `us_${tickerType}`,
-                ...companyData,
+                ...stockData,
                 // proftability
+            };
+        }
+
+        if (tickerType === 'cripto') {
+            const criptoData = await this.criptosService.getCriptoByTicker(ticker);
+            if (!criptoData) {
+                throw new Error('Cripto not found');
+            }
+
+            return {
+                assetType: tickerType,
+                ...criptoData
             };
         }
 

@@ -211,7 +211,6 @@ export class CompaniesService {
             }
 
             const companyData = await this.stockDataRecordModel.findOne({ stockId });
-            console.log('companyData', util.inspect(companyData, { depth: null }));
 
             if (!companyData) {
                 throw new Error('Company data not found (stockId: ' + stockId + ')');

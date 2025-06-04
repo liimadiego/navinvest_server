@@ -3,20 +3,6 @@ import { TickersEntity } from './tickers.entity';
 
 @Entity('stocks')
 export class StockEntity {
-
-    // id
-    // symbol
-    // name
-    // description
-    // cik
-    // country
-    // sector
-    // industry
-    // official_site
-    // fiscal_year_end
-    // latest_quarter
-    // market_capitalization
-
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
