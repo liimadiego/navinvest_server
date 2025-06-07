@@ -16,12 +16,15 @@ import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { UsersModule } from 'users/users.module';
+import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
 
 @Module({
   imports: [
     UsersModule,
     MongooseModule.forFeature([
-      { name: PortfolioDataRecord.name, schema: PortfolioDataRecordSchema }]),
+      { name: PortfolioDataRecord.name, schema: PortfolioDataRecordSchema }, 
+      { name: HistoricalQuotesRecord.name, schema: HistoricalQuotesRecordSchema },
+    ]),
     TypeOrmModule.forFeature([
       InvestmentPortfolioEntity,
       TickersEntity,

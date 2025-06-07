@@ -9,7 +9,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TypeOrmConfig, MongoDBConfig } from './config/database';
 import { NewsModule } from './news/news.module';
 import { CronNewsService } from './cron-news/cron-news.service';
-import { CronTotalAssetsService } from './cron-users/portfolio-data/cron-portfolio-data.service';
 import { CronUserTokenUsageModule } from './cron-users/portfolio-data/cron-user-token-usage.module';
 import { CronUserSubscriptionModule } from './cron-users/portfolio-data/cron-user-subscription.module';
 import { TickerModule } from './ticker/ticker.module';
@@ -31,7 +30,7 @@ import { BdrsModule } from './bdrs/bdrs.module';
 
 @Module({
   controllers: [AppController],
-  providers: [AppService, CronNewsService, CronTotalAssetsService],
+  providers: [AppService, CronNewsService],
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig()),
     MongooseModule.forRoot(...MongoDBConfig()),
