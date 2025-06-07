@@ -12,6 +12,8 @@ import { DividendEntity } from 'entities/dividends.entity';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
 import { CompaniesModule } from 'companies/companies.module';
 import { CriptosModule } from 'criptos/criptos.module';
+import { FiisModule } from 'fiis/fiis.module';
+import { BdrsModule } from 'bdrs/bdrs.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { CriptosModule } from 'criptos/criptos.module';
     ]),
     CompaniesModule,
     CriptosModule,
+    FiisModule,
+    BdrsModule
   ],
   controllers: [TickerController],
   providers: [TickerService, LanguagesService],

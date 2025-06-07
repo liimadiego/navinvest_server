@@ -7,13 +7,15 @@ import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { DividendEntity } from 'entities/dividends.entity';
 import { Repository, Raw } from 'typeorm';
 import { CompaniesService } from '../companies/companies.service';
+import { CriptosService } from 'criptos/criptos.service';
+import { FiisService } from 'fiis/fiis.service';
+import { BdrsService } from 'bdrs/bdrs.service';
 import {
     HistoricalQuotesRecord,
     HistoricalQuotesRecordDocument
 } from '../schemas/historical-quotes.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { CriptosService } from 'criptos/criptos.service';
 
 @Injectable()
 export class TickerService {
@@ -31,7 +33,9 @@ export class TickerService {
         @InjectRepository(DividendEntity)
         private readonly dividendRepository: Repository<DividendEntity>,
         private readonly companiesService: CompaniesService,
-        private readonly criptosService: CriptosService
+        private readonly criptosService: CriptosService,
+        private readonly fiisService: FiisService,
+        private readonly bdrsService: BdrsService
     ) { }
 
     async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
@@ -352,6 +356,30 @@ export class TickerService {
             return {
                 assetType: tickerType,
                 ...criptoData
+            };
+        }
+
+        if (tickerType === 'fii') {
+            const fiiData = await this.fiisService.getFiiByTicker(ticker);
+            if (!fiiData) {
+                throw new Error('FII not found');
+            }
+
+            return {
+                assetType: tickerType,
+                ...fiiData
+            };
+        }
+
+        if (tickerType === 'bdr') {
+            const bdrData = await this.bdrsService.getBdrByTicker(ticker);
+            if (!bdrData) {
+                throw new Error('BDR not found');
+            }
+
+            return {
+                assetType: tickerType,
+                ...bdrData
             };
         }
 

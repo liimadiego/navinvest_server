@@ -30,17 +30,6 @@ export class CriptosService {
 
         const historicalQuotesData = await this.historicalQuotesRecordModel.findOne({ tickerId: tickerData.id });
 
-        // //pega o preço atual e coloca no historicalQuotesData
-        // if (historicalQuotesData && historicalQuotesData.quotes && historicalQuotesData.quotes.length > 0) {
-        //     const currentPrice = tickerData.current_price;
-        //     if (currentPrice) {
-        //         historicalQuotesData.quotes.unshift({
-        //             date: (new Date()).toISOString().split('T')[0],
-        //             close_brl: Number(currentPrice),
-        //         });
-        //     }
-        // }
-
         return {
             ticker,
             historicalQuotesData: historicalQuotesData && historicalQuotesData.quotes ? historicalQuotesData.quotes.reverse() : [],

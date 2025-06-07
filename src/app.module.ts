@@ -27,6 +27,7 @@ import { AuthModule } from './auth/auth.module';
 import { FiisModule } from './fiis/fiis.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { CriptosModule } from './criptos/criptos.module';
+import { BdrsModule } from './bdrs/bdrs.module';
 
 @Module({
   controllers: [AppController],
@@ -57,6 +58,7 @@ import { CriptosModule } from './criptos/criptos.module';
     CheckoutModule,
     CronUserSubscriptionModule,
     CriptosModule,
+    BdrsModule,
   ],
 })
 export class AppModule { }

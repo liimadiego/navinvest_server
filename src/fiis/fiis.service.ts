@@ -5,6 +5,7 @@ import { DividendEntity } from 'entities/dividends.entity';
 import { TickersEntity } from 'entities/tickers.entity';
 import { Model } from 'mongoose';
 import { FiisData } from 'schemas/fiis-data.schema';
+import { HistoricalQuotesRecord, HistoricalQuotesRecordDocument } from 'schemas/historical-quotes.schema';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -18,9 +19,11 @@ export class FiisService {
 
     @InjectModel(FiisData.name)
     private fiisModel: Model<FiisData>,
+    @InjectModel(HistoricalQuotesRecord.name)
+    private historicalQuotesRecordModel: Model<HistoricalQuotesRecordDocument>
   ) { }
 
-  async getFiiByTicker (ticker: string): Promise<any> {
+  async getFiiByTicker(ticker: string): Promise<any> {
     const tickerData = await this.tickersRepository.findOne({
       where: { ticker },
       relations: ['reit']
@@ -32,6 +35,8 @@ export class FiisService {
     const fii = await this.fiisModel.findOne({ reitId }, { _id: 0 }).exec();
     if (!fii) throw new Error(`FII with ticker ${ticker} not found`);
 
+    const historicalQuotesData_ = await this.historicalQuotesRecordModel.findOne({ tickerId: tickerData.id });
+
     const totalDividendsLast12Months: any = await this.dividendsRepository
       .createQueryBuilder('dividends')
       .select('SUM(dividends.adj_amount)', 'totalDividendsLast12Months')
@@ -39,9 +44,10 @@ export class FiisService {
       .andWhere('dividends.ex_date >= CURRENT_DATE - INTERVAL \'12 months\'')
       .andWhere('dividends.ticker = :ticker', { ticker })
       .getRawOne();
-      
-    const dividendYieldPast12m = parseFloat((totalDividendsLast12Months.totalDividendsLast12Months / tickerData.current_price).toFixed(4));
 
-    return { dividendYieldPast12m, fii};
+    const dividendYieldPast12m = parseFloat((totalDividendsLast12Months.totalDividendsLast12Months / tickerData.current_price).toFixed(4));
+    const historicalQuotesData = historicalQuotesData_ && historicalQuotesData_.quotes ? historicalQuotesData_.quotes : [];
+
+    return { dividendYieldPast12m, fii, historicalQuotesData, tickerData };
   }
 };

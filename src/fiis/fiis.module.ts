@@ -6,18 +6,20 @@ import { FiisData, FiisDataSchema } from '../schemas/fiis-data.schema';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TickersEntity } from 'entities/tickers.entity';
 import { DividendEntity } from 'entities/dividends.entity';
-
+import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: FiisData.name, schema: FiisDataSchema },
+      { name: HistoricalQuotesRecord.name, schema: HistoricalQuotesRecordSchema },
     ]),
     TypeOrmModule.forFeature([
       TickersEntity,
       DividendEntity,
     ]),
   ],
-  controllers: [ FiisController ],
-  providers: [ FiisService ]
+  controllers: [FiisController],
+  providers: [FiisService],
+  exports: [FiisService],
 })
-export class FiisModule {};
+export class FiisModule { };
