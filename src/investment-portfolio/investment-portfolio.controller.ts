@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
 import { InvestmentPortfolioService } from './investment-portfolio.service';
 import { CreateInvestmentPortfolioDto } from './dto/create-investment-portfolio-dto';
+import { UpdateInvestmentPortfolioDto } from './dto/update-investment-portfolio-dto';
 
 @Controller('investment-portfolio')
 export class InvestmentPortfolioController {
@@ -15,6 +16,32 @@ export class InvestmentPortfolioController {
     }
 
     return await this.investmentPortfolioService.create(investmentPortfolio, userId);
+  }
+
+  @Put(':id')
+  async update(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @Body() investmentPortfolio: UpdateInvestmentPortfolioDto
+  ) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
+    if (!userId) {
+      throw new Error('User not found.');
+    }
+
+    return await this.investmentPortfolioService.update(investmentPortfolio, id, userId);
+  }
+
+  @Delete(':id')
+  async delete(@Req() request: Request, @Param('id') id: string) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
+    if (!userId) {
+      throw new Error('User not found.');
+    }
+
+    return await this.investmentPortfolioService.delete(id, userId);
   }
 
   @Get()

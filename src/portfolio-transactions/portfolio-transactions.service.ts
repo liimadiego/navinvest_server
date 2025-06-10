@@ -434,7 +434,7 @@ export class PortfolioTransactionsService {
             firstDate.setDate(1); // Set to the first day of the month
             firstDate.setHours(0, 0, 0, 0);
 
-            const promises = [ this.getIndexerRate('CDI', firstDate) ];
+            const promises = [this.getIndexerRate('CDI', firstDate)];
             if (firstIPCATransaction) promises.push(this.getIndexerRate('IPCA', firstDate));
 
             const [_cdiRates, _ipcaRates] = await Promise.all(promises);
@@ -585,17 +585,14 @@ export class PortfolioTransactionsService {
                 let variation: number;
 
                 if (isFixedIncome) {
-                    // Lógica para renda fixa
                     currentValue = asset.total_amount * asset.fixed_income_return;
                     variation = ((currentValue - asset.total_amount) / asset.total_amount) * 100;
                 } else if (isTreasury) {
-                    // Lógica para tesouro direto (aplicar rentabilidade específica)
-                    const treasuryRate = asset.treasury.rate || 5; // Taxa padrão se não especificada
+                    const treasuryRate = asset.treasury.rate || 5;
                     const rentabilityFactor = 1 + (treasuryRate / 100);
                     currentValue = asset.total_amount * rentabilityFactor;
                     variation = ((currentValue - asset.total_amount) / asset.total_amount) * 100;
                 } else {
-                    // Lógica para renda variável
                     currentValue = asset.total_quantity * asset.current_price;
                     variation = averagePrice > 0 ? ((asset.current_price - averagePrice) / averagePrice) * 100 : 0;
                 }
