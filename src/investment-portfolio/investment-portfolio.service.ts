@@ -219,6 +219,7 @@ export class InvestmentPortfolioService {
             const holdings: Record<string, { qty: number; info: any }> = {};
             const monthlyResults: any[] = [];
             let txIndex = 0;
+            let investedSum = 0;
 
             for (const m of months) {
                 const monthStart = new Date(Date.UTC(m.year, m.month - 1, 1, 3));
@@ -227,7 +228,25 @@ export class InvestmentPortfolioService {
                 while (txIndex < transactions.length && new Date(transactions[txIndex].transaction_date).getTime() <= monthEnd.getTime()) {
                     const tr = transactions[txIndex];
                     const key = tr.ticker ? `T-${tr.ticker.id}` : `TR-${tr.treasury.id}`;
-                    let qty = tr.asset_type === 'TREASURY' ? Number(tr.amount) / Number(tr.price_per_unit) : Number(tr.quantity);
+                    let qty: number;
+                    if (tr.asset_type === 'TREASURY') {
+                        if (tr.quantity !== undefined && tr.quantity !== null) {
+                            qty = Number(tr.quantity);
+                        } else if (tr.price_per_unit) {
+                            qty = Number(tr.amount) / Number(tr.price_per_unit);
+                        } else if (tr.treasury && tr.treasury.unit_price) {
+                            qty = Number(tr.amount) / Number(tr.treasury.unit_price);
+                        } else {
+                            qty = 0;
+                        }
+
+                        investedSum += tr.transaction_type === 'SELL' ? -Number(tr.amount) : Number(tr.amount);
+                    } else {
+                        qty = Number(tr.quantity);
+                        const value = Number(tr.quantity) * Number(tr.price_per_unit);
+                        investedSum += tr.transaction_type === 'SELL' ? -value : value;
+                    }
+
                     if (tr.transaction_type === 'SELL') qty = -qty;
                     if (!holdings[key]) holdings[key] = { qty: 0, info: tr };
                     holdings[key].qty += qty;
@@ -248,27 +267,11 @@ export class InvestmentPortfolioService {
                     total += h.qty * price;
                 }
 
-                const invested = transactions
-                    .filter(t => new Date(t.transaction_date).getTime() < monthStart.getTime())
-                    .reduce((acc, t) => {
-                        const amount = Number(t.amount);
-                        const quantity = Number(t.quantity);
-                        const price_per_unit = Number(t.price_per_unit);
-
-                        if (t.asset_type === 'TREASURY') {
-                            if (t.transaction_type === 'SELL') return acc - amount;
-                            return acc + amount;
-                        }
-
-                        if (t.transaction_type === 'SELL') return acc - quantity * price_per_unit;
-                        return acc + quantity * price_per_unit;
-                    }, 0);
-
                 monthlyResults.push({
                     month: m.month,
                     year: m.year,
                     totalAssets: parseFloat(total.toFixed(2)),
-                    totalInvested: parseFloat(invested.toFixed(2)),
+                    totalInvested: parseFloat(investedSum.toFixed(2)),
                     currency: 'BRL'
                 });
             }
