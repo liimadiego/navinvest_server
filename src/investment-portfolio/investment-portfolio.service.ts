@@ -294,6 +294,17 @@ export class InvestmentPortfolioService {
                             (year > transaction.transaction_date.getFullYear() ||
                                 (year == transaction.transaction_date.getFullYear() && month >= transaction.transaction_date.getMonth() + 1))
                         ) {
+                            if (isFixedIncome) {
+                                const monthYearFormatted = `${year}-${month.toString().padStart(2, '0')}`;
+                                const monthReturn = await this.portfolioTransactionsService.calculateIndexProfitabilityByMonth(transaction, monthYearFormatted);
+
+                                if (!totalAssets[`${month}-${year}`]) {
+                                    totalAssets[`${month}-${year}`] = { month, year, totalAssets: 0, totalInvested: 0, currency: 'BRL' };
+                                }
+
+                                totalAssets[`${month}-${year}`].totalAssets = parseFloat((totalAssets[`${month}-${year}`].totalAssets + monthReturn).toFixed(2));
+                            }
+
                             const monthQuote = historicalQuotesObj.find(
                                 (quote: any) => quote.date.slice(0, 7) === `${year}-${month.toString().padStart(2, '0')}`
                             );
