@@ -365,9 +365,12 @@ export class TickerService {
                 throw new Error('FII not found');
             }
 
+            const proftability = await this.getProftabilityByTicker(ticker);
+
             return {
                 assetType: tickerType,
-                ...fiiData
+                ...fiiData,
+                proftability
             };
         }
 
