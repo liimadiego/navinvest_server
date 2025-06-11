@@ -680,7 +680,7 @@ export class PortfolioTransactionsService {
             transaction.fixed_income_details.indexer.startsWith('IPCA') ? 'IPCA' : null;
 
         const promises = [this.getIndexerRate('CDI', transactionDate)];
-        if (indexerType === 'IPCA') promises.push(this.getIndexerRate('IPCA', currentMonthDate));
+        if (indexerType === 'IPCA') promises.push(this.getIndexerRate('IPCA', transactionDate));
 
         const [_cdiRates, _ipcaRates] = await Promise.all(promises);
 
@@ -732,7 +732,6 @@ export class PortfolioTransactionsService {
 
         fixedIncomeReturn = 1;
         for (let i = firstIdx; i < economicIndexes[indexer].length; i++) {
-            // Skip if the index date is after the current month
             if (
                 economicIndexes[indexer][i].date.getFullYear() > currentMonthDate.getFullYear() ||
                 (economicIndexes[indexer][i].date.getFullYear() === currentMonthDate.getFullYear() &&
