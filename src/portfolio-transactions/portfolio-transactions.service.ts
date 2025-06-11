@@ -419,7 +419,6 @@ export class PortfolioTransactionsService {
     async consolidatePortfolio(transactions: any[], verbose: boolean = true): Promise<any> {
         const grouped: Record<string, any> = {};
 
-        // Get IPCA and CDI daily rates since the first fixed income transaction.
         let cdiRates = [];
         let ipcaRates = [];
         const firstCDITransaction = transactions.find((transaction) => transaction.asset_type === 'FIXED_INCOME' && transaction.fixed_income_details.indexer.startsWith('CDI'));
@@ -478,6 +477,13 @@ export class PortfolioTransactionsService {
             IPCA: ipcaRates,
             '': cdiRates && cdiRates.map((r: any) => ({ ...r, value: 0, slug: '+', estimate: false })), // "Pre fixed" rates (always 0)
         };
+
+        //sort transactions by transaction_date
+        transactions.sort((a, b) => {
+            const dateA = new Date(a.transaction_date).getTime();
+            const dateB = new Date(b.transaction_date).getTime();
+            return dateA - dateB;
+        });
 
         for (const transaction of transactions) {
             const isFixedIncome = transaction.fixed_income_details && !transaction.ticker && !transaction.treasury;
