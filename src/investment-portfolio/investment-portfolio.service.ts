@@ -186,28 +186,28 @@ export class InvestmentPortfolioService {
 
             const sumTransactionsTotal = (
                 transactions: any[],
-                final_price: any = undefined,
-                quotePriceAtTransaction: any = undefined
+                final_price: any = undefined
             ) => {
                 return transactions
                     .reduce((total, transaction) => {
+                        let originalFinalPrice = final_price;
                         const amount = Number(transaction.amount);
                         const quantity = Number(transaction.quantity);
                         const price_per_unit = Number(transaction.price_per_unit);
 
-                        if (final_price === undefined && transaction.ticker) {
-                            final_price = Number(transaction.ticker.current_price);
+                        if (originalFinalPrice === undefined && transaction.ticker) {
+                            originalFinalPrice = Number(transaction.ticker.current_price);
                         }
 
-                        if (final_price === undefined && transaction.treasury) {
-                            final_price = Number(transaction.treasury.unit_price);
+                        if (originalFinalPrice === undefined && transaction.treasury) {
+                            originalFinalPrice = Number(transaction.treasury.unit_price);
                         }
 
                         if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
                             if (transaction.transaction_type === 'SELL') {
                                 return total - (quantity * price_per_unit);
                             }
-                            return total + (quantity * final_price);
+                            return total + (quantity * originalFinalPrice);
                         }
 
                         if (transaction.asset_type === 'FIXED_INCOME') {
@@ -218,8 +218,7 @@ export class InvestmentPortfolioService {
                         }
 
                         if (transaction.asset_type === 'TREASURY') {
-                            const cotas = amount / quotePriceAtTransaction;
-                            const currentAmout = cotas * final_price;
+                            const currentAmout = transaction.quantity * originalFinalPrice;
 
                             if (transaction.transaction_type === 'SELL') {
                                 return total - currentAmout;
@@ -253,10 +252,11 @@ export class InvestmentPortfolioService {
                     }
 
                     if (transaction.asset_type === 'TREASURY') {
+                        const currentAmout = transaction.quantity * transaction.treasury.unit_price;
                         if (transaction.transaction_type === 'SELL') {
-                            return total - (amount);
+                            return total - (currentAmout);
                         }
-                        return total + (amount);
+                        return total + (currentAmout);
                     }
                 }, 0);
             };
@@ -272,7 +272,6 @@ export class InvestmentPortfolioService {
                     const isFixedIncome = transaction.fixed_income_details !== null && transaction.fixed_income_details !== undefined;
                     const isTicker = transaction.ticker !== null && transaction.ticker !== undefined;
 
-                    // console.log('transaction', transaction);
                     const historicalQuotesData = isTicker ?
                         await this.historicalQuotesRecordModel.findOne({ tickerId: transaction.ticker.id }) :
                         isTreasury ?
@@ -283,8 +282,6 @@ export class InvestmentPortfolioService {
                     if (historicalQuotesData) {
                         historicalQuotesObj = historicalQuotesData.toObject().quotes.slice(-15);
                     }
-
-                    const monthYearTransaction = new Date(transaction.transaction_date);
 
                     const last12MonthsArray = this.getLastTwelveMonths();
 
@@ -297,21 +294,27 @@ export class InvestmentPortfolioService {
                             (year > transaction.transaction_date.getFullYear() ||
                                 (year == transaction.transaction_date.getFullYear() && month >= transaction.transaction_date.getMonth() + 1))
                         ) {
+                            if (isFixedIncome) {
+                                const monthYearFormatted = `${year}-${month.toString().padStart(2, '0')}`;
+                                const monthReturn = await this.portfolioTransactionsService.calculateIndexProfitabilityByMonth(transaction, monthYearFormatted);
+
+                                if (!totalAssets[`${month}-${year}`]) {
+                                    totalAssets[`${month}-${year}`] = { month, year, totalAssets: 0, totalInvested: 0, currency: 'BRL' };
+                                }
+
+                                totalAssets[`${month}-${year}`].totalAssets = parseFloat((totalAssets[`${month}-${year}`].totalAssets + monthReturn).toFixed(2));
+                            }
+
                             const monthQuote = historicalQuotesObj.find(
                                 (quote: any) => quote.date.slice(0, 7) === `${year}-${month.toString().padStart(2, '0')}`
                             );
 
-                            const quotePriceAtTransaction = isTreasury ? historicalQuotesObj.find(
-                                (quote: any) => quote.date.slice(0, 7) === `${monthYearTransaction.getFullYear()}-${(monthYearTransaction.getMonth() + 1).toString().padStart(2, '0')}`
-                            ) : historicalQuotesObj.find(
-                                (quote: any) => quote.date.slice(0, 7) === `${monthYearTransaction.getFullYear()}-${(monthYearTransaction.getMonth() + 1).toString().padStart(2, '0')}`
-                            );
-
-                            const quotePriceAtTransactionDateValue = quotePriceAtTransaction ? (isTreasury ? quotePriceAtTransaction?.unit_price : quotePriceAtTransaction?.adj_close) : undefined;
-
                             const monthQuotePrice = monthQuote ? (isTreasury ? monthQuote?.unit_price : monthQuote?.adj_close) : undefined;
 
-                            const monthTotalAssets = sumTransactionsTotal([transaction], monthQuotePrice, quotePriceAtTransactionDateValue);
+                            const currentDate = new Date();
+                            const isCurrentMonth = currentDate.getFullYear() === year && currentDate.getMonth() + 1 === month;
+
+                            const monthTotalAssets = sumTransactionsTotal([transaction], isCurrentMonth ? undefined : monthQuotePrice);
 
                             if (!totalAssets[`${month}-${year}`]) {
                                 totalAssets[`${month}-${year}`] = { month, year, totalAssets: 0, totalInvested: 0, currency: 'BRL' };
@@ -330,8 +333,6 @@ export class InvestmentPortfolioService {
                     const monthTotalInvested = sumTransactionsTotalInvested(investmentPortfolio.transactions.filter(t => t.transaction_date.getTime() < Date.UTC(parseInt(year), parseInt(month), 1, 3)));
                     totalAssets[`${month}-${year}`].totalInvested = parseFloat((totalAssets[`${month}-${year}`].totalInvested + monthTotalInvested).toFixed(2));
                 }
-
-
             } else {
                 totalAssets = sumTransactionsTotal(investmentPortfolio.transactions);
             }
@@ -457,8 +458,6 @@ export class InvestmentPortfolioService {
         const currentTotalAssets = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId);
         const currentTotalInvested = await this.getTotalInvestedByInvestmentPortfolioId(portfolioId, userId);
         const portfolioDivision = await this.portfolioTransactionsService.getTransactions(portfolioId, false, false)
-
-        console.log('currentTotalAssets', currentTotalAssets);
 
         return {
             portfolioId: portfolioId,

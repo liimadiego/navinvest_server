@@ -419,7 +419,6 @@ export class PortfolioTransactionsService {
     async consolidatePortfolio(transactions: any[], verbose: boolean = true): Promise<any> {
         const grouped: Record<string, any> = {};
 
-        // Get IPCA and CDI daily rates since the first fixed income transaction.
         let cdiRates = [];
         let ipcaRates = [];
         const firstCDITransaction = transactions.find((transaction) => transaction.asset_type === 'FIXED_INCOME' && transaction.fixed_income_details.indexer.startsWith('CDI'));
@@ -478,6 +477,13 @@ export class PortfolioTransactionsService {
             IPCA: ipcaRates,
             '': cdiRates && cdiRates.map((r: any) => ({ ...r, value: 0, slug: '+', estimate: false })), // "Pre fixed" rates (always 0)
         };
+
+        //sort transactions by transaction_date
+        transactions.sort((a, b) => {
+            const dateA = new Date(a.transaction_date).getTime();
+            const dateB = new Date(b.transaction_date).getTime();
+            return dateA - dateB;
+        });
 
         for (const transaction of transactions) {
             const isFixedIncome = transaction.fixed_income_details && !transaction.ticker && !transaction.treasury;
@@ -652,6 +658,101 @@ export class PortfolioTransactionsService {
                 total_percentage: totalPercentage.toFixed(2),
             };
         });
+    }
+
+    async calculateIndexProfitabilityByMonth(transaction: PortfolioTransactionEntity, monthYear: string): Promise<any> {
+        if (!/^\d{4}-\d{2}$/.test(monthYear)) {
+            console.log('Invalid month/year format:', monthYear);
+            throw new HttpException('O formato do mês/ano deve ser YYYY-MM.', 400);
+        }
+
+        let cdiRates = [];
+        let ipcaRates = [];
+
+        const transactionDate = new Date(transaction.transaction_date);
+        transactionDate.setHours(0, 0, 0, 0);
+
+        const currentMonthDate = new Date(monthYear + '-01T00:00-0300');
+        currentMonthDate.setDate(1);
+        currentMonthDate.setHours(0, 0, 0, 0);
+
+        const indexerType = transaction.fixed_income_details.indexer.startsWith('CDI') ? 'CDI' :
+            transaction.fixed_income_details.indexer.startsWith('IPCA') ? 'IPCA' : null;
+
+        const promises = [this.getIndexerRate('CDI', transactionDate)];
+        if (indexerType === 'IPCA') promises.push(this.getIndexerRate('IPCA', transactionDate));
+
+        const [_cdiRates, _ipcaRates] = await Promise.all(promises);
+
+        _cdiRates.forEach((r: any) => {
+            r.date = new Date(r.date + 'T00:00-0300');
+            r.value = ((Math.pow(r.value / 100 + 1, 1 / 252) - 1) * 100).toFixed(12);
+        });
+
+        let dailyIpcaRates = [];
+        if (_ipcaRates) {
+            for (const monthIpcaRate of _ipcaRates) {
+                const monthIpcaRateDate = new Date(monthIpcaRate.date + 'T00:00-0300');
+                const month = monthIpcaRateDate.getMonth();
+
+                let workDaysOfMonth = undefined;
+                if (monthIpcaRate.estimate) {
+                    workDaysOfMonth = await this.getWorkDaysOfMonth(monthIpcaRateDate.getFullYear(), month);
+                } else {
+                    workDaysOfMonth = _cdiRates.filter((r: EconomicIndexesEntity) => r.date.getMonth() === month && r.date.getFullYear() === monthIpcaRateDate.getFullYear());
+                }
+
+                const avgDailyRate = ((Math.pow(monthIpcaRate.value / 100 + 1, 1 / workDaysOfMonth.length) - 1) * 100).toFixed(12);
+                const monthDailyIpcaRate = workDaysOfMonth
+                    .filter((r: EconomicIndexesEntity) => (r.date.getTime() <= _cdiRates.at(-1).date.getTime()))
+                    .map((r: EconomicIndexesEntity) => ({ ...r, value: avgDailyRate, slug: 'ipca', estimate: monthIpcaRate.estimate }));
+
+                dailyIpcaRates = dailyIpcaRates.concat(monthDailyIpcaRate);
+            }
+        }
+
+        cdiRates = _cdiRates;
+        ipcaRates = dailyIpcaRates;
+
+        const economicIndexes = {
+            CDI: cdiRates,
+            IPCA: ipcaRates,
+            '': cdiRates && cdiRates.map((r: any) => ({ ...r, value: 0, slug: '+', estimate: false })),
+        };
+
+        let fixedIncomeReturn: number = 0;
+
+        const indexer = transaction.fixed_income_details.indexer.replace('+', '');
+        const pctgOfIndexer = transaction.fixed_income_details.indexer.includes('+') ? 1 : transaction.fixed_income_details.indexer_rate / 100;
+        const prefixedAnnualRate = transaction.fixed_income_details.indexer.includes('+') ? transaction.fixed_income_details.indexer_rate / 100 : 0;
+        const prefixedDailyRate = prefixedAnnualRate ? Math.round((Math.pow(prefixedAnnualRate + 1, 1 / 252) - 1) * 1e12) / 1e12 : 0;
+
+        let firstIdx = economicIndexes[indexer].findIndex((i: EconomicIndexesEntity) => i.date.getTime() > transaction.transaction_date.getTime());
+        if (firstIdx === -1) firstIdx = economicIndexes[indexer].length;
+
+        fixedIncomeReturn = 1;
+        for (let i = firstIdx; i < economicIndexes[indexer].length; i++) {
+            if (
+                economicIndexes[indexer][i].date.getFullYear() > currentMonthDate.getFullYear() ||
+                (economicIndexes[indexer][i].date.getFullYear() === currentMonthDate.getFullYear() &&
+                    economicIndexes[indexer][i].date.getMonth() > currentMonthDate.getMonth())
+            ) {
+                continue;
+            }
+
+            if (economicIndexes[indexer][i].date.getTime() <= transaction.transaction_date.getTime()) {
+                continue;
+            }
+
+            const indexerDailyRate = economicIndexes[indexer][i].value / 100 * pctgOfIndexer;
+            const dailyRate = indexerDailyRate + prefixedDailyRate;
+            fixedIncomeReturn *= (1 + dailyRate);
+        }
+
+        const currentValue = transaction.amount * fixedIncomeReturn;
+        const profit = currentValue - transaction.amount;
+
+        return profit;
     }
 
     /* ==================================== WALLET IMPORT SECTION ==================================== */
