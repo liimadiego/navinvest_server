@@ -288,11 +288,15 @@ export class InvestmentPortfolioService {
                     for (const monthYear of last12MonthsArray) {
                         const month = monthYear.month;
                         const year = monthYear.year;
+
+                        const transactionDate = new Date(transaction.transaction_date);
+                        transactionDate.setUTCHours(3, 0, 0, 0);
+
                         if (
                             (year > firstTransactionYear ||
                                 (year == firstTransactionYear && month >= firstTransactionMonth)) &&
-                            (year > transaction.transaction_date.getFullYear() ||
-                                (year == transaction.transaction_date.getFullYear() && month >= transaction.transaction_date.getMonth() + 1))
+                            (year > transactionDate.getFullYear() ||
+                                (year == transactionDate.getFullYear() && month >= transactionDate.getMonth() + 1))
                         ) {
                             if (isFixedIncome) {
                                 const monthYearFormatted = `${year}-${month.toString().padStart(2, '0')}`;
