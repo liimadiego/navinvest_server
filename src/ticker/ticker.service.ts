@@ -10,6 +10,7 @@ import { CompaniesService } from '../companies/companies.service';
 import { CriptosService } from 'criptos/criptos.service';
 import { FiisService } from 'fiis/fiis.service';
 import { BdrsService } from 'bdrs/bdrs.service';
+import { EtfsService } from 'etfs/etfs.service';
 import {
     HistoricalQuotesRecord,
     HistoricalQuotesRecordDocument
@@ -35,13 +36,14 @@ export class TickerService {
         private readonly companiesService: CompaniesService,
         private readonly criptosService: CriptosService,
         private readonly fiisService: FiisService,
-        private readonly bdrsService: BdrsService
+        private readonly bdrsService: BdrsService,
+        private readonly etfsService: EtfsService
     ) { }
 
     async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
         let queryBuilder = type === 'treasury' ?
             this.treasuryRepository.createQueryBuilder("treasuries") :
-            this.tickerRepository.createQueryBuilder("tickers")
+            this.tickerRepository.createQueryBuilder("tickers");
 
         if (query) {
             if (type === 'treasury') {
@@ -139,6 +141,16 @@ export class TickerService {
 
         if (!historicalQuotesData) {
             throw new Error('Historical quotes data not found');
+        }
+
+        if (tickerData && tickerData.asset_type === 'cripto') {
+            historicalQuotesData.quotes = historicalQuotesData.quotes.reverse().map((quote: any) => {
+                return {
+                    ...quote,
+                    adj_close: quote.close_brl ? Number(quote.close_brl) : null,
+                    close: quote.close_brl ? Number(quote.close_brl) : null
+                };
+            });
         }
 
         const economicIndexes = await this.economicIndexesRepository.createQueryBuilder("economic_indexes")
@@ -260,8 +272,6 @@ export class TickerService {
             .where("tickers.ticker = :ticker", { ticker })
             .getOne();
 
-        // console.log('tickerData:', tickerData, '\n ');
-
         return !!tickerData;
     }
 
@@ -336,14 +346,14 @@ export class TickerService {
 
         if (tickerType === 'stock' && tickerCurrency === 'USD') {
             const stockData = await this.companiesService.getUSCompanyByTicker(ticker);
-            // const proftability = await this.getProftabilityByTicker(ticker);
+            const proftability = await this.getProftabilityByTicker(ticker);
             if (!stockData) {
                 throw new Error('Company not found for the given ticker');
             }
             return {
                 assetType: `us_${tickerType}`,
                 ...stockData,
-                // proftability
+                proftability
             };
         }
 
@@ -352,10 +362,12 @@ export class TickerService {
             if (!criptoData) {
                 throw new Error('Cripto not found');
             }
+            const proftability = await this.getProftabilityByTicker(ticker);
 
             return {
                 assetType: tickerType,
-                ...criptoData
+                ...criptoData,
+                proftability
             };
         }
 
@@ -379,10 +391,26 @@ export class TickerService {
             if (!bdrData) {
                 throw new Error('BDR not found');
             }
+            const proftability = await this.getProftabilityByTicker(ticker);
 
             return {
                 assetType: tickerType,
-                ...bdrData
+                ...bdrData,
+                proftability
+            };
+        }
+
+        if (tickerType === 'etf') {
+            const etfData = await this.etfsService.getEtfByTicker(ticker);
+            if (!etfData) {
+                throw new Error('ETF not found');
+            }
+            const proftability = await this.getProftabilityByTicker(ticker);
+
+            return {
+                assetType: tickerType,
+                ...etfData,
+                proftability
             };
         }
 

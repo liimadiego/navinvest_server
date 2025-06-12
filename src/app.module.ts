@@ -27,6 +27,7 @@ import { FiisModule } from './fiis/fiis.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { CriptosModule } from './criptos/criptos.module';
 import { BdrsModule } from './bdrs/bdrs.module';
+import { EtfsModule } from './etfs/etfs.module';
 
 @Module({
   controllers: [AppController],
@@ -58,6 +59,7 @@ import { BdrsModule } from './bdrs/bdrs.module';
     CronUserSubscriptionModule,
     CriptosModule,
     BdrsModule,
+    EtfsModule,
   ],
 })
 export class AppModule { }
