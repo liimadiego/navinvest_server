@@ -24,12 +24,11 @@ export class CronNewsService implements OnModuleInit {
     private async startCronJob() {
         // cron.schedule('* * * * *', async () => {
         //      await this.functionGetFinancialContextWithAI(); //rodar todos os dias
-        //      await this.getFinancialNewsWithAI(); //rodar todos os dias
+        // await this.getFinancialNewsWithAI(); //rodar todos os dias
         //      await this.sendDailyNewsToSubscribers(); //rodar todos os dias
-        //      await this.saveNewsInDatabase();
+        // await this.saveNewsInDatabase();
         //      await this.sendNewsToSubscribers();
         // });
-        // this.saveNewsInDatabase();
         // console.log('Cron job agendada.');
     }
 

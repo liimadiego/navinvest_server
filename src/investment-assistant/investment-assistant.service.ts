@@ -109,7 +109,14 @@ export class InvestmentAssistantService {
                     functionCall.arguments = JSON.parse(functionCall.arguments);
 
                 const [serviceName, funcName] = functionCall.name.split('_');
-                const r = await this[serviceName][funcName](...Object.values(functionCall.arguments));
+
+                let r;
+                if (serviceName === 'investmentAssistantService' && funcName === 'getLatestFinancialNews') {
+                    r = await this.getLatestFinancialNews(userId, functionCall.arguments.tickerOrCompanyName);
+                } else {
+                    await this[serviceName][funcName](...Object.values(functionCall.arguments));
+                }
+
                 if (funcName === 'getQuotationsByTicker') {
                     let messagesToSave = [
                         {
@@ -145,6 +152,27 @@ export class InvestmentAssistantService {
                             }
                         })]
                     };
+                }
+
+                if (funcName === 'getLatestFinancialNews') {
+                    let news = r;
+                    if (!news || news.length === 0) {
+                        throw new HttpException('Não foi possível obter as notícias financeiras.', HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+
+                    let messageToSave = {
+                        id: uuidv4(),
+                        messageType: 'text',
+                        answer: news,
+                        role: 'assistant',
+                        senderId: "ai-id",
+                        createdAt: new Date().toISOString()
+                    }
+
+                    chatRecord.messages.push(messageToSave);
+                    await chatRecord.save();
+
+                    return { valid_question: true, data: [{ messageType: 'text', answer: news }] };
                 }
 
                 inputMessages.push({ role: "system", content: JSON.stringify(toolCall) });
@@ -198,6 +226,77 @@ export class InvestmentAssistantService {
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
+    }
+
+    async getLatestFinancialNews(userId: string, tickerOrCompanyName?: string): Promise<any> {
+        try {
+            let canUseTokens = await this.usersService.canUseTokens(userId);
+
+            if (!canUseTokens) {
+                throw new HttpException('Limite de tokens excedido.', 429);
+            }
+
+            const prompt = tickerOrCompanyName
+                ? `Busque as últimas notícias financeiras sobre ${tickerOrCompanyName}.`
+                : `Busque as últimas notícias financeiras.`;
+
+            const response = await fetch('https://api.openai.com/v1/responses', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'OpenAI-Beta': 'tools=v1'
+                },
+                body: JSON.stringify({
+                    model: process.env.OPEN_AI_MODEL,
+                    input: prompt,
+                    instructions: 'Use a ferramenta web search para buscar informações atualizadas.',
+                    tools: [{ type: 'web_search' }],
+                    tool_choice: 'auto',
+                    temperature: 0.7,
+                    top_p: 1.0,
+                }),
+            });
+            const initialData = await response.json();
+            const id = initialData.id;
+
+            for (let i = 0; i < 20; i++) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                const final = await fetch(`https://api.openai.com/v1/responses/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'OpenAI-Beta': 'tools=v1'
+                    }
+                });
+
+                const finalData = await final.json();
+
+                const hasMessageType = finalData.output.some((item: any) => item.type === 'message');
+                if (hasMessageType) {
+                    const messageItem = finalData.output.find((item: any) => item.type === 'message');
+                    if (messageItem && messageItem.content && messageItem.content.length > 0) {
+                        const newsAnswer = messageItem.content[0].text ? messageItem.content[0].text.replace(/\(\[[^\]]+\]\(https?:\/\/[^\)]+\)\)/g, '') : '';
+                        return newsAnswer;
+                    }
+                }
+            }
+
+            throw new HttpException(
+                'Não foi possível obter as notícias financeiras.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+
+        } catch (error) {
+            console.error('Error in getLatestFinancialNews:', error);
+            throw new HttpException(
+                'Erro ao buscar notícias financeiras.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+
     }
 
     async getChatByUserId(userId: string) {

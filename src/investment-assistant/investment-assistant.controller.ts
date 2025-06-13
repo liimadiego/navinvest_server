@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpException, HttpStatus, Req, Get } from '@nestjs/common';
 import { InvestmentAssistantService } from './investment-assistant.service';
 import { MessageHistoric } from './investment-assistant-interface';
-import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
+import { PremiumPlan } from 'decorators/plans.decorator';
 
 @Controller('investment-assistant')
 export class InvestmentAssistantController {

@@ -55,5 +55,22 @@ export const tools: CustomFunction[] = [
                 required: ['ticker', 'period'],
             }
         }
-    }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'investmentAssistantService_getLatestFinancialNews',
+            description: 'Get the latest financial news.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    tickerOrCompanyName: {
+                        type: 'string',
+                        description: 'The ticker or company name to filter the news. If not provided, it will fetch general financial news.',
+                    }
+                },
+                required: [],
+            }
+        }
+    },
 ];
