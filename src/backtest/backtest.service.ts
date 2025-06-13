@@ -260,7 +260,12 @@ export class BacktestService {
         portfolioItensReturns = await Promise.all(promises);
       }
     } catch (error) {
+      if (!error || (typeof error !== 'object' && typeof error !== 'function')) {
+        error = new Error(String(error));
+      }
+
       const errorStr = error.toString();
+
 
       let errorCode = 'UNEXPECTED_BACKTEST_ERROR';
       if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o ativo')) {
