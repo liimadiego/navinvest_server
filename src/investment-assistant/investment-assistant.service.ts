@@ -112,7 +112,8 @@ export class InvestmentAssistantService {
 
                 let r;
                 if (serviceName === 'investmentAssistantService' && funcName === 'getLatestFinancialNews') {
-                    r = await this.getLatestFinancialNews(userId, functionCall.arguments.tickerOrCompanyName);
+                    console.log('chamando a função getLatestFinancialNews com os argumentos:', message);
+                    r = await this.getLatestFinancialNews(userId, message);
                 } else {
                     await this[serviceName][funcName](...Object.values(functionCall.arguments));
                 }
@@ -228,7 +229,7 @@ export class InvestmentAssistantService {
         }
     }
 
-    async getLatestFinancialNews(userId: string, tickerOrCompanyName?: string): Promise<any> {
+    async getLatestFinancialNews(userId: string, userMessage: string): Promise<any> {
         try {
             let canUseTokens = await this.usersService.canUseTokens(userId);
 
@@ -236,9 +237,7 @@ export class InvestmentAssistantService {
                 throw new HttpException('Limite de tokens excedido.', 429);
             }
 
-            const prompt = tickerOrCompanyName
-                ? `Busque as últimas notícias financeiras sobre ${tickerOrCompanyName}.`
-                : `Busque as últimas notícias financeiras.`;
+            const prompt = userMessage;
 
             const response = await fetch('https://api.openai.com/v1/responses', {
                 method: 'POST',
