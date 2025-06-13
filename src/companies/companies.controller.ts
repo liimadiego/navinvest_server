@@ -6,12 +6,16 @@ export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) { }
 
   @Get('compare')
-  async compareCompanies(@Query('tickers') tickers: string[]): Promise<any> {
-    console.log('tickers raw:', tickers);
-    if (!tickers || tickers.length === 0) {
+  async compareCompanies(@Query('tickers') tickers: string): Promise<any> {
+    let tickersArr: string[] = [];
+
+    if (!tickers || tickers == '' || tickers.trim() === '') {
       throw new BadRequestException('Tickers are required');
     }
-    return this.companiesService.compareCompanies(tickers);
+
+    tickersArr = tickers.split(',');
+
+    return this.companiesService.compareCompanies(tickersArr);
   }
 
 }
