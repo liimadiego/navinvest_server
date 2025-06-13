@@ -1,7 +1,7 @@
 import { Body, Query, Controller, HttpException, HttpStatus, Post, Get, Req } from '@nestjs/common';
 import { InvestorProfileService } from './investor-profile.service';
 import { investorProfileAnswers } from './investor-profile-interface';
-import { StarterPlan, ProPlan, PremiumPlan } from 'decorators/plans.decorator';
+import { PremiumPlan } from 'decorators/plans.decorator';
 import { JwtHelper } from 'utils/jwt.service';
 
 @Controller('investor-profile')
@@ -42,6 +42,20 @@ export class InvestorProfileController {
     const response = await this.investorProfileService.saveInvestorProfile(investor_profile, userId);
 
     return { success: true, data: response };
+  }
+
+  @Get('get-investor-profile')
+  async getInvestorProfile(@Req() request: any) {
+    const userId = await this.jwtHelper.extractUserIdFromRequest(request);
+
+    const uuid4 = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+    if (!uuid4.test(userId)) {
+      throw new HttpException('Campo user_id não é um UUID4 válido.', HttpStatus.BAD_REQUEST);
+    }
+
+    const response = await this.investorProfileService.getInvestorProfile(userId);
+
+    return response;
   }
 
   @PremiumPlan()
