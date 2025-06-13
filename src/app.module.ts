@@ -28,10 +28,11 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { CriptosModule } from './criptos/criptos.module';
 import { BdrsModule } from './bdrs/bdrs.module';
 import { EtfsModule } from './etfs/etfs.module';
+import { LanguagesService } from './utils/language.service';
 
 @Module({
   controllers: [AppController],
-  providers: [AppService, CronNewsService],
+  providers: [AppService, CronNewsService, LanguagesService],
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig()),
     MongooseModule.forRoot(...MongoDBConfig()),

@@ -41,6 +41,11 @@ export class TickerService {
     ) { }
 
     async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
+        const justBrStock = type === 'br_stock';
+        if (justBrStock) {
+            type = 'stock';
+        }
+
         let queryBuilder = type === 'treasury' ?
             this.treasuryRepository.createQueryBuilder("treasuries") :
             this.tickerRepository.createQueryBuilder("tickers");
@@ -55,6 +60,9 @@ export class TickerService {
 
         if (type && type !== 'treasury') {
             queryBuilder = queryBuilder.andWhere("tickers.asset_type = :type", { type });
+            if (justBrStock) {
+                queryBuilder = queryBuilder.andWhere("tickers.currency = :currency", { currency: 'BRL' });
+            }
         }
 
         if (limit > 0) {
