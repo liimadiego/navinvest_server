@@ -219,13 +219,17 @@ export class BacktestService {
   }
 
   async test(body: BacktestRequestDto) {
+    console.log(0)
+
     const { startDate, endDate, baseCurrency: portfolioBaseCurrency, portfolio } = body;
 
-    if (!(endDate >= startDate))
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: ['INVALID_DATE_RANGE']
-      });
+    console.log(1)
+
+    if (!(endDate >= startDate)) {
+      throw new Error(`End date (${new Date(endDate).toISOString()}) must be greater than or equal to start date (${new Date(startDate).toISOString()})`);
+    }
+
+    console.log(2)
 
     let portfolioItensReturns = [];
     try {
@@ -261,10 +265,7 @@ export class BacktestService {
       }
     } catch (error) {
       console.error(`[E] BacktestService.test:`, error, '\n ');
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: [`Error processing portfolio item returns: ${error.message || error}`]
-      });
+      throw new Error
 
       // if (!error || (typeof error !== 'object' && typeof error !== 'function')) {
       //   error = new Error(String(error));
