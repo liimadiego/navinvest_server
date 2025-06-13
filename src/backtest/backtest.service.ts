@@ -260,28 +260,36 @@ export class BacktestService {
         portfolioItensReturns = await Promise.all(promises);
       }
     } catch (error) {
-      if (!error || (typeof error !== 'object' && typeof error !== 'function')) {
-        error = new Error(String(error));
-      }
-
-      const errorStr = error.toString();
-
-
-      let errorCode = 'UNEXPECTED_BACKTEST_ERROR';
-      if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o ativo')) {
-        errorCode = 'PORTFOLIO_ASSETS_NOT_IDENTIFIED';
-      } else if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o par')) {
-        errorCode = 'BASE_CURRENCY_NOT_IDENTIFIED';
-      } else if (errorStr.includes('yahooFinance.chart() options `period1` and `period2` cannot share the same value.')) {
-        errorCode = 'START_END_DATES_ERROR';
-      } else {
-        console.log(`[E] Unknow Backtest ERROR (${errorStr}):' ${util.inspect(error, { colors: true, depth: Infinity })}\n `);
-      }
-
+      console.error(`[E] BacktestService.test:`, error, '\n ');
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: [errorCode]
+        message: [`Error processing portfolio item returns: ${error.message || error}`]
       });
+
+      // if (!error || (typeof error !== 'object' && typeof error !== 'function')) {
+      //   error = new Error(String(error));
+      // }
+
+      // const errorStr = error.toString();
+
+
+      // let errorCode = 'UNEXPECTED_BACKTEST_ERROR';
+      // if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o ativo')) {
+      //   errorCode = 'PORTFOLIO_ASSETS_NOT_IDENTIFIED';
+      // } else if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o par')) {
+      //   errorCode = 'BASE_CURRENCY_NOT_IDENTIFIED';
+      // } else if (errorStr.includes('yahooFinance.chart() options `period1` and `period2` cannot share the same value.')) {
+      //   errorCode = 'START_END_DATES_ERROR';
+      // } else {
+      //   console.log(`[E] Unknow Backtest ERROR (${errorStr}):' ${util.inspect(error, { colors: true, depth: Infinity })}\n `);
+      // }
+
+      // throw new BadRequestException({
+      //   statusCode: HttpStatus.BAD_REQUEST,
+      //   message: [errorCode]
+      // });
+
+
     }
 
     let portfolioResult = {
