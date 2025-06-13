@@ -30,9 +30,7 @@ export class BacktestController {
 
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: [
-          `Error fetching historical prices for ticker '${ticker}': ${error.message || error}`
-        ]
+        message: [typeof error.message === 'string' ? error.message : error]
       });
     }
   }

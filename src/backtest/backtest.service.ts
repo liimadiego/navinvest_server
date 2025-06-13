@@ -219,17 +219,13 @@ export class BacktestService {
   }
 
   async test(body: BacktestRequestDto) {
-    console.log(0)
-
     const { startDate, endDate, baseCurrency: portfolioBaseCurrency, portfolio } = body;
 
-    console.log(1)
-
-    if (!(endDate >= startDate)) {
-      throw new Error(`End date (${new Date(endDate).toISOString()}) must be greater than or equal to start date (${new Date(startDate).toISOString()})`);
-    }
-
-    console.log(2)
+    if (!(endDate >= startDate))
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: ['INVALID_DATE_RANGE']
+      });
 
     let portfolioItensReturns = [];
     try {
@@ -264,33 +260,23 @@ export class BacktestService {
         portfolioItensReturns = await Promise.all(promises);
       }
     } catch (error) {
-      console.error(`[E] BacktestService.test:`, error, '\n ');
-      throw new Error
+      const errorStr = error.toString();
 
-      // if (!error || (typeof error !== 'object' && typeof error !== 'function')) {
-      //   error = new Error(String(error));
-      // }
+      let errorCode = 'UNEXPECTED_BACKTEST_ERROR';
+      if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o ativo')) {
+        errorCode = 'PORTFOLIO_ASSETS_NOT_IDENTIFIED';
+      } else if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o par')) {
+        errorCode = 'BASE_CURRENCY_NOT_IDENTIFIED';
+      } else if (errorStr.includes('yahooFinance.chart() options `period1` and `period2` cannot share the same value.')) {
+        errorCode = 'START_END_DATES_ERROR';
+      } else {
+        console.log(`[E] Unknow Backtest ERROR (${errorStr}):' ${util.inspect(error, { colors: true, depth: Infinity })}\n `);
+      }
 
-      // const errorStr = error.toString();
-
-
-      // let errorCode = 'UNEXPECTED_BACKTEST_ERROR';
-      // if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o ativo')) {
-      //   errorCode = 'PORTFOLIO_ASSETS_NOT_IDENTIFIED';
-      // } else if (errorStr.includes('Não foi possível encontrar o simbolo usado pelo yahoo para o par')) {
-      //   errorCode = 'BASE_CURRENCY_NOT_IDENTIFIED';
-      // } else if (errorStr.includes('yahooFinance.chart() options `period1` and `period2` cannot share the same value.')) {
-      //   errorCode = 'START_END_DATES_ERROR';
-      // } else {
-      //   console.log(`[E] Unknow Backtest ERROR (${errorStr}):' ${util.inspect(error, { colors: true, depth: Infinity })}\n `);
-      // }
-
-      // throw new BadRequestException({
-      //   statusCode: HttpStatus.BAD_REQUEST,
-      //   message: [errorCode]
-      // });
-
-
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: [errorCode]
+      });
     }
 
     let portfolioResult = {
