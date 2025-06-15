@@ -473,6 +473,36 @@ export class InvestmentPortfolioService {
         }
     }
 
+    async getPortfolioPerformanceByDateRange(portfolioId: string, userId: string, startDate: string, endDate: string) {
+        const { totalAssets, portfolioName } = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId, true);
+        const historicalData = typeof totalAssets === 'number' ? [] : totalAssets.reverse();
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const rangeData = historicalData.filter((d: any) => {
+            const date = new Date(Date.UTC(d.year, d.month - 1, 1, 3));
+            return date.getTime() >= start.getTime() && date.getTime() <= end.getTime();
+        });
+
+        if (rangeData.length === 0) {
+            return { portfolioId, portfolioName, startDate, endDate, performance: 0, historicalData: [] };
+        }
+
+        const initialAssets = rangeData[0].totalAssets;
+        const finalAssets = rangeData[rangeData.length - 1].totalAssets;
+        const performance = initialAssets ? parseFloat(((finalAssets - initialAssets) / initialAssets * 100).toFixed(2)) : 0;
+
+        return {
+            portfolioId,
+            portfolioName,
+            startDate,
+            endDate,
+            performance,
+            historicalData: rangeData,
+        };
+    }
+
     async getUserIdByHeaderRequest(request: any) {
         const authHeader = request.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {

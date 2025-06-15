@@ -95,4 +95,25 @@ export class InvestmentPortfolioController {
 
     return await this.investmentPortfolioService.getPortfolioDataByPortfolioId(investmentPortfolioId, userId);
   }
+
+  @Get('performance/:investmentPortfolioId')
+  async getPortfolioPerformanceByDateRange(
+    @Req() request: Request,
+    @Param('investmentPortfolioId') investmentPortfolioId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
+    if (!investmentPortfolioId) {
+      throw new Error('Investment Portfolio ID is required.');
+    }
+
+    return await this.investmentPortfolioService.getPortfolioPerformanceByDateRange(
+      investmentPortfolioId,
+      userId,
+      startDate,
+      endDate,
+    );
+  }
 }
