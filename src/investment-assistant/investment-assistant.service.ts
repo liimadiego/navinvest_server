@@ -115,7 +115,11 @@ export class InvestmentAssistantService {
                     console.log('chamando a função getLatestFinancialNews com os argumentos:', message);
                     r = await this.getLatestFinancialNews(userId, message);
                 } else {
-                    r = await this[serviceName][funcName](...Object.values(functionCall.arguments));
+                    if (funcName === 'getBRCompanyByTicker' || funcName === 'getUSCompanyByTicker') {
+                        r = await this[serviceName][funcName](...Object.values(functionCall.arguments), true);
+                    } else {
+                        r = await this[serviceName][funcName](...Object.values(functionCall.arguments));
+                    }
                 }
 
                 if (funcName === 'getQuotationsByTicker') {
