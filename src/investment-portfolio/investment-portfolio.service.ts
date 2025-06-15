@@ -176,6 +176,80 @@ export class InvestmentPortfolioService {
         return firstTransactionDate;
     }
 
+    async sumTransactionsTotal(transactions: any[], final_price: any = undefined) {
+        return transactions
+            .reduce((total, transaction) => {
+                let originalFinalPrice = final_price;
+                const amount = Number(transaction.amount);
+                const quantity = Number(transaction.quantity);
+                const price_per_unit = Number(transaction.price_per_unit);
+
+                if (originalFinalPrice === undefined && transaction.ticker) {
+                    originalFinalPrice = Number(transaction.ticker.current_price);
+                }
+
+                if (originalFinalPrice === undefined && transaction.treasury) {
+                    originalFinalPrice = Number(transaction.treasury.unit_price);
+                }
+
+                if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - (quantity * price_per_unit);
+                    }
+                    return total + (quantity * originalFinalPrice);
+                }
+
+                if (transaction.asset_type === 'FIXED_INCOME') {
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - (amount);
+                    }
+                    return total + (amount);
+                }
+
+                if (transaction.asset_type === 'TREASURY') {
+                    const currentAmout = transaction.quantity * originalFinalPrice;
+
+                    if (transaction.transaction_type === 'SELL') {
+                        return total - currentAmout;
+                    }
+
+                    return total + currentAmout;
+                }
+
+                return total;
+            }, 0);
+    };
+
+    async sumTransactionsTotalInvested(transactions: any[]) {
+        return transactions.reduce((total, transaction) => {
+            const amount = Number(transaction.amount);
+            const quantity = Number(transaction.quantity);
+            const price_per_unit = Number(transaction.price_per_unit);
+
+            if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
+                if (transaction.transaction_type === 'SELL') {
+                    return total - (quantity * price_per_unit);
+                }
+                return total + (quantity * price_per_unit);
+            }
+
+            if (transaction.asset_type === 'FIXED_INCOME') {
+                if (transaction.transaction_type === 'SELL') {
+                    return total - (amount);
+                }
+                return total + (amount);
+            }
+
+            if (transaction.asset_type === 'TREASURY') {
+                const currentAmout = transaction.quantity * transaction.treasury.unit_price;
+                if (transaction.transaction_type === 'SELL') {
+                    return total - (currentAmout);
+                }
+                return total + (currentAmout);
+            }
+        }, 0);
+    };
+
     async getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId: string, userId: string, last12Months: boolean = false) {
         try {
             const investmentPortfolio = await this.getTransactionsByInvestmentPortfolioId(investmentPortfolioId);
@@ -183,83 +257,6 @@ export class InvestmentPortfolioService {
                 throw new Error(`Portfolio not found`);
             }
             const firstTransactionDate = new Date(await this.getDateOfFirstTransactionByInvestmentPortfolioId(investmentPortfolioId));
-
-            const sumTransactionsTotal = (
-                transactions: any[],
-                final_price: any = undefined
-            ) => {
-                return transactions
-                    .reduce((total, transaction) => {
-                        let originalFinalPrice = final_price;
-                        const amount = Number(transaction.amount);
-                        const quantity = Number(transaction.quantity);
-                        const price_per_unit = Number(transaction.price_per_unit);
-
-                        if (originalFinalPrice === undefined && transaction.ticker) {
-                            originalFinalPrice = Number(transaction.ticker.current_price);
-                        }
-
-                        if (originalFinalPrice === undefined && transaction.treasury) {
-                            originalFinalPrice = Number(transaction.treasury.unit_price);
-                        }
-
-                        if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
-                            if (transaction.transaction_type === 'SELL') {
-                                return total - (quantity * price_per_unit);
-                            }
-                            return total + (quantity * originalFinalPrice);
-                        }
-
-                        if (transaction.asset_type === 'FIXED_INCOME') {
-                            if (transaction.transaction_type === 'SELL') {
-                                return total - (amount);
-                            }
-                            return total + (amount);
-                        }
-
-                        if (transaction.asset_type === 'TREASURY') {
-                            const currentAmout = transaction.quantity * originalFinalPrice;
-
-                            if (transaction.transaction_type === 'SELL') {
-                                return total - currentAmout;
-                            }
-
-                            return total + currentAmout;
-                        }
-
-                        return total;
-                    }, 0);
-            };
-
-            const sumTransactionsTotalInvested = (transactions: any[]) => {
-                return transactions.reduce((total, transaction) => {
-                    const amount = Number(transaction.amount);
-                    const quantity = Number(transaction.quantity);
-                    const price_per_unit = Number(transaction.price_per_unit);
-
-                    if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
-                        if (transaction.transaction_type === 'SELL') {
-                            return total - (quantity * price_per_unit);
-                        }
-                        return total + (quantity * price_per_unit);
-                    }
-
-                    if (transaction.asset_type === 'FIXED_INCOME') {
-                        if (transaction.transaction_type === 'SELL') {
-                            return total - (amount);
-                        }
-                        return total + (amount);
-                    }
-
-                    if (transaction.asset_type === 'TREASURY') {
-                        const currentAmout = transaction.quantity * transaction.treasury.unit_price;
-                        if (transaction.transaction_type === 'SELL') {
-                            return total - (currentAmout);
-                        }
-                        return total + (currentAmout);
-                    }
-                }, 0);
-            };
 
             const firstTransactionYear = firstTransactionDate.getFullYear();
             const firstTransactionMonth = firstTransactionDate.getMonth() + 1;
@@ -283,7 +280,7 @@ export class InvestmentPortfolioService {
                         historicalQuotesObj = historicalQuotesData.toObject().quotes.slice(-15);
                     }
 
-                    const last12MonthsArray = this.getLastTwelveMonths();
+                    const last12MonthsArray = this.getLastXMonths(12);
 
                     for (const monthYear of last12MonthsArray) {
                         const month = monthYear.month;
@@ -299,8 +296,7 @@ export class InvestmentPortfolioService {
                                 (year == transactionDate.getFullYear() && month >= transactionDate.getMonth() + 1))
                         ) {
                             if (isFixedIncome) {
-                                const monthYearFormatted = `${year}-${month.toString().padStart(2, '0')}`;
-                                const monthReturn = await this.portfolioTransactionsService.calculateIndexProfitabilityByMonth(transaction, monthYearFormatted);
+                                const monthReturn = await this.portfolioTransactionsService.calculateIndexProfitabilityByDateRange(transaction, null, new Date(Date.UTC(year, month, 0, 3)));
 
                                 if (!totalAssets[`${month}-${year}`]) {
                                     totalAssets[`${month}-${year}`] = { month, year, totalAssets: 0, totalInvested: 0, currency: 'BRL' };
@@ -318,7 +314,7 @@ export class InvestmentPortfolioService {
                             const currentDate = new Date();
                             const isCurrentMonth = currentDate.getFullYear() === year && currentDate.getMonth() + 1 === month;
 
-                            const monthTotalAssets = sumTransactionsTotal([transaction], isCurrentMonth ? undefined : monthQuotePrice);
+                            const monthTotalAssets = await this.sumTransactionsTotal([transaction], isCurrentMonth ? undefined : monthQuotePrice);
 
                             if (!totalAssets[`${month}-${year}`]) {
                                 totalAssets[`${month}-${year}`] = { month, year, totalAssets: 0, totalInvested: 0, currency: 'BRL' };
@@ -334,11 +330,11 @@ export class InvestmentPortfolioService {
                 }
                 for (const monthYear in totalAssets) {
                     const [month, year] = monthYear.split('-');
-                    const monthTotalInvested = sumTransactionsTotalInvested(investmentPortfolio.transactions.filter(t => t.transaction_date.getTime() < Date.UTC(parseInt(year), parseInt(month), 1, 3)));
+                    const monthTotalInvested = await this.sumTransactionsTotalInvested(investmentPortfolio.transactions.filter(t => t.transaction_date.getTime() < Date.UTC(parseInt(year), parseInt(month), 1, 3)));
                     totalAssets[`${month}-${year}`].totalInvested = parseFloat((totalAssets[`${month}-${year}`].totalInvested + monthTotalInvested).toFixed(2));
                 }
             } else {
-                totalAssets = sumTransactionsTotal(investmentPortfolio.transactions);
+                totalAssets = await this.sumTransactionsTotal(investmentPortfolio.transactions);
             }
 
             return {
@@ -480,7 +476,7 @@ export class InvestmentPortfolioService {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        const rangeData = historicalData.filter((d: any) => {
+        const rangeData: any = historicalData.filter((d: any) => {
             const date = new Date(Date.UTC(d.year, d.month - 1, 1, 3));
             return date.getTime() >= start.getTime() && date.getTime() <= end.getTime();
         });
@@ -491,7 +487,7 @@ export class InvestmentPortfolioService {
 
         const initialAssets = rangeData[0].totalAssets;
         const finalAssets = rangeData[rangeData.length - 1].totalAssets;
-        const performance = initialAssets ? parseFloat(((finalAssets - initialAssets) / initialAssets * 100).toFixed(2)) : 0;
+        const performance = initialAssets ? parseFloat(((finalAssets - initialAssets) / initialAssets).toFixed(2)) : 0;
 
         return {
             portfolioId,
@@ -515,10 +511,14 @@ export class InvestmentPortfolioService {
         return decoded.sub || null;
     }
 
-    getLastTwelveMonths() {
+    getLastXMonths(x: number): { month: number, year: number }[] {
+        if (x < 0) {
+            throw new Error('Number of months must be a positive integer.');
+        }
+
         const today = new Date();
         const lastTwelveMonths = [];
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < x; i++) {
             const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
             lastTwelveMonths.push({
                 month: month.getMonth() + 1,

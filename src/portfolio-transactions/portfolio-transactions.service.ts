@@ -755,6 +755,130 @@ export class PortfolioTransactionsService {
         return profit;
     }
 
+    async calculateIndexProfitabilityByDateRange(transaction: PortfolioTransactionEntity, startDate: Date | null, endDate: Date): Promise<any> {
+        if (startDate && startDate > endDate) {
+            throw new HttpException('A data de início não pode ser posterior à data de término.', 400);
+        }
+
+        let cdiRates = [];
+        let ipcaRates = [];
+
+        const transactionDate = new Date(transaction.transaction_date);
+        transactionDate.setHours(0, 0, 0, 0);
+
+        // Determina a data efetiva de início do cálculo
+        let effectiveStartDate = transactionDate;
+        if (startDate) {
+            const normalizedStartDate = new Date(startDate);
+            normalizedStartDate.setHours(0, 0, 0, 0);
+
+            // Só usa startDate se for posterior ao transaction_date
+            if (normalizedStartDate > transactionDate) {
+                effectiveStartDate = normalizedStartDate;
+            }
+        }
+
+        const indexerType = transaction.fixed_income_details.indexer.startsWith('CDI') ? 'CDI' :
+            transaction.fixed_income_details.indexer.startsWith('IPCA') ? 'IPCA' : null;
+
+        const promises = [this.getIndexerRate('CDI', transactionDate)];
+        if (indexerType === 'IPCA') promises.push(this.getIndexerRate('IPCA', transactionDate));
+
+        const [_cdiRates, _ipcaRates] = await Promise.all(promises);
+
+        _cdiRates.forEach((r: any) => {
+            r.date = new Date(r.date + 'T00:00-0300');
+            r.value = ((Math.pow(r.value / 100 + 1, 1 / 252) - 1) * 100).toFixed(12);
+        });
+
+        let dailyIpcaRates = [];
+        if (_ipcaRates) {
+            for (const monthIpcaRate of _ipcaRates) {
+                const monthIpcaRateDate = new Date(monthIpcaRate.date + 'T00:00-0300');
+                const month = monthIpcaRateDate.getMonth();
+
+                let workDaysOfMonth = undefined;
+                if (monthIpcaRate.estimate) {
+                    workDaysOfMonth = await this.getWorkDaysOfMonth(monthIpcaRateDate.getFullYear(), month);
+                } else {
+                    workDaysOfMonth = _cdiRates.filter((r: EconomicIndexesEntity) => r.date.getMonth() === month && r.date.getFullYear() === monthIpcaRateDate.getFullYear());
+                }
+
+                const avgDailyRate = ((Math.pow(monthIpcaRate.value / 100 + 1, 1 / workDaysOfMonth.length) - 1) * 100).toFixed(12);
+                const monthDailyIpcaRate = workDaysOfMonth
+                    .filter((r: EconomicIndexesEntity) => (r.date.getTime() <= _cdiRates.at(-1).date.getTime()))
+                    .map((
+                        r: EconomicIndexesEntity) => ({ ...r, value: avgDailyRate, slug: 'ipca', estimate: monthIpcaRate.estimate }));
+                dailyIpcaRates = dailyIpcaRates.concat(monthDailyIpcaRate);
+            }
+        }
+        cdiRates = _cdiRates;
+        ipcaRates = dailyIpcaRates;
+
+        const economicIndexes = {
+            CDI: cdiRates,
+            IPCA: ipcaRates,
+            '': cdiRates && cdiRates.map((r: any) => ({ ...r, value: 0, slug: '+', estimate: false })),
+        };
+
+        let fixedIncomeReturn: number = 0;
+        const indexer = transaction.fixed_income_details.indexer.replace('+', '');
+        const pctgOfIndexer = transaction.fixed_income_details.indexer.includes('+') ? 1 : transaction.fixed_income_details.indexer_rate / 100;
+        const prefixedAnnualRate = transaction.fixed_income_details.indexer.includes('+') ? transaction.fixed_income_details.indexer_rate / 100 : 0;
+        const prefixedDailyRate = prefixedAnnualRate ? Math.round((Math.pow(prefixedAnnualRate + 1, 1 / 252) - 1) * 1e12) / 1e12 : 0;
+
+        // Calcula o valor acumulado até a data efetiva de início (se for diferente do transaction_date)
+        let accumulatedValueAtStart = transaction.amount;
+        if (effectiveStartDate > transactionDate) {
+            let accumulatedReturn = 1;
+            let firstIdx = economicIndexes[indexer].findIndex((i: EconomicIndexesEntity) => i.date.getTime() > transaction.transaction_date.getTime());
+            if (firstIdx === -1) firstIdx = economicIndexes[indexer].length;
+
+            for (let i = firstIdx; i < economicIndexes[indexer].length; i++) {
+                // Para se a data ultrapassar a effectiveStartDate
+                if (economicIndexes[indexer][i].date.getTime() > effectiveStartDate.getTime()) {
+                    break;
+                }
+
+                if (economicIndexes[indexer][i].date.getTime() <= transaction.transaction_date.getTime()) {
+                    continue;
+                }
+
+                const indexerDailyRate = economicIndexes[indexer][i].value / 100 * pctgOfIndexer;
+                const dailyRate = indexerDailyRate + prefixedDailyRate;
+                accumulatedReturn *= (1 + dailyRate);
+            }
+            accumulatedValueAtStart = transaction.amount * accumulatedReturn;
+        }
+
+        // Calcula o rendimento do período solicitado (effectiveStartDate até endDate)
+        let firstIdx = economicIndexes[indexer].findIndex((i: EconomicIndexesEntity) => i.date.getTime() > effectiveStartDate.getTime());
+        if (firstIdx === -1) firstIdx = economicIndexes[indexer].length;
+
+        fixedIncomeReturn = 1;
+        for (let i = firstIdx; i < economicIndexes[indexer].length; i++) {
+            if (
+                economicIndexes[indexer][i].date.getFullYear() > endDate.getFullYear() ||
+                (economicIndexes[indexer][i].date.getFullYear() === endDate.getFullYear() &&
+                    economicIndexes[indexer][i].date.getMonth() > endDate.getMonth())
+            ) {
+                continue;
+            }
+
+            if (economicIndexes[indexer][i].date.getTime() <= effectiveStartDate.getTime()) {
+                continue;
+            }
+
+            const indexerDailyRate = economicIndexes[indexer][i].value / 100 * pctgOfIndexer;
+            const dailyRate = indexerDailyRate + prefixedDailyRate;
+            fixedIncomeReturn *= (1 + dailyRate);
+        }
+
+        const currentValue = accumulatedValueAtStart * fixedIncomeReturn;
+        const profit = currentValue - accumulatedValueAtStart;
+        return profit;
+    }
+
     /* ==================================== WALLET IMPORT SECTION ==================================== */
 
     getPrompt(name: string): string | null {

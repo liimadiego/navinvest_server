@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { InvestmentPortfolioService } from './investment-portfolio.service';
 import { CreateInvestmentPortfolioDto } from './dto/create-investment-portfolio-dto';
 import { UpdateInvestmentPortfolioDto } from './dto/update-investment-portfolio-dto';
