@@ -29,6 +29,7 @@ import { CriptosModule } from './criptos/criptos.module';
 import { BdrsModule } from './bdrs/bdrs.module';
 import { EtfsModule } from './etfs/etfs.module';
 import { LanguagesService } from './utils/language.service';
+import { UserIdeasModule } from './user-ideas/user-ideas.module';
 
 @Module({
   controllers: [AppController],
@@ -61,6 +62,7 @@ import { LanguagesService } from './utils/language.service';
     CriptosModule,
     BdrsModule,
     EtfsModule,
+    UserIdeasModule,
   ],
 })
 export class AppModule { }
