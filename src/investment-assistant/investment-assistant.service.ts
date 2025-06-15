@@ -110,12 +110,13 @@ export class InvestmentAssistantService {
 
                 const [serviceName, funcName] = functionCall.name.split('_');
 
-                let r;
+                let r: any;
                 if (serviceName === 'investmentAssistantService' && funcName === 'getLatestFinancialNews') {
-                    console.log('chamando a função getLatestFinancialNews com os argumentos:', message);
                     r = await this.getLatestFinancialNews(userId, message);
                 } else {
-                    await this[serviceName][funcName](...Object.values(functionCall.arguments));
+                    console.log(`Calling function: ${serviceName}.${funcName} with arguments:`, functionCall.arguments);
+                    r = await this[serviceName][funcName](...Object.values(functionCall.arguments));
+
                 }
 
                 if (funcName === 'getQuotationsByTicker') {
