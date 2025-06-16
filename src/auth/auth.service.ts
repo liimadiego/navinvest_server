@@ -25,12 +25,12 @@ export class AuthService {
 
             const user = await this.usersService.findOne(email);
 
-            if (user.accessAttempts && user.accessAttempts >= 4) {
-                throw new UnauthorizedException('Muitas tentativas de acesso. Entre em contato com o suporte.');
-            }
-
             if (!user) {
                 throw new UnauthorizedException('E-mail ou senha inválidos');
+            }
+
+            if (user.accessAttempts && user.accessAttempts >= 4) {
+                throw new UnauthorizedException('Muitas tentativas de acesso. Entre em contato com o suporte.');
             }
 
             const passwordMatch = await bcrypt.compare(pass, user.password_hash);
