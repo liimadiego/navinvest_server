@@ -70,12 +70,23 @@ export class MailService {
                     }
                 ],
                 "htmlContent": `<html>
-                    <head></head>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body { background-color: #f4f4f4; margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+                            .container { max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; }
+                            h1 { color: #1a202c; }
+                            .footer { margin-top: 40px; font-size: 12px; color: #777777; text-align: center; }
+                        </style>
+                    </head>
                     <body>
-                        <h1>Olá, ${name}!</h1>
-                        ${news}
-                        <br>
-                        ${hasLinks ? `<h3>Fontes:</h3>${newsLinks}` : ''}
+                        <div class="container">
+                            <h1>Olá, ${name}!</h1>
+                            <p>Aqui estão as principais notícias do mercado financeiro de hoje:</p>
+                            ${news}
+                            ${hasLinks ? `<h3>Fontes:</h3>${newsLinks}` : ''}
+                            <p class="footer">Você está recebendo este email porque se cadastrou na Navinvest AI.</p>
+                        </div>
                     </body>
                 </html>`,
                 "subject": "Notícias do dia",
