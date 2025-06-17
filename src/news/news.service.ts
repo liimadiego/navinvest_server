@@ -113,51 +113,19 @@ export class NewsService {
             throw new Error('News not found');
         }
 
-        const uniqueNews: any[] = [];
-        const seenTickerIds = new Set<number>();
-
-        // Adiciona o ticker atual para ser evitado
-        if (currentNews.ticker?.id) {
-            seenTickerIds.add(currentNews.ticker.id);
-        }
-
-        // Primeiro: notícias mais recentes
         const recentNews = await this.newsRepository.find({
             where: { created_at: MoreThan(currentNews.created_at) },
             order: { created_at: 'ASC' },
             relations: ['ticker'],
         });
 
-        for (const newsItem of recentNews) {
-            const tickerId = newsItem.ticker?.id;
-            if (newsItem.uuid !== uuid && tickerId && !seenTickerIds.has(tickerId)) {
-                uniqueNews.push(newsItem);
-                seenTickerIds.add(tickerId);
-            }
+        const otherNews = recentNews.filter(news => news.uuid !== uuid);
 
-            if (uniqueNews.length >= 3) break;
-        }
+        console.log('Total de outras notícias:', otherNews.length);
 
-        // Se não deu 3, busca notícias antigas
-        if (uniqueNews.length < 3) {
-            const olderNews = await this.newsRepository.find({
-                where: { created_at: LessThan(currentNews.created_at) },
-                order: { created_at: 'DESC' },
-                relations: ['ticker'],
-            });
+        const randomNews = otherNews.sort(() => 0.5 - Math.random()).slice(0, 3);
 
-            for (const newsItem of olderNews) {
-                const tickerId = newsItem.ticker?.id;
-                if (newsItem.uuid !== uuid && tickerId && !seenTickerIds.has(tickerId)) {
-                    uniqueNews.push(newsItem);
-                    seenTickerIds.add(tickerId);
-                }
-
-                if (uniqueNews.length >= 3) break;
-            }
-        }
-
-        return uniqueNews.map(({ id, ...rest }) => rest);
+        return randomNews.map(({ id, ...rest }) => rest);
     }
 
 }

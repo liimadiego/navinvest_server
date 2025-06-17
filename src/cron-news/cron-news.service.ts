@@ -33,7 +33,7 @@ export class CronNewsService implements OnModuleInit {
     }
 
     private async fetchAndSaveNews(searchTerm: string, ticker: any) {
-        let urlToSearch = `https://gnews.io/api/v4/search?country=br&q=${searchTerm}&apikey=${process.env.GNEWS_API_KEY}`;
+        let urlToSearch = `https://gnews.io/api/v4/search?country=br&q=${searchTerm}&expand=content&apikey=${process.env.GNEWS_API_KEY}`;
         let response = await fetch(urlToSearch);
         let data = await response.json();
 
@@ -66,14 +66,14 @@ export class CronNewsService implements OnModuleInit {
 
     private async saveNewsInDatabase() {
         const searchedCompanyNames = new Set<string>();
-        const tickers = await this.tickerService.getTickersToSearchNews(20);
+        const tickers = await this.tickerService.getTickersToSearchNews(10, true);
 
         for (const ticker of tickers) {
             console.log(`Buscando notícias para o ticker ${ticker.ticker}`);
-            const tickerEntity = await this.tickerService.getTickerById(ticker.id);
-            const companyName = tickerEntity.asset_name;
+            // const tickerEntity = await this.tickerService.getTickerById(ticker.id);
+            // const companyName = tickerEntity.asset_name;
 
-            await this.fetchAndSaveNews(ticker.ticker, tickerEntity);
+            await this.fetchAndSaveNews(ticker.ticker, ticker);
 
             // if (!searchedCompanyNames.has(companyName)) {
             //     console.log(`Buscando notícias para a empresa ${companyName}`);

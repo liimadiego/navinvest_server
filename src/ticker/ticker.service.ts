@@ -90,12 +90,19 @@ export class TickerService {
 
     }
 
-    async getTickersToSearchNews(limit = 0): Promise<TickersEntity[]> {
+    async getTickersToSearchNews(limit = 0, testMode = false): Promise<TickersEntity[]> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         let tickers = this.tickerRepository.createQueryBuilder("tickers")
-            .where("tickers.latest_search_news < :today OR tickers.latest_search_news IS NULL", { today });
+            .where("tickers.latest_search_news < :today OR tickers.latest_search_news IS NULL", { today })
+            .andWhere("tickers.currency = :currency", { currency: 'BRL' });
+
+        if (testMode) {
+            tickers = tickers.andWhere("tickers.ticker IN (:...tickers)",
+                { tickers: ['PETR4', 'VALE3', 'ITUB4', 'BBDC3', 'BBDC4', 'ABEV3', 'BBAS3', 'WEGE3'] }
+            );
+        }
 
         if (limit > 0) {
             tickers = tickers.take(limit);
