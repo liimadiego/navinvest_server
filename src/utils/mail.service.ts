@@ -28,7 +28,47 @@ export class MailService {
                         "name": name
                     }
                 ],
-                "htmlContent": `<html><head></head><body><h1>Olá, ${name}!</h1><p>Seu código de verificação é: <strong>${code}</strong></p></body></html>`,
+                "htmlContent": `<html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { background-color: #272727; margin: 0; font-family: Arial, sans-serif; }
+                        .container { max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
+                        h1 { color: #1a202c;margin-top: 0; }
+                        .footer { margin-top: 40px; font-size: 12px; color: #777777; text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a202c;border: 1px solid rgba(0, 0, 0.3);">
+                            <tr>
+                                <td align="center" valign="middle" style="padding: 10px; color: #ffffff;height: 80px">
+                                    <table cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td>
+                                                <img src="https://navinvest.ai/logo/logo-single.png" width="38" style="display: block; margin-right: 8px;">
+                                            </td>
+                                            <td>
+                                                <h2 style="margin: 0; font-size: 22px; color: #ffffff; font-family: Arial, sans-serif;">Código de Verificação</h2>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div style="padding: 20px; border: 1px solid rgba(0, 0, 0.3); border-radius: 8px; border-top: none; border-top-right-radius: 0; border-top-left-radius: 0;transform: translateY(-18px);">
+                        <h2 style="font-family: Arial, sans-serif; color: #1a202c; text-align: center;margin-top: 0;">Olá, ${name}!</h2>
+                        <p style="font-family: Arial, sans-serif; color: #1a202c; text-align: center;">Seu código de verificação é:</p>
+                        <h2 style="font-family: Arial, sans-serif; color: #1a202c; text-align: center; font-size: 24px; margin: 20px 0;margin-top: 0;">${code}</h2>
+                        <p style="font-family: Arial, sans-serif; color: #1a202c; text-align: center;">Use este código para redefinir sua senha na plataforma Navinvest.</p>
+
+                        </div>
+                        
+                        <p class="footer">Você está recebendo este email porque se cadastrou na Navinvest AI.</p>
+                    </div>
+                </body>
+                </html>`,
                 "subject": "Código de verificação",
             }),
         }).then(response => {
@@ -70,26 +110,47 @@ export class MailService {
                     }
                 ],
                 "htmlContent": `<html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <style>
-                            body { background-color: #f4f4f4; margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-                            .container { max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; }
-                            h1 { color: #1a202c; }
-                            .footer { margin-top: 40px; font-size: 12px; color: #777777; text-align: center; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="container">
-                            <h1>Olá, ${name}!</h1>
-                            <p>Aqui estão as principais notícias do mercado financeiro de hoje:</p>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { background-color: #272727; margin: 0; font-family: Arial, sans-serif; }
+                        .container { max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
+                        h1 { color: #1a202c;margin-top: 0; }
+                        .footer { margin-top: 40px; font-size: 12px; color: #777777; text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a202c;border: 1px solid rgba(0, 0, 0.3);">
+                            <tr>
+                                <td align="center" valign="middle" style="padding: 10px; color: #ffffff;height: 80px">
+                                    <table cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td>
+                                                <img src="https://navinvest.ai/logo/logo-single.png" width="38" style="display: block; margin-right: 8px;">
+                                            </td>
+                                            <td>
+                                                <h2 style="margin: 0; font-size: 22px; color: #ffffff; font-family: Arial, sans-serif;">Navi Diário</h2>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div style="padding: 20px; border: 1px solid rgba(0, 0, 0.3); border-radius: 8px; border-top: none; border-top-right-radius: 0; border-top-left-radius: 0;transform: translateY(-18px);">
+                            <h1 style="font-family: Arial, sans-serif; color: #1a202c;">Olá, ${name}!</h1>
+                            <p style="font-family: Arial, sans-serif; color: #1a202c;">Aqui estão as principais notícias do mercado financeiro de hoje:</p>
                             ${news}
-                            ${hasLinks ? `<h3>Fontes:</h3>${newsLinks}` : ''}
-                            <p class="footer">Você está recebendo este email porque se cadastrou na Navinvest AI.</p>
+                            ${hasLinks ? `<h3 style="font-family: Arial, sans-serif; color: #1a202c;">Fontes:</h3>${newsLinks}` : ''}
                         </div>
-                    </body>
-                </html>`,
-                "subject": "Notícias do dia",
+                        
+                        <p class="footer">Você está recebendo este email porque se cadastrou na Navinvest AI.</p>
+                    </div>
+                </body>
+                </html>
+                `,
+                "subject": "Navi Diário - Principais notícias do mercado financeiro",
             }),
         }).then(response => {
             if (!response.ok) {

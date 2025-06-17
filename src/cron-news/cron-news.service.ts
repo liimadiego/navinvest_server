@@ -25,7 +25,7 @@ export class CronNewsService implements OnModuleInit {
         // cron.schedule('* * * * *', async () => {
         //      await this.functionGetFinancialContextWithAI(); //rodar todos os dias
         // await this.getFinancialNewsWithAI(); //rodar todos os dias
-        //      await this.sendDailyNewsToSubscribers(); //rodar todos os dias
+        // await this.sendDailyNewsToSubscribers(true); //rodar todos os dias
         // await this.saveNewsInDatabase();
         //      await this.sendNewsToSubscribers();
         // });
@@ -185,6 +185,8 @@ export class CronNewsService implements OnModuleInit {
             day: '2-digit'
         }).replace(/\//g, '/');
 
+        console.log(`Buscando notícias financeiras para o dia ${todayFormatted}`);
+
         const prompt = `
         **REGRA, PARA TITULOS, APENAS A PARTIR DE H2, POIS EU JA UTILIZO UMA TAG H1 PARA TITULO DO EMAIL.**
 
@@ -234,10 +236,13 @@ export class CronNewsService implements OnModuleInit {
             }),
         });
 
+        console.log('Resposta inicial recebida da OpenAI');
         const initialData = await response.json();
         const id = initialData.id;
 
+
         for (let i = 0; i < 20; i++) {
+            console.log(`Tentativa ${i + 1} de obter a resposta final da OpenAI`);
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             const final = await fetch(`https://api.openai.com/v1/responses/${id}`, {
@@ -251,27 +256,32 @@ export class CronNewsService implements OnModuleInit {
 
             const finalData = await final.json();
 
-            const hasMessageType = finalData.output.some((item: any) => item.type === 'message');
-            if (hasMessageType) {
-                const messageItem = finalData.output.find((item: any) => item.type === 'message');
-                if (messageItem && messageItem.content && messageItem.content.length > 0) {
-                    try {
-                        // Sanitize JSON string by removing control characters
-                        const sanitizedText = messageItem.content[0].text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
-                        const parsedJson = JSON.parse(sanitizedText);
-                        fs.writeFileSync('financial_news.json', JSON.stringify(parsedJson, null, 2));
-                    } catch (error) {
-                        fs.writeFileSync('financial_news.json', messageItem.content[0].text);
-                        console.error('Erro ao fazer o parse do JSON:', error);
+            const output = finalData.output;
+            if (output && output.length > 0) {
+                const hasMessageType = finalData.output.some((item: any) => item.type === 'message');
+                if (hasMessageType) {
+                    const messageItem = finalData.output.find((item: any) => item.type === 'message');
+                    if (messageItem && messageItem.content && messageItem.content.length > 0) {
+                        try {
+                            // Sanitize JSON string by removing control characters
+                            const sanitizedText = messageItem.content[0].text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+                            const parsedJson = JSON.parse(sanitizedText);
+                            fs.writeFileSync('financial_news.json', JSON.stringify(parsedJson, null, 2));
+                        } catch (error) {
+                            fs.writeFileSync('financial_news.json', messageItem.content[0].text);
+                            console.error('Erro ao fazer o parse do JSON:', error);
+                        }
                     }
+                    return;
                 }
-                return;
+                console.log(`⏳ Aguardando... tentativa ${i + 1}`);
+            } else {
+                console.log(finalData)
             }
-            console.log(`⏳ Aguardando... tentativa ${i + 1}`);
         }
     }
 
-    private async sendDailyNewsToSubscribers() {
+    private async sendDailyNewsToSubscribers(testMode = false) {
         try {
             const news: string = fs.readFileSync('financial_news.json', 'utf-8');
 
@@ -290,7 +300,7 @@ export class CronNewsService implements OnModuleInit {
 
             for (const user of allUsers) {
                 const userMail = user.email;
-                if (userMail.endsWith('@navinvest.ai')) {
+                if (userMail.endsWith('@navinvest.ai') || (testMode && userMail != 'diegolima.sao@gmail.com')) {
                     continue;
                 }
 
