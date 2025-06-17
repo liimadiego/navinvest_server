@@ -114,14 +114,11 @@ export class NewsService {
         }
 
         const recentNews = await this.newsRepository.find({
-            where: { created_at: MoreThan(currentNews.created_at) },
             order: { created_at: 'ASC' },
             relations: ['ticker'],
         });
 
         const otherNews = recentNews.filter(news => news.uuid !== uuid);
-
-        console.log('Total de outras notícias:', otherNews.length);
 
         const randomNews = otherNews.sort(() => 0.5 - Math.random()).slice(0, 3);
 
