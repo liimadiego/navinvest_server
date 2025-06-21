@@ -14,6 +14,7 @@ import { CompaniesModule } from 'companies/companies.module';
 import { CriptosModule } from 'criptos/criptos.module';
 import { FiisModule } from 'fiis/fiis.module';
 import { BdrsModule } from 'bdrs/bdrs.module';
+import { EtfsModule } from 'etfs/etfs.module';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { BdrsModule } from 'bdrs/bdrs.module';
     CompaniesModule,
     CriptosModule,
     FiisModule,
-    BdrsModule
+    BdrsModule,
+    EtfsModule,
   ],
   controllers: [TickerController],
   providers: [TickerService, LanguagesService],

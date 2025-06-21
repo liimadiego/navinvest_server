@@ -4,8 +4,25 @@ export const tools: CustomFunction[] = [
     {
         type: 'function',
         function: {
-            name: 'companiesService_getCompanyByTicker',
-            description: 'Get information about a company.',
+            name: 'companiesService_getBRCompanyByTicker',
+            description: 'Get information about a brazilian company.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    company_ticker: {
+                        type: 'string',
+                        description: 'The ticker of the company you want to get information about.',
+                    },
+                },
+                required: ['company_ticker'],
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'companiesService_getUSCompanyByTicker',
+            description: 'Get information about company from US.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -55,5 +72,17 @@ export const tools: CustomFunction[] = [
                 required: ['ticker', 'period'],
             }
         }
-    }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'investmentAssistantService_getLatestFinancialNews',
+            description: 'Get the latest financial news. This function should always be called when it comes to news.',
+            parameters: {
+                type: 'object',
+                properties: {},
+                required: [''],
+            }
+        }
+    },
 ];

@@ -27,10 +27,13 @@ import { FiisModule } from './fiis/fiis.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { CriptosModule } from './criptos/criptos.module';
 import { BdrsModule } from './bdrs/bdrs.module';
+import { EtfsModule } from './etfs/etfs.module';
+import { LanguagesService } from './utils/language.service';
+import { UserIdeasModule } from './user-ideas/user-ideas.module';
 
 @Module({
   controllers: [AppController],
-  providers: [AppService, CronNewsService],
+  providers: [AppService, CronNewsService, LanguagesService],
   imports: [
     TypeOrmModule.forRoot(TypeOrmConfig()),
     MongooseModule.forRoot(...MongoDBConfig()),
@@ -58,6 +61,8 @@ import { BdrsModule } from './bdrs/bdrs.module';
     CronUserSubscriptionModule,
     CriptosModule,
     BdrsModule,
+    EtfsModule,
+    UserIdeasModule,
   ],
 })
 export class AppModule { }

@@ -663,7 +663,7 @@ export class CompaniesService {
                     },
                     debt: {
                         netDebt: {
-                            value: netDebt ? this.fCurrency(netDebt) : '-',
+                            value: netDebt ? this.fShortenNumberToString(netDebt) : '-',
                             translation: 'Dívida Líquida',
                             tooltip: 'Dívida total menos caixa e equivalentes',
                             winner: isSmallestWinner(netDebtValues, netDebt)
@@ -707,7 +707,7 @@ export class CompaniesService {
                             winner: isLargestWinner(cashLiquidityValues, cashLiquidity)
                         },
                         workingCapital: {
-                            value: workingCapital ? this.fCurrency(workingCapital) : '-',
+                            value: workingCapital ? this.fShortenNumberToString(workingCapital) : '-',
                             translation: 'Capital de Giro',
                             tooltip: 'Ativos circulantes menos passivos circulantes',
                             winner: isLargestWinner(workingCapitalValues, workingCapital)
@@ -715,25 +715,25 @@ export class CompaniesService {
                     },
                     revenueAndProfit: {
                         netSales: {
-                            value: netSales ? this.fCurrency(netSales) : '-',
+                            value: netSales ? this.fShortenNumberToString(netSales) : '-',
                             translation: 'Receita Líquida',
                             tooltip: 'Receita total após deduções',
                             winner: isLargestWinner(netSalesValues, netSales)
                         },
                         netIncome: {
-                            value: netIncome ? this.fCurrency(netIncome) : '-',
+                            value: netIncome ? this.fShortenNumberToString(netIncome) : '-',
                             translation: 'Lucro Líquido',
                             tooltip: 'Lucro após todas as despesas e impostos',
                             winner: isLargestWinner(netIncomeValues, netIncome)
                         },
                         ebit: {
-                            value: ebit ? this.fCurrency(ebit) : '-',
+                            value: ebit ? this.fShortenNumberToString(ebit) : '-',
                             translation: 'EBIT',
                             tooltip: 'Lucro antes de juros e impostos',
                             winner: isLargestWinner(ebitValues, ebit)
                         },
                         ebitda: {
-                            value: ebitda ? this.fCurrency(ebitda) : '-',
+                            value: ebitda ? this.fShortenNumberToString(ebitda) : '-',
                             translation: 'EBITDA',
                             tooltip: 'Lucro antes de juros, impostos, depreciação e amortização',
                             winner: isLargestWinner(ebitdaValues, ebitda)
@@ -753,13 +753,13 @@ export class CompaniesService {
                             winner: isLargestWinner(payoutValues, payout)
                         },
                         assets: {
-                            value: assets ? this.fCurrency(assets) : '-',
+                            value: assets ? this.fShortenNumberToString(assets) : '-',
                             translation: 'Ativos Totais',
                             tooltip: 'Soma de todos os ativos da empresa',
                             winner: isLargestWinner(assetsValues, assets)
                         },
                         equity: {
-                            value: equity ? this.fCurrency(equity) : '-',
+                            value: equity ? this.fShortenNumberToString(equity) : '-',
                             translation: 'Patrimônio Líquido',
                             tooltip: 'Valor líquido dos ativos após subtrair os passivos',
                             winner: isLargestWinner(equityValues, equity)
@@ -787,6 +787,26 @@ export class CompaniesService {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(number);
+    }
+
+    fShortenNumberToString(inputValue) {
+        if (inputValue == null || Number.isNaN(inputValue)) return null;
+        const number = Number(inputValue);
+        if (number === null) return '';
+
+        const units = ['K', 'M', 'B', 'T'];
+        const baseValue = 1000;
+        const isNegative = number < 0;
+        const absNumber = Math.abs(number);
+
+        if (absNumber < baseValue) return number.toString();
+
+        const index = Math.floor(Math.log(absNumber) / Math.log(baseValue));
+        const shortenedValue = (absNumber / baseValue ** index).toFixed(1).replace('.', ',');
+
+        return isNegative
+            ? `-${shortenedValue}${units[index - 1]}`
+            : `${shortenedValue}${units[index - 1]}`;
     }
 
     processInput(inputValue: number | string) {

@@ -125,5 +125,85 @@ export class InvestorProfileService {
         }
     }
 
+    async getInvestorProfile(userId: string): Promise<any> {
+        // PRECISO MONTAR ISSO AQUI => [
+        //     { id: "experience", question: "Qual o seu objetivo de investimento?", answer: "Crescimento a longo prazo" },
+        //     { id: "risk_tolerance", question: "Por quanto tempo você pretende manter seus investimentos?", answer: "5-10 anos" },
+        // ];
 
+        const questionsData = {
+            experience: {
+                question: "Qual a sua experiência com investimentos?",
+                options: [
+                    "Nenhuma, estou começando agora.",
+                    "Tenho alguma experiência, já investi antes.",
+                    "Sou experiente, acompanho o mercado e faço investimentos regularmente."
+                ]
+            },
+            risk_tolerance: {
+                question: "Qual sua tolerância ao risco em relação a investimentos?",
+                options: [
+                    "Prefiro segurança total, mesmo que o retorno seja baixo.",
+                    "Aceito pequenos riscos para obter um retorno um pouco maior.",
+                    "Estou disposto a correr grandes riscos para maximizar meus ganhos."
+                ]
+            },
+            investment_horizon: {
+                question: "Por quanto tempo você pretende manter seus investimentos antes de precisar do dinheiro?",
+                options: [
+                    "Menos de 1 ano.",
+                    "Entre 1 e 5 anos.",
+                    "Mais de 5 anos."
+                ]
+            },
+            market_reaction: {
+                question: "O que você faria se seu investimento perdesse 20% do valor em um curto período?",
+                options: [
+                    "Venderia imediatamente para evitar mais perdas.",
+                    "Aguardaria para ver se o mercado se recupera.",
+                    "Compraria mais, aproveitando a queda para investir mais barato."
+                ]
+            },
+            investment_goal: {
+                question: "Qual é o principal objetivo dos seus investimentos?",
+                options: [
+                    "Preservação de capital, evitar perdas.",
+                    "Crescimento moderado do patrimônio ao longo do tempo.",
+                    "Altos ganhos, mesmo que haja maior volatilidade."
+                ]
+            }
+
+        };
+
+        const profile = await this.investorProfileRepository.createQueryBuilder('investor_profile')
+            .where('investor_profile.user_id = :user_id', { user_id: userId })
+            .getOne();
+
+        if (!profile) {
+            throw new HttpException('Perfil de investidor não encontrado.', 404);
+        }
+
+        const profileResponse = [];
+        const answersMap = {
+            "A": 0,
+            "B": 1,
+            "C": 2
+        }
+
+        for (const key in questionsData) {
+            if (Object.prototype.hasOwnProperty.call(questionsData, key)) {
+                const question = questionsData[key];
+                profileResponse.push({
+                    id: key,
+                    question: question.question,
+                    answer: question.options[answersMap[profile[key]]]
+                });
+            }
+        }
+
+        return {
+            profileResponse,
+            profile: profile.profile,
+        };
+    }
 }

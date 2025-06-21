@@ -888,28 +888,5 @@ export class PortfolioTransactionsService {
         });
     }
 
-    // private async processExcelFile(file: Multer.File): Promise<any> {
-    //     try {
-    //         const workbook = xlsx.read(file.buffer, { type: 'buffer' });
-    //         const results = {};
-
-    //         workbook.SheetNames.forEach(sheetName => {
-    //             const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    //             results[sheetName] = sheetData;
-    //         });
-
-    //         return {
-    //             filename: file.originalname,
-    //             type: 'data',
-    //             data: results
-    //         };
-    //     } catch (error) {
-    //         return {
-    //             filename: file.originalname,
-    //             error: `Erro ao processar arquivo Excel: ${error.message}`
-    //         };
-    //     }
-    // }
-
     /* ==================================== END WALLET IMPORT SECTION ==================================== */
 }
