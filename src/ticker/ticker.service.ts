@@ -89,13 +89,15 @@ export class TickerService {
         }
 
         tickersResult.forEach(t => {
-            if (t.asset_image_url == null && existsSync(`/assets/tickers/${t.ticker}.jpg`))
-                t.asset_image_url = `/assets/tickers/${t.ticker}.jpg`;
-            else
-                t.asset_image_url = `/assets/tickers/default.svg`;
+            if (t.asset_image_url == null) {
+                if (existsSync(`/assets/tickers/${t.ticker}.jpg`))
+                    t.asset_image_url = `/assets/tickers/${t.ticker}.jpg`;
+                else
+                    t.asset_image_url = `/assets/tickers/default.svg`;
+            }
         });
 
-        console.log('tickersResult:', tickersResult, '\n ');
+        // console.log('tickersResult:', tickersResult, '\n ');
 
         return tickersResult;
 
