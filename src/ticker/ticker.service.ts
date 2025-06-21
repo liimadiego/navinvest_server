@@ -91,9 +91,9 @@ export class TickerService {
         tickersResult.forEach(t => {
             if (t.asset_image_url == null) {
                 if (existsSync(`/assets/tickers/${t.ticker}.jpg`))
-                    t.asset_image_url = `/assets/tickers/${t.ticker}.jpg`;
+                    t.asset_image_url = `/var/www/navinvest_client/public/assets/tickers/${t.ticker}.jpg`;
                 else
-                    t.asset_image_url = `/assets/tickers/default.svg`;
+                    t.asset_image_url = `/var/www/navinvest_client/public/assets/tickers/default.svg`;
             }
         });
 
