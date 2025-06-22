@@ -18,6 +18,8 @@ import {
 } from '../schemas/historical-quotes.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+
+import { existsSync } from 'fs'
 import { PortfolioTransactionsService } from 'portfolio-transactions/portfolio-transactions.service';
 
 @Injectable()
@@ -107,6 +109,17 @@ export class TickerService {
             const filteredFunds = (tickersResult as FundsEntity[]).filter(fund => fund.current_price !== null);
             return filteredFunds;
         }
+
+        tickersResult.forEach(t => {
+            if (t.asset_image_url == null) {
+                if (existsSync(`/var/www/navinvest_client/public/assets/tickers/${t.ticker}.jpg`))
+                    t.asset_image_url = `/assets/tickers/${t.ticker}.jpg`;
+                else
+                    t.asset_image_url = `/assets/tickers/default.svg`;
+            }
+        });
+
+        // console.log('tickersResult:', tickersResult, '\n ');
 
         return tickersResult;
 
