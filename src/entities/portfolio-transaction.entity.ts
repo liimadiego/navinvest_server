@@ -3,6 +3,7 @@ import { InvestmentPortfolioEntity } from './investment-portfolio.entity';
 import { TickersEntity } from './tickers.entity';
 import { FixedIncomeDetailsEntity } from './fixed-income-details.entity';
 import { TreasuriesEntity } from './treasuries.entity';
+import { FundsEntity } from './funds.entity';
 
 @Entity('portfolio_transactions')
 export class PortfolioTransactionEntity {
@@ -34,6 +35,10 @@ export class PortfolioTransactionEntity {
     @OneToOne(() => TreasuriesEntity, (treasury) => treasury.transactions)
     @JoinColumn({ name: 'treasury_id' })
     treasury: TreasuriesEntity;
+
+    @OneToOne(() => FundsEntity, (fund) => fund.transactions)
+    @JoinColumn({ name: 'fund_id' })
+    fund: FundsEntity;
 
     @Column({ type: 'varchar', length: 20 })
     transaction_type: string;

@@ -16,6 +16,10 @@ import OpenAI from 'openai';
 import { Multer } from 'multer';
 import { PromptsService } from '../utils/prompts.service';
 import { UsersService } from 'users/users.service';
+import { FundsEntity } from 'entities/funds.entity';
+import { HistoricalFundsQuotesRecord, HistoricalFundsQuotesRecordDocument } from '../schemas/historical-funds-quotes.schema';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class PortfolioTransactionsService {
@@ -38,7 +42,11 @@ export class PortfolioTransactionsService {
         private readonly financialHolidaysRepository: Repository<FinancialHolidaysEntity>,
         @InjectRepository(TreasuriesEntity)
         private readonly treasuriesRepository: Repository<TreasuriesEntity>,
+        @InjectRepository(FundsEntity)
+        private readonly fundsRepository: Repository<FundsEntity>,
         private readonly usersService: UsersService,
+        @InjectModel(HistoricalFundsQuotesRecord.name)
+        private historicalFundsQuotesRecordModel: Model<HistoricalFundsQuotesRecordDocument>,
     ) {
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
@@ -130,74 +138,90 @@ export class PortfolioTransactionsService {
     }
 
     async createTransaction(createDto: CreatePortfolioTransactionDto): Promise<any> {
-        const portfolioExists = await this.investmentPortfolioRepository.exists({
-            where: { id: createDto.portfolio_id }
-        });
-
-        if (!portfolioExists) {
-            throw new NotFoundException(`Portfolio with ID ${createDto.portfolio_id} not found`);
-        }
-
-        if (createDto.ticker_id) {
-            const tickerExists = await this.tickerRepository.exists({
-                where: { id: createDto.ticker_id }
+        try {
+            const portfolioExists = await this.investmentPortfolioRepository.exists({
+                where: { id: createDto.portfolio_id }
             });
 
-            if (!tickerExists) {
-                throw new NotFoundException(`Ticker with ID ${createDto.ticker_id} not found`);
+            if (!portfolioExists) {
+                throw new NotFoundException(`Portfolio with ID ${createDto.portfolio_id} not found`);
             }
-        }
 
-        if (createDto.treasury_id) {
-            const treasuryExists = await this.treasuriesRepository.exists({
-                where: { id: createDto.treasury_id }
+            if (createDto.ticker_id) {
+                const tickerExists = await this.tickerRepository.exists({
+                    where: { id: createDto.ticker_id }
+                });
+
+                if (!tickerExists) {
+                    throw new NotFoundException(`Ticker with ID ${createDto.ticker_id} not found`);
+                }
+            }
+
+            if (createDto.treasury_id) {
+                const treasuryExists = await this.treasuriesRepository.exists({
+                    where: { id: createDto.treasury_id }
+                });
+
+                if (!treasuryExists) {
+                    throw new NotFoundException(`Treasury with ID ${createDto.treasury_id} not found`);
+                }
+            }
+
+            if (createDto.fund_id) {
+                const fundExists = await this.fundsRepository.exists({
+                    where: { id: createDto.fund_id }
+                });
+
+                if (!fundExists) {
+                    throw new NotFoundException(`Fund with ID ${createDto.fund_id} not found`);
+                }
+            }
+
+            let fixedIncomeDetails = null;
+
+            if (createDto.asset_type === 'FIXED_INCOME' && (
+                !createDto.issuer ||
+                !createDto.investment_type ||
+                !createDto.indexation_type ||
+                !createDto.expiration_date ||
+                !createDto.indexer ||
+                !createDto.currency ||
+                !createDto.indexer_rate
+            )) {
+                throw new NotFoundException(`Missing required fields for fixed income transaction`);
+            }
+
+            if (createDto.asset_type === 'FIXED_INCOME') {
+                fixedIncomeDetails = {
+                    issuer: createDto.issuer,
+                    investment_type: createDto.investment_type,
+                    indexation_type: createDto.indexation_type,
+                    expiration_date: createDto.expiration_date,
+                    indexer: createDto.indexer,
+                    currency: createDto.currency,
+                    indexer_rate: createDto.indexer_rate,
+                };
+            }
+
+            const transaction = this.portfolioTransactionRepository.create({
+                portfolio: { id: createDto.portfolio_id },
+                ticker: createDto.ticker_id ? { id: createDto.ticker_id } : null,
+                treasury: createDto.treasury_id ? { id: createDto.treasury_id } : null,
+                fund: createDto.fund_id ? { id: createDto.fund_id } : null,
+                asset_type: createDto.asset_type,
+                transaction_type: createDto.transaction_type,
+                amount: createDto.amount,
+                price_per_unit: createDto.price_per_unit || null,
+                transaction_date: createDto.transaction_date || new Date(),
+                quantity: createDto.quantity || 0,
+                fixed_income_details: fixedIncomeDetails ? await this.fixedIncomeDetailsRepository.save(fixedIncomeDetails) : null,
             });
 
-            if (!treasuryExists) {
-                throw new NotFoundException(`Treasury with ID ${createDto.treasury_id} not found`);
-            }
+            return this.portfolioTransactionRepository.save(transaction);
+        } catch (error) {
+            console.error('Error creating transaction:', error);
+            throw new HttpException('Failed to create transaction', 500);
         }
-
-        let fixedIncomeDetails = null;
-
-        if (createDto.asset_type === 'FIXED_INCOME' && (
-            !createDto.issuer ||
-            !createDto.investment_type ||
-            !createDto.indexation_type ||
-            !createDto.expiration_date ||
-            !createDto.indexer ||
-            !createDto.currency ||
-            !createDto.indexer_rate
-        )) {
-            throw new NotFoundException(`Missing required fields for fixed income transaction`);
-        }
-
-        if (createDto.asset_type === 'FIXED_INCOME') {
-            fixedIncomeDetails = {
-                issuer: createDto.issuer,
-                investment_type: createDto.investment_type,
-                indexation_type: createDto.indexation_type,
-                expiration_date: createDto.expiration_date,
-                indexer: createDto.indexer,
-                currency: createDto.currency,
-                indexer_rate: createDto.indexer_rate,
-            };
-        }
-
-        const transaction = this.portfolioTransactionRepository.create({
-            portfolio: { id: createDto.portfolio_id },
-            ticker: createDto.ticker_id ? { id: createDto.ticker_id } : null,
-            treasury: createDto.treasury_id ? { id: createDto.treasury_id } : null,
-            asset_type: createDto.asset_type,
-            transaction_type: createDto.transaction_type,
-            amount: createDto.amount,
-            price_per_unit: createDto.price_per_unit || null,
-            transaction_date: createDto.transaction_date || new Date(),
-            quantity: createDto.quantity || 0,
-            fixed_income_details: fixedIncomeDetails ? await this.fixedIncomeDetailsRepository.save(fixedIncomeDetails) : null,
-        });
-
-        return this.portfolioTransactionRepository.save(transaction);
     }
 
     async editTransaction(data: any): Promise<any> {
@@ -321,7 +345,7 @@ export class PortfolioTransactionsService {
 
         const transactions = await this.portfolioTransactionRepository.find({
             where: { portfolio: { id: portfolioId } },
-            relations: ['ticker', 'fixed_income_details', 'treasury'],
+            relations: ['ticker', 'fixed_income_details', 'treasury', 'fund'],
             select: {
                 id: true,
                 transaction_type: true,
@@ -344,6 +368,13 @@ export class PortfolioTransactionsService {
             },
         });
 
+        for (const transaction of transactions) {
+            if (transaction.fund) {
+                const lastFundPrice = await this.getLastFundPrice(transaction.fund.id);
+                transaction.fund.current_price = lastFundPrice.price || 0;
+            }
+        }
+
         if (individualTransactions) {
             transactions.sort((a, b) => {
                 const dateA = new Date(a.created_at).getTime();
@@ -355,6 +386,40 @@ export class PortfolioTransactionsService {
         }
 
         return this.consolidatePortfolio(transactions, verbose);
+    }
+
+    async getLastFundPrice(fundId: string) {
+        if (!fundId) {
+            return {
+                date: null,
+                price: null,
+            };
+        }
+
+        const historicalFundQuote: any = await this.historicalFundsQuotesRecordModel.findOne({
+            fundId,
+        });
+
+        const historicalFundObj = historicalFundQuote?.quotes || {};
+
+        if (!Array.isArray(historicalFundObj)) {
+            return {
+                date: null,
+                price: null,
+            };
+        }
+
+        if (!historicalFundObj.at(-1) || !historicalFundObj.at(-1).date || !historicalFundObj.at(-1).quote) {
+            return {
+                date: null,
+                price: null,
+            }
+        }
+
+        return {
+            date: historicalFundObj.at(-1).date,
+            price: historicalFundObj.at(-1).quote / 1_000_000_000,
+        };
     }
 
     async getIndexerRate(indexer: string, sinceDate: Date): Promise<any> {
@@ -486,8 +551,9 @@ export class PortfolioTransactionsService {
         });
 
         for (const transaction of transactions) {
-            const isFixedIncome = transaction.fixed_income_details && !transaction.ticker && !transaction.treasury;
-            const isTreasury = transaction.treasury && !transaction.ticker && !transaction.fixed_income_details;
+            const isFixedIncome = transaction.fixed_income_details && !transaction.ticker && !transaction.treasury && !transaction.fund;
+            const isTreasury = transaction.treasury && !transaction.ticker && !transaction.fixed_income_details && !transaction.fund;
+            const isFund = transaction.fund && !transaction.ticker && !transaction.fixed_income_details && !transaction.treasury;
 
             let assetId: string;
             let assetName: string;
@@ -526,6 +592,13 @@ export class PortfolioTransactionsService {
                 assetCurrency = 'BRL';
                 assetImageUrl = 'https://www.tesourodireto.com.br/assets/img/td-logo.svg';
                 currentPrice = transaction.amount || 0;
+            } else if (isFund) {
+                assetId = transaction.fund.id;
+                assetName = transaction.fund.trade_name;
+                assetType = 'FUNDS';
+                assetCurrency = 'BRL';
+                assetImageUrl = '';
+                currentPrice = (transaction.fund.current_price || 0).toFixed(2) || 0;
             } else {
                 assetId = transaction.ticker?.ticker || null;
                 assetName = transaction.ticker?.asset_name || 'N/A';
@@ -544,6 +617,7 @@ export class PortfolioTransactionsService {
                     ticker: (!isFixedIncome && !isTreasury) ? assetId : null,
                     fixed_income_details: isFixedIncome ? transaction.fixed_income_details : null,
                     treasury: isTreasury ? transaction.treasury : null,
+                    fund: isFund ? transaction.fund : null,
                     asset_name: assetName,
                     asset_image_url: assetImageUrl,
                     asset_type: assetType,
@@ -580,10 +654,11 @@ export class PortfolioTransactionsService {
         const consolidatedPortfolio = Object.values(grouped)
             .filter((asset) => asset.total_amount > 0)
             .map((asset) => {
-                const isFixedIncome = asset.fixed_income_details && !asset.ticker && !asset.treasury;
-                const isTreasury = asset.treasury && !asset.ticker && !asset.fixed_income_details;
+                const isFixedIncome = asset.fixed_income_details && !asset.ticker && !asset.treasury && !asset.fund;
+                const isTreasury = asset.treasury && !asset.ticker && !asset.fixed_income_details && !asset.fund;
+                const isFund = asset.fund && !asset.ticker && !asset.fixed_income_details && !asset.treasury;
 
-                const averagePrice = (isFixedIncome || isTreasury) ?
+                const averagePrice = (isFixedIncome || isTreasury || isFund) ?
                     asset.total_amount :
                     (asset.total_quantity > 0 ? asset.total_amount / asset.total_quantity : 0);
 
@@ -598,6 +673,9 @@ export class PortfolioTransactionsService {
                     const rentabilityFactor = 1 + (treasuryRate / 100);
                     currentValue = asset.total_amount * rentabilityFactor;
                     variation = ((currentValue - asset.total_amount) / asset.total_amount) * 100;
+                } else if (isFund) {
+                    currentValue = asset.total_quantity * (asset.current_price || 0).toFixed(2);
+                    variation = averagePrice > 0 ? ((asset.current_price - averagePrice) / averagePrice) * 100 : 0;
                 } else {
                     currentValue = asset.total_quantity * asset.current_price;
                     variation = averagePrice > 0 ? ((asset.current_price - averagePrice) / averagePrice) * 100 : 0;

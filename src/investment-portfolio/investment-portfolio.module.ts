@@ -1,3 +1,4 @@
+import { PortfolioTransactionsModule } from './../portfolio-transactions/portfolio-transactions.module';
 import { Module } from '@nestjs/common';
 import { InvestmentPortfolioService } from './investment-portfolio.service';
 import { InvestmentPortfolioController } from './investment-portfolio.controller';
@@ -7,7 +8,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PortfolioDataRecord, PortfolioDataRecordSchema } from '../schemas/portfolio-data-record.schema';
 import { LanguagesService } from 'utils/language.service';
-import { PortfolioTransactionsService } from 'portfolio-transactions/portfolio-transactions.service';
 import { TickersEntity } from 'entities/tickers.entity';
 import { PortfolioTransactionEntity } from 'entities/portfolio-transaction.entity';
 import { FixedIncomeDetailsEntity } from 'entities/fixed-income-details.entity';
@@ -21,6 +21,7 @@ import { HistoricalTreasuryQuotesRecord, HistoricalTreasuryQuotesRecordSchema } 
 
 @Module({
   imports: [
+    PortfolioTransactionsModule,
     UsersModule,
     MongooseModule.forFeature([
       { name: PortfolioDataRecord.name, schema: PortfolioDataRecordSchema },
@@ -40,7 +41,7 @@ import { HistoricalTreasuryQuotesRecord, HistoricalTreasuryQuotesRecordSchema } 
     ]),
   ],
   controllers: [InvestmentPortfolioController],
-  providers: [InvestmentPortfolioService, LanguagesService, PortfolioTransactionsService],
+  providers: [InvestmentPortfolioService, LanguagesService],
   exports: [InvestmentPortfolioService],
 })
 export class InvestmentPortfolioModule { }

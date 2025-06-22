@@ -4,6 +4,7 @@ import { TickerController } from './ticker.controller';
 import { TagEntity } from '../entities/tag.entity';
 import { TickersEntity } from '../entities/tickers.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
+import { FundsEntity } from 'entities/funds.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LanguagesService } from '../utils/language.service';
@@ -15,9 +16,11 @@ import { CriptosModule } from 'criptos/criptos.module';
 import { FiisModule } from 'fiis/fiis.module';
 import { BdrsModule } from 'bdrs/bdrs.module';
 import { EtfsModule } from 'etfs/etfs.module';
+import { PortfolioTransactionsModule } from 'portfolio-transactions/portfolio-transactions.module';
 
 @Module({
   imports: [
+    PortfolioTransactionsModule,
     MongooseModule.forFeature([
       { name: HistoricalQuotesRecord.name, schema: HistoricalQuotesRecordSchema },
     ]),
@@ -27,6 +30,7 @@ import { EtfsModule } from 'etfs/etfs.module';
       TreasuriesEntity,
       EconomicIndexesEntity,
       DividendEntity,
+      FundsEntity,
     ]),
     CompaniesModule,
     CriptosModule,

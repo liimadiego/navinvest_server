@@ -13,11 +13,17 @@ import { FinancialHolidaysEntity } from 'entities/financial-holidays.entity';
 import { JwtHelper } from 'utils/jwt.service';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { UserEntity } from 'entities/user.entity';
+import { FundsEntity } from 'entities/funds.entity';
 import { UsersModule } from 'users/users.module';
+import { HistoricalFundsQuotesRecord, HistoricalFundsQuotesRecordSchema } from 'schemas/historical-funds-quotes.schema';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
     UsersModule,
+    MongooseModule.forFeature([
+      { name: HistoricalFundsQuotesRecord.name, schema: HistoricalFundsQuotesRecordSchema },
+    ]),
     TypeOrmModule.forFeature([
       InvestmentPortfolioEntity,
       TickersEntity,
@@ -28,6 +34,7 @@ import { UsersModule } from 'users/users.module';
       FinancialHolidaysEntity,
       TokenUsageEntity,
       UserEntity,
+      FundsEntity,
     ]),
   ],
   controllers: [PortfolioTransactionsController],

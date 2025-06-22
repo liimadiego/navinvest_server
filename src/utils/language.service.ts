@@ -32,6 +32,7 @@ export class LanguagesService {
             bdr: 'BDRs',
             reit: 'REITs',
             crypto: 'Criptomoedas',
+            funds: 'Fundos',
             stablecoin: 'Criptomoedas',
         };
 

@@ -13,6 +13,10 @@ export class CreatePortfolioTransactionDto {
     treasury_id?: number;
 
     @IsOptional()
+    @IsUUID()
+    fund_id?: string;
+
+    @IsOptional()
     @IsString()
     tresury_id?: number;
 
@@ -30,7 +34,7 @@ export class CreatePortfolioTransactionDto {
     @IsNumber()
     quantity: number;
 
-    @IsIn(['FII', 'STOCK', 'REIT', 'ETF', 'MUTUAL_FUND', 'FIXED_INCOME', 'TREASURY', 'CRYPTO', 'BDR'])
+    @IsIn(['FII', 'STOCK', 'REIT', 'ETF', 'FUNDS', 'FIXED_INCOME', 'TREASURY', 'CRYPTO', 'BDR'])
     asset_type: string;
 
     @IsOptional()

@@ -5,18 +5,20 @@ import { TickersEntity } from '../entities/tickers.entity';
 import { TreasuriesEntity } from 'entities/treasuries.entity';
 import { EconomicIndexesEntity } from 'entities/economic-indexes.entity';
 import { DividendEntity } from 'entities/dividends.entity';
-import { Repository, Raw } from 'typeorm';
+import { Repository, Raw, In } from 'typeorm';
 import { CompaniesService } from '../companies/companies.service';
 import { CriptosService } from 'criptos/criptos.service';
 import { FiisService } from 'fiis/fiis.service';
 import { BdrsService } from 'bdrs/bdrs.service';
 import { EtfsService } from 'etfs/etfs.service';
+import { FundsEntity } from 'entities/funds.entity';
 import {
     HistoricalQuotesRecord,
     HistoricalQuotesRecordDocument
 } from '../schemas/historical-quotes.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { PortfolioTransactionsService } from 'portfolio-transactions/portfolio-transactions.service';
 
 @Injectable()
 export class TickerService {
@@ -29,6 +31,8 @@ export class TickerService {
         private readonly treasuryRepository: Repository<TreasuriesEntity>,
         @InjectRepository(EconomicIndexesEntity)
         private readonly economicIndexesRepository: Repository<EconomicIndexesEntity>,
+        @InjectRepository(FundsEntity)
+        private readonly fundsRepository: Repository<FundsEntity>,
         @InjectModel(HistoricalQuotesRecord.name)
         private historicalQuotesRecordModel: Model<HistoricalQuotesRecordDocument>,
         @InjectRepository(DividendEntity)
@@ -37,10 +41,11 @@ export class TickerService {
         private readonly criptosService: CriptosService,
         private readonly fiisService: FiisService,
         private readonly bdrsService: BdrsService,
-        private readonly etfsService: EtfsService
+        private readonly etfsService: EtfsService,
+        private readonly portfolioTransactionsService: PortfolioTransactionsService
     ) { }
 
-    async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[]> {
+    async getTickers(limit: number = 0, query: string = "", type = ''): Promise<TickersEntity[] | TreasuriesEntity[] | FundsEntity[]> {
         const justBrStock = type === 'br_stock';
         if (justBrStock) {
             type = 'stock';
@@ -48,17 +53,20 @@ export class TickerService {
 
         let queryBuilder = type === 'treasury' ?
             this.treasuryRepository.createQueryBuilder("treasuries") :
-            this.tickerRepository.createQueryBuilder("tickers");
+            type === 'funds' ? this.fundsRepository.createQueryBuilder("funds") :
+                this.tickerRepository.createQueryBuilder("tickers");
 
         if (query) {
             if (type === 'treasury') {
                 queryBuilder = queryBuilder.where("(LOWER(treasuries.name) LIKE LOWER(:query))", { query: `%${query}%` });
+            } else if (type === 'funds') {
+                queryBuilder = queryBuilder.where("(LOWER(funds.name) LIKE LOWER(:query) OR LOWER(funds.cnpj) LIKE LOWER(:query))", { query: `%${query}%` });
             } else {
                 queryBuilder = queryBuilder.where("(LOWER(tickers.ticker) LIKE LOWER(:query) OR LOWER(tickers.asset_name) LIKE LOWER(:query))", { query: `%${query}%` });
             }
         }
 
-        if (type && type !== 'treasury') {
+        if (type && type !== 'treasury' && type !== 'funds') {
             queryBuilder = queryBuilder.andWhere("tickers.asset_type = :type", { type });
             if (justBrStock) {
                 queryBuilder = queryBuilder.andWhere("tickers.currency = :currency", { currency: 'BRL' });
@@ -69,7 +77,7 @@ export class TickerService {
             queryBuilder = queryBuilder.take(limit);
         }
 
-        const tickersResult = await queryBuilder.getMany();
+        let tickersResult = await queryBuilder.getMany();
 
         if (type !== 'treasury') {
             const tickers = tickersResult as TickersEntity[];
@@ -84,6 +92,20 @@ export class TickerService {
                 const btcTicker = tickers.splice(btcIndex, 1)[0];
                 tickers.unshift(btcTicker);
             }
+        }
+
+        if (type === 'funds') {
+            for (const fund of tickersResult as FundsEntity[]) {
+                const lastFundPrice = await this.portfolioTransactionsService.getLastFundPrice(fund.id);
+                if (lastFundPrice) {
+                    fund.current_price = lastFundPrice?.price;
+                }
+            }
+        }
+
+        if (type === 'funds') {
+            const filteredFunds = (tickersResult as FundsEntity[]).filter(fund => fund.current_price !== null);
+            return filteredFunds;
         }
 
         return tickersResult;
