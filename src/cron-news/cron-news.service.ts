@@ -307,8 +307,9 @@ export class CronNewsService implements OnModuleInit {
             const newsAnswer = newsData.answer.replace(/\(\[[^\]]+\]\(https?:\/\/[^\)]+\)\)/g, '');
 
             const allUsers = await this.usersService.getAllUsers();
+            const userWithPlan = allUsers.filter(user => user.plan !== null && user.plan_expiration > new Date());
 
-            for (const user of allUsers) {
+            for (const user of userWithPlan) {
                 const userMail = user.email;
                 if (userMail.endsWith('@navinvest.ai') || (testMode && userMail != 'diegolima.sao@gmail.com')) {
                     continue;
