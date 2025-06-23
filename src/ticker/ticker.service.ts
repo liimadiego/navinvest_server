@@ -128,7 +128,7 @@ export class TickerService {
         return tickersResult;
     }
 
-    async getTickersToSearchNews(limit = 0, testMode = false): Promise<TickersEntity[]> {
+    async getTickersToSearchNews(tickerList = []): Promise<TickersEntity[]> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -136,14 +136,9 @@ export class TickerService {
             .where("tickers.latest_search_news < :today OR tickers.latest_search_news IS NULL", { today })
             .andWhere("tickers.currency = :currency", { currency: 'BRL' });
 
-        if (testMode) {
-            tickers = tickers.andWhere("tickers.ticker IN (:...tickers)",
-                { tickers: ['PETR4', 'VALE3', 'ITUB4', 'BBDC3', 'BBDC4', 'ABEV3', 'BBAS3', 'WEGE3'] }
-            );
-        }
-
-        if (limit > 0) {
-            tickers = tickers.take(limit);
+        if (tickerList.length > 0) {
+            tickers = tickers.andWhere("tickers.ticker IN (:...tickerList)",
+                { tickerList: tickerList.map(ticker => ticker.toUpperCase()) });
         }
 
         return tickers.getMany();
@@ -418,9 +413,9 @@ export class TickerService {
             if (!stockData) {
                 throw new Error('Company not found for the given ticker');
             }
-            
+
             stockData.tickerCompanyInfo.asset_image_url = tickerData.asset_image_url;
-            
+
             return {
                 assetType: `us_${tickerType}`,
                 ...stockData,

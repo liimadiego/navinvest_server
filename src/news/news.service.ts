@@ -106,15 +106,22 @@ export class NewsService {
     async getOtherNews(uuid: string): Promise<any[]> {
         const currentNews = await this.newsRepository.findOne({
             where: { uuid },
-            relations: ['ticker'], // importante pra acessar o ticker.id
+            relations: ['ticker'],
         });
 
         if (!currentNews) {
             throw new Error('News not found');
         }
 
+        const currentDate = new Date();
+        const last20Days = new Date(currentDate);
+        last20Days.setDate(currentDate.getDate() - 20);
+
         const recentNews = await this.newsRepository.find({
-            order: { created_at: 'ASC' },
+            where: {
+                published_at: MoreThan(last20Days)
+            },
+            order: { published_at: 'DESC' },
             relations: ['ticker'],
         });
 
@@ -123,6 +130,23 @@ export class NewsService {
         const randomNews = otherNews.sort(() => 0.5 - Math.random()).slice(0, 3);
 
         return randomNews.map(({ id, ...rest }) => rest);
+    }
+
+    async getAllNews(page: number, limit: number): Promise<{ result: any[], total_pages: number }> {
+        const [news, total] = await this.newsRepository.findAndCount({
+            order: { published_at: 'DESC' },
+            relations: ['ticker'],
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+
+        const total_pages = Math.ceil(total / limit);
+        const result = news.map(({ id, ...rest }) => rest);
+
+        return {
+            result,
+            total_pages
+        };
     }
 
 }

@@ -22,14 +22,22 @@ export class CronNewsService implements OnModuleInit {
     }
 
     private async startCronJob() {
+        console.log('Cron job configurado.');
+        cron.schedule('0 5 * * *', async () => {
+            await this.saveNewsInDatabase();
+            await this.functionGetFinancialContextWithAI();
+        });
+
+        cron.schedule('0 8 * * *', async () => {
+            await this.getFinancialNewsWithAI();
+            await this.sendDailyNewsToSubscribers();
+        });
+
+
         // cron.schedule('* * * * *', async () => {
-        // await this.functionGetFinancialContextWithAI(); //rodar todos os dias
-        // await this.getFinancialNewsWithAI(); //rodar todos os dias
         // await this.sendDailyNewsToSubscribers(true); //rodar todos os dias
-        // await this.saveNewsInDatabase();
         //      await this.sendNewsToSubscribers();
         // });
-        // console.log('Cron job agendada.');
     }
 
     private async fetchAndSaveNews(searchTerm: string, ticker: any) {
@@ -65,8 +73,124 @@ export class CronNewsService implements OnModuleInit {
     }
 
     private async saveNewsInDatabase() {
-        const searchedCompanyNames = new Set<string>();
-        const tickers = await this.tickerService.getTickersToSearchNews(10, true);
+        // const searchedCompanyNames = new Set<string>();
+        const tickerList = [
+            "BBAS3",
+            "PETR4",
+            "BBSE3",
+            "VALE3",
+            "ITSA4",
+            "CMIG4",
+            "TAEE11",
+            "CXSE3",
+            "KLBN4",
+            "SAPR4",
+            "ISAE4",
+            "CSMG3",
+            "TAEE4",
+            "KLBN3",
+            "BBDC4",
+            "WEGE3",
+            "ITSA3",
+            "EGIE3",
+            "GOAU4",
+            "AURE3",
+            "BBDC3",
+            "ITUB4",
+            "KLBN11",
+            "CMIN3",
+            "TAEE3",
+            "RANI3",
+            "CPLE6",
+            "LEVE3",
+            "SAPR11",
+            "B3SA3",
+            "ABEV3",
+            "KEPL3",
+            "BMGB4",
+            "SAPR3",
+            "AGRO3",
+            "TASA4",
+            "BRAP4",
+            "PETR3",
+            "CSAN3",
+            "GGBR4",
+            "ABCB4",
+            "JHSF3",
+            "ITUB3",
+            "CPFE3",
+            "BRBI11",
+            "CMIG3",
+            "PSSA3",
+            "PRIO3",
+            "UNIP6",
+            "RAIZ4",
+            "MXRF11",
+            "GARE11",
+            "VGHF11",
+            "XPML11",
+            "HGLG11",
+            "CPTS11",
+            "KNCR11",
+            "BTCI11",
+            "BTLG11",
+            "VISC11",
+            "XPLG11",
+            "VGIR11",
+            "GGRC11",
+            "VGIA11",
+            "KNRI11",
+            "VINO11",
+            "XPCA11",
+            "KNSC11",
+            "RZTR11",
+            "HSML11",
+            "TRXF11",
+            "IRDM11",
+            "BTHF11",
+            "HGRU11",
+            "ALZR11",
+            "SNAG11",
+            "KISU11",
+            "MALL11",
+            "TGAR11",
+            "PVBI11",
+            "LVBI11",
+            "RZAG11",
+            "RECR11",
+            "HGBS11",
+            "RURA11",
+            "HCTR11",
+            "HGRE11",
+            "BRCR11",
+            "VILG11",
+            "KNCA11",
+            "BRCO11",
+            "DEVA11",
+            "RBRF11",
+            "HGCR11",
+            "BCFF11",
+            "HSLG11",
+            "RBRR11",
+            "XPSF11",
+            "MCHF11",
+            "HABT11"
+        ];
+
+        const tickers = await this.tickerService.getTickersToSearchNews(tickerList);
+
+        //confere se os tickers que vieram sao os mesmos da tickerList
+        const tickerSymbols = tickers.map(ticker => ticker.ticker);
+        const missingTickers = tickerList.filter(ticker => !tickerSymbols.includes(ticker));
+        if (missingTickers.length > 0) {
+            console.error(`Os seguintes tickers não foram encontrados: ${missingTickers.join(', ')}`);
+        }
+        if (tickers.length === 0) {
+            console.log('Nenhum ticker encontrado para buscar notícias.');
+            return;
+        }
+        console.log(`Encontrados ${tickers.length} tickers para buscar notícias.`);
+
 
         for (const ticker of tickers) {
             console.log(`Buscando notícias para o ticker ${ticker.ticker}`);
