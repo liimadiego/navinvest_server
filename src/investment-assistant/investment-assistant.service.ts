@@ -10,6 +10,7 @@ import { TickerService } from '../ticker/ticker.service';
 import { CompaniesService } from 'companies/companies.service';
 import { BacktestService } from 'backtest/backtest.service';
 import { UsersService } from 'users/users.service';
+import { InvestmentPortfolioService } from 'investment-portfolio/investment-portfolio.service';
 
 import { MessageHistoric } from './investment-assistant-interface';
 
@@ -38,6 +39,7 @@ export class InvestmentAssistantService {
         private readonly usersService: UsersService,
         @InjectRepository(TickersEntity)
         private readonly tickersRepository: TickersEntity,
+        private readonly investmentPortfolioService: InvestmentPortfolioService,
         @InjectModel(InvestmentAssistantChatRecord.name)
         private readonly investmentAssistantChatRecordModel: Model<InvestmentAssistantChatRecordDocument>,
         private readonly JwtService: JwtService,
@@ -51,7 +53,7 @@ export class InvestmentAssistantService {
         return this.prompts[name] || null;
     }
 
-    async interactWithAI(message: string, chatId: string, userId: string): Promise<any> {
+    async interactWithAI(message: string, chatId: string, userId: string, portfolioId: string | null): Promise<any> {
         try {
             let canUseTokens = await this.usersService.canUseTokens(userId);
 
@@ -85,6 +87,8 @@ export class InvestmentAssistantService {
 
             const inputMessages: MessageHistoric[] = [
                 { role: 'system', content: this.getPrompt("ia_assistant_context") },
+                { role: 'system', content: `ID do portfólio caso for usar em alguma função: ${portfolioId}. \nCaso esteja vazio, é pelo fato de o usuário não ter selecionado ou criado nenhum portfólio ainda, explique a ele a necessidade de selecionar um portfólio antes de prosseguir.` },
+                { role: 'system', content: `ID do usuário no sistema: ${userId}` },
                 ...messageHistoric.map(m => {
                     return {
                         role: m.role as "system" | "user" | "assistant" | "developer",

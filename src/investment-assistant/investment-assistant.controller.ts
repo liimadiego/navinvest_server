@@ -9,7 +9,7 @@ export class InvestmentAssistantController {
 
   @PremiumPlan()
   @Post('ask')
-  async ask(@Req() request: Request, @Body() body: { message: string, messageHistoric: MessageHistoric[], chatId: string }) {
+  async ask(@Req() request: Request, @Body() body: { message: string, portfolioId: string, chatId: string }) {
     try {
       const userId = await this.investmentAssistantService.getUserIdByHeaderRequest(request);
 
@@ -17,7 +17,7 @@ export class InvestmentAssistantController {
         throw new HttpException('User not found.', HttpStatus.UNAUTHORIZED);
       }
 
-      const { message, chatId } = body;
+      const { message, portfolioId, chatId } = body;
 
       if (!message || message.trim() === '') {
         throw new HttpException('Mensagem não pode estar vazia.', HttpStatus.BAD_REQUEST);
@@ -27,7 +27,7 @@ export class InvestmentAssistantController {
         throw new HttpException('chatId não pode estar vazio.', HttpStatus.BAD_REQUEST);
       }
 
-      const response = await this.investmentAssistantService.interactWithAI(message, chatId, userId);
+      const response = await this.investmentAssistantService.interactWithAI(message, chatId, userId, portfolioId);
 
       try {
         return { success: true, data: response };

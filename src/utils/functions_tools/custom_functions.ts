@@ -55,6 +55,27 @@ export const tools: CustomFunction[] = [
     {
         type: 'function',
         function: {
+            name: 'investmentPortfolioService_getPortfolioDataToAI',
+            description: 'Get users portfolio data in case it is needed.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    portfolioId: {
+                        type: 'string',
+                        description: 'The ID of the portfolio to get data for.',
+                    },
+                    userId: {
+                        type: 'string',
+                        description: 'The ID of the user who owns the portfolio.',
+                    }
+                },
+                required: ['portfolioId', 'userId'],
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
             name: 'backtestService_getQuotationsByTicker',
             description: 'Get the last quotations of a company with the time period being specified by the user.',
             parameters: {

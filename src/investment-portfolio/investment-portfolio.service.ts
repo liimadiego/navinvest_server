@@ -539,4 +539,27 @@ export class InvestmentPortfolioService {
         }
         return lastTwelveMonths.reverse();
     }
+
+    async getPortfolioDataToAI(portfolioId: string, userId: string) {
+        const portfolioData = await this.getPortfolioDataByPortfolioId(portfolioId, userId);
+        if (!portfolioData) {
+            throw new Error('Portfolio data not found.');
+        }
+
+        const annualPerformance = await this.portfolioTransactionsService.getTransactions(portfolioId, false, true);
+
+        if (!annualPerformance) {
+            throw new Error('Annual performance data not found.');
+        }
+
+        const portfolioDataToAI = {
+            historicalData: portfolioData.historicalData,
+            currentTotalAssets: portfolioData.currentTotalAssets,
+            currentTotalInvested: portfolioData.currentTotalInvested,
+            portfolioDivision: portfolioData.portfolioDivision,
+            annualPerformance: annualPerformance
+        };
+
+        return portfolioDataToAI;
+    }
 }
