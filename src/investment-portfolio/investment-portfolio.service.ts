@@ -552,13 +552,26 @@ export class InvestmentPortfolioService {
             throw new Error('Annual performance data not found.');
         }
 
+        const userInvestorProfile = await this.userRepository.createQueryBuilder('user')
+            .leftJoinAndSelect('user.investorProfiles', 'investorProfile')
+            .where('user.id = :userId', { userId })
+            .getOne();
+
+        let userInvestorProfileName = null;
+        if (userInvestorProfile && userInvestorProfile.investorProfiles) {
+            userInvestorProfileName = userInvestorProfile.investorProfiles.map(profile => profile)[0].profile;
+        }
+
         const portfolioDataToAI = {
             historicalData: portfolioData.historicalData,
             currentTotalAssets: portfolioData.currentTotalAssets,
             currentTotalInvested: portfolioData.currentTotalInvested,
             portfolioDivision: portfolioData.portfolioDivision,
-            annualPerformance: annualPerformance
+            annualPerformance: annualPerformance,
+            userInvestorProfile: userInvestorProfileName,
         };
+
+        console.log('Portfolio data to AI:', portfolioDataToAI);
 
         return portfolioDataToAI;
     }
