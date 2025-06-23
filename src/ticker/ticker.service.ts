@@ -403,7 +403,7 @@ export class TickerService {
             }
 
             const proftability = await this.getProftabilityByTicker(ticker);
-            companyData.tickerData.asset_image_url = tickerData.asset_image_url;
+            companyData.tickerCompanyInfo.asset_image_url = tickerData.asset_image_url;
 
             return {
                 assetType: `br_${tickerType}`,
@@ -418,7 +418,9 @@ export class TickerService {
             if (!stockData) {
                 throw new Error('Company not found for the given ticker');
             }
-            stockData.tickerData.asset_image_url = tickerData.asset_image_url;
+            
+            stockData.tickerCompanyInfo.asset_image_url = tickerData.asset_image_url;
+            
             return {
                 assetType: `us_${tickerType}`,
                 ...stockData,
