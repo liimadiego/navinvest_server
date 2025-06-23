@@ -13,6 +13,7 @@ import { PortfolioTransactionsService } from 'portfolio-transactions/portfolio-t
 import { JwtService } from '@nestjs/jwt';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordDocument } from '../schemas/historical-quotes.schema';
 import { HistoricalTreasuryQuotesRecord, HistoricalTreasuryQuotesRecordDocument } from '../schemas/historical-treasury-quotes.schema';
+import { HistoricalFundsQuotesRecord, HistoricalFundsQuotesRecordDocument } from '../schemas/historical-funds-quotes.schema';
 
 @Injectable()
 export class InvestmentPortfolioService {
@@ -27,6 +28,8 @@ export class InvestmentPortfolioService {
         private historicalQuotesRecordModel: Model<HistoricalQuotesRecordDocument>,
         @InjectModel(HistoricalTreasuryQuotesRecord.name)
         private historicalTreasuryQuotesRecordModel: Model<HistoricalTreasuryQuotesRecordDocument>,
+        @InjectModel(HistoricalFundsQuotesRecord.name)
+        private historicalFundsQuotesRecordModel: Model<HistoricalFundsQuotesRecordDocument>,
         private readonly languagesService: LanguagesService,
         private readonly portfolioTransactionsService: PortfolioTransactionsService,
         private jwtService: JwtService
@@ -148,6 +151,7 @@ export class InvestmentPortfolioService {
             .leftJoinAndSelect('transactions.ticker', 'ticker')
             .leftJoinAndSelect('transactions.treasury', 'treasury')
             .leftJoinAndSelect('transactions.fixed_income_details', 'fixed_income_details')
+            .leftJoinAndSelect('transactions.fund', 'fund')
             .where('investment_portfolio.id = :investmentPortfolioId', { investmentPortfolioId })
             .getOne();
 
@@ -184,81 +188,105 @@ export class InvestmentPortfolioService {
             }
             const firstTransactionDate = new Date(await this.getDateOfFirstTransactionByInvestmentPortfolioId(investmentPortfolioId));
 
-            const sumTransactionsTotal = (
+            const sumTransactionsTotal = async (
                 transactions: any[],
                 final_price: any = undefined
             ) => {
-                return transactions
-                    .reduce((total, transaction) => {
-                        let originalFinalPrice = final_price;
-                        const amount = Number(transaction.amount);
-                        const quantity = Number(transaction.quantity);
-                        const price_per_unit = Number(transaction.price_per_unit);
+                let total = 0;
 
-                        if (originalFinalPrice === undefined && transaction.ticker) {
-                            originalFinalPrice = Number(transaction.ticker.current_price);
-                        }
-
-                        if (originalFinalPrice === undefined && transaction.treasury) {
-                            originalFinalPrice = Number(transaction.treasury.unit_price);
-                        }
-
-                        if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
-                            if (transaction.transaction_type === 'SELL') {
-                                return total - (quantity * price_per_unit);
-                            }
-                            return total + (quantity * originalFinalPrice);
-                        }
-
-                        if (transaction.asset_type === 'FIXED_INCOME') {
-                            if (transaction.transaction_type === 'SELL') {
-                                return total - (amount);
-                            }
-                            return total + (amount);
-                        }
-
-                        if (transaction.asset_type === 'TREASURY') {
-                            const currentAmout = transaction.quantity * originalFinalPrice;
-
-                            if (transaction.transaction_type === 'SELL') {
-                                return total - currentAmout;
-                            }
-
-                            return total + currentAmout;
-                        }
-
-                        return total;
-                    }, 0);
-            };
-
-            const sumTransactionsTotalInvested = (transactions: any[]) => {
-                return transactions.reduce((total, transaction) => {
+                for (const transaction of transactions) {
+                    let originalFinalPrice = final_price;
                     const amount = Number(transaction.amount);
                     const quantity = Number(transaction.quantity);
                     const price_per_unit = Number(transaction.price_per_unit);
 
-                    if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
-                        if (transaction.transaction_type === 'SELL') {
-                            return total - (quantity * price_per_unit);
-                        }
-                        return total + (quantity * price_per_unit);
+                    if (originalFinalPrice === undefined && transaction.ticker) {
+                        originalFinalPrice = Number(transaction.ticker.current_price);
                     }
 
-                    if (transaction.asset_type === 'FIXED_INCOME') {
-                        if (transaction.transaction_type === 'SELL') {
-                            return total - (amount);
-                        }
-                        return total + (amount);
+                    if (originalFinalPrice === undefined && transaction.treasury) {
+                        originalFinalPrice = Number(transaction.treasury.unit_price);
                     }
 
-                    if (transaction.asset_type === 'TREASURY') {
-                        const currentAmout = transaction.quantity * transaction.treasury.unit_price;
-                        if (transaction.transaction_type === 'SELL') {
-                            return total - (currentAmout);
-                        }
-                        return total + (currentAmout);
+                    if (originalFinalPrice === undefined && transaction.fund) {
+                        const lastFundPrice = await this.portfolioTransactionsService.getLastFundPrice(transaction.fund.id);
+                        originalFinalPrice = (lastFundPrice ? Number(lastFundPrice.price) : 0).toFixed(2);
                     }
-                }, 0);
+
+                    if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY' && transaction.asset_type !== 'FUNDS') {
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= (quantity * price_per_unit);
+                        } else {
+                            total += (quantity * originalFinalPrice);
+                        }
+                    } else if (transaction.asset_type === 'FIXED_INCOME') {
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= amount;
+                        } else {
+                            total += amount;
+                        }
+                    } else if (transaction.asset_type === 'TREASURY') {
+                        const currentAmount = transaction.quantity * originalFinalPrice;
+
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= currentAmount;
+                        } else {
+                            total += currentAmount;
+                        }
+                    }
+                    else if (transaction.asset_type === 'FUNDS') {
+                        const currentAmount = transaction.quantity * originalFinalPrice;
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= currentAmount;
+                        } else {
+                            total += currentAmount;
+                        }
+                    }
+                }
+
+                return total;
+            };
+
+            const sumTransactionsTotalInvested = async (transactions: any[]) => {
+                let total = 0;
+
+                for (const transaction of transactions) {
+                    const amount = Number(transaction.amount);
+                    const quantity = Number(transaction.quantity);
+                    const price_per_unit = Number(transaction.price_per_unit);
+
+                    if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY' && transaction.asset_type !== 'FUNDS') {
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= (quantity * price_per_unit);
+                        } else {
+                            total += (quantity * price_per_unit);
+                        }
+                    } else if (transaction.asset_type === 'FIXED_INCOME') {
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= amount;
+                        } else {
+                            total += amount;
+                        }
+                    } else if (transaction.asset_type === 'TREASURY') {
+                        const currentAmount = transaction.quantity * transaction.treasury.unit_price;
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= currentAmount;
+                        } else {
+                            total += currentAmount;
+                        }
+                    } else if (transaction.asset_type === 'FUNDS') {
+                        const lastFundPrice = await this.portfolioTransactionsService.getLastFundPrice(transaction.fund.id);
+                        const lfp = (lastFundPrice ? Number(lastFundPrice.price) : 0).toFixed(2);
+                        const currentAmount = transaction.quantity * Number(lfp);
+                        if (transaction.transaction_type === 'SELL') {
+                            total -= currentAmount;
+                        } else {
+                            total += currentAmount;
+                        }
+                    }
+                }
+
+                return total;
             };
 
             const firstTransactionYear = firstTransactionDate.getFullYear();
@@ -271,12 +299,15 @@ export class InvestmentPortfolioService {
                     const isTreasury = transaction.treasury !== null && transaction.treasury !== undefined;
                     const isFixedIncome = transaction.fixed_income_details !== null && transaction.fixed_income_details !== undefined;
                     const isTicker = transaction.ticker !== null && transaction.ticker !== undefined;
+                    const isFund = transaction.fund !== null && transaction.fund !== undefined;
 
                     const historicalQuotesData = isTicker ?
                         await this.historicalQuotesRecordModel.findOne({ tickerId: transaction.ticker.id }) :
                         isTreasury ?
                             await this.historicalTreasuryQuotesRecordModel.findOne({ treasuryId: transaction.treasury.id }) :
-                            null;
+                            isFund ?
+                                await this.historicalFundsQuotesRecordModel.findOne({ fundId: transaction.fund.id }) :
+                                null;
 
                     let historicalQuotesObj: any = [];
                     if (historicalQuotesData) {
@@ -313,12 +344,16 @@ export class InvestmentPortfolioService {
                                 (quote: any) => quote.date.slice(0, 7) === `${year}-${month.toString().padStart(2, '0')}`
                             );
 
-                            const monthQuotePrice = monthQuote ? (isTreasury ? monthQuote?.unit_price : monthQuote?.adj_close) : undefined;
+                            const monthQuotePrice = monthQuote ?
+                                (isTreasury ? monthQuote?.unit_price :
+                                    isFund ? (monthQuote?.quote / 1_000_000_000) :
+                                        monthQuote?.adj_close
+                                ) : undefined;
 
                             const currentDate = new Date();
                             const isCurrentMonth = currentDate.getFullYear() === year && currentDate.getMonth() + 1 === month;
 
-                            const monthTotalAssets = sumTransactionsTotal([transaction], isCurrentMonth ? undefined : monthQuotePrice);
+                            const monthTotalAssets = await sumTransactionsTotal([transaction], isCurrentMonth ? undefined : monthQuotePrice);
 
                             if (!totalAssets[`${month}-${year}`]) {
                                 totalAssets[`${month}-${year}`] = { month, year, totalAssets: 0, totalInvested: 0, currency: 'BRL' };
@@ -334,11 +369,11 @@ export class InvestmentPortfolioService {
                 }
                 for (const monthYear in totalAssets) {
                     const [month, year] = monthYear.split('-');
-                    const monthTotalInvested = sumTransactionsTotalInvested(investmentPortfolio.transactions.filter(t => t.transaction_date.getTime() < Date.UTC(parseInt(year), parseInt(month), 1, 3)));
+                    const monthTotalInvested = await sumTransactionsTotalInvested(investmentPortfolio.transactions.filter(t => t.transaction_date.getTime() < Date.UTC(parseInt(year), parseInt(month), 1, 3)));
                     totalAssets[`${month}-${year}`].totalInvested = parseFloat((totalAssets[`${month}-${year}`].totalInvested + monthTotalInvested).toFixed(2));
                 }
             } else {
-                totalAssets = sumTransactionsTotal(investmentPortfolio.transactions);
+                totalAssets = await sumTransactionsTotal(investmentPortfolio.transactions);
             }
 
             return {
@@ -359,32 +394,39 @@ export class InvestmentPortfolioService {
                 throw new Error(`Portfolio not found`);
             }
 
-            const totalInvested = investmentPortfolio.transactions.reduce((total, transaction) => {
+            let totalInvested = 0;
+
+            for (const transaction of investmentPortfolio.transactions) {
                 const amount = Number(transaction.amount);
                 const quantity = Number(transaction.quantity);
                 const price_per_unit = Number(transaction.price_per_unit);
 
-                if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY') {
+                if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY' && transaction.asset_type !== 'FUNDS') {
                     if (transaction.transaction_type === 'SELL') {
-                        return total - (quantity * price_per_unit);
+                        totalInvested -= (quantity * price_per_unit);
+                    } else {
+                        totalInvested += (quantity * price_per_unit);
                     }
-                    return total + (quantity * price_per_unit);
-                }
-
-                if (transaction.asset_type === 'FIXED_INCOME') {
+                } else if (transaction.asset_type === 'FIXED_INCOME') {
                     if (transaction.transaction_type === 'SELL') {
-                        return total - (amount);
+                        totalInvested -= amount;
+                    } else {
+                        totalInvested += amount;
                     }
-                    return total + (amount);
-                }
-
-                if (transaction.asset_type === 'TREASURY') {
+                } else if (transaction.asset_type === 'TREASURY') {
                     if (transaction.transaction_type === 'SELL') {
-                        return total - (amount);
+                        totalInvested -= amount;
+                    } else {
+                        totalInvested += amount;
                     }
-                    return total + (amount);
+                } else if (transaction.asset_type === 'FUNDS') {
+                    if (transaction.transaction_type === 'SELL') {
+                        totalInvested -= amount;
+                    } else {
+                        totalInvested += amount;
+                    }
                 }
-            }, 0);
+            }
 
             return {
                 investmentPortfolioId: investmentPortfolio.id,

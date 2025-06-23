@@ -260,6 +260,16 @@ export class PortfolioTransactionsService {
             }
         }
 
+        if (data.fund_id) {
+            const fundExists = await this.fundsRepository.exists({
+                where: { id: data.fund_id }
+            });
+
+            if (!fundExists) {
+                throw new NotFoundException(`Fund with ID ${data.fund_id} not found`);
+            }
+        }
+
         if (data.asset_type === 'FIXED_INCOME' && (
             !data.issuer ||
             !data.investment_type ||
@@ -298,6 +308,9 @@ export class PortfolioTransactionsService {
         }
         if (data.treasury_id !== undefined) {
             transaction.treasury = data.treasury_id ? { id: data.treasury_id } : null;
+        }
+        if (data.fund_id !== undefined) {
+            transaction.fund = data.fund_id ? { id: data.fund_id } : null;
         }
         if (data.asset_type !== undefined) {
             transaction.asset_type = data.asset_type;

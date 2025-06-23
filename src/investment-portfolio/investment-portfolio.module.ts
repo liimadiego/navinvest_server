@@ -18,6 +18,7 @@ import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { UsersModule } from 'users/users.module';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
 import { HistoricalTreasuryQuotesRecord, HistoricalTreasuryQuotesRecordSchema } from 'schemas/historical-treasury-quotes.schema';
+import { HistoricalFundsQuotesRecord, HistoricalFundsQuotesRecordSchema } from 'schemas/historical-funds-quotes.schema';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { HistoricalTreasuryQuotesRecord, HistoricalTreasuryQuotesRecordSchema } 
     MongooseModule.forFeature([
       { name: PortfolioDataRecord.name, schema: PortfolioDataRecordSchema },
       { name: HistoricalQuotesRecord.name, schema: HistoricalQuotesRecordSchema },
-      { name: HistoricalTreasuryQuotesRecord.name, schema: HistoricalTreasuryQuotesRecordSchema }
+      { name: HistoricalTreasuryQuotesRecord.name, schema: HistoricalTreasuryQuotesRecordSchema },
+      { name: HistoricalFundsQuotesRecord.name, schema: HistoricalFundsQuotesRecordSchema },
     ]),
     TypeOrmModule.forFeature([
       InvestmentPortfolioEntity,
