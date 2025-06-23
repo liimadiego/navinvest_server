@@ -1,9 +1,10 @@
-import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, Req } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
+import { JwtHelper } from 'utils/jwt.service';
 
 @Controller('companies')
 export class CompaniesController {
-  constructor(private readonly companiesService: CompaniesService) { }
+  constructor(private readonly companiesService: CompaniesService, private readonly jwtHelper: JwtHelper) { }
 
   @Get('compare')
   async compareCompanies(@Query('tickers') tickers: string): Promise<any> {
@@ -16,6 +17,22 @@ export class CompaniesController {
     tickersArr = tickers.split(',');
 
     return this.companiesService.compareCompanies(tickersArr);
+  }
+
+  @Post('compare-with-ai')
+  async compareCompaniesWithAI(@Body() req: any, @Req() request: any): Promise<any> {
+    const { companiesData } = req;
+
+    if (!companiesData) {
+      throw new BadRequestException('companiesData is required');
+    }
+    const userId = await this.jwtHelper.extractUserIdFromRequest(request);
+
+    if (!userId) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.UNAUTHORIZED);
+    }
+
+    return this.companiesService.compareWithAI(companiesData, userId);
   }
 
 }

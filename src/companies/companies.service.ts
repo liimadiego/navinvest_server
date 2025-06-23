@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { CompanyEntity } from '../entities/companies.entity';
 import { TickersEntity } from 'entities/tickers.entity';
 import { DividendEntity } from 'entities/dividends.entity';
@@ -22,11 +22,18 @@ import {
 } from '../schemas/historical-quotes.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { PromptsService } from '../utils/prompts.service';
+import OpenAI from 'openai';
+import { UsersService } from 'users/users.service';
+
 
 const util = require('util');
 
 @Injectable()
 export class CompaniesService {
+    private prompts = new PromptsService();
+    private openai: OpenAI;
+
     constructor(
         @InjectRepository(CompanyEntity)
         private readonly companyRepository: Repository<CompanyEntity>,
@@ -41,8 +48,19 @@ export class CompaniesService {
         @InjectModel(StockDataRecord.name)
         private stockDataRecordModel: Model<StockDataRecordDocument>,
         @InjectRepository(DividendEntity)
-        private readonly dividendsRepository: Repository<DividendEntity>
-    ) { }
+        private readonly dividendsRepository: Repository<DividendEntity>,
+        private readonly usersService: UsersService,
+
+    ) {
+        this.openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+    }
+
+
+    getPrompt(name: string, sector_name: string, sector_average: any): string | null {
+        return this.prompts.getPrompts()[name] || null;
+    }
 
     async findAll(): Promise<CompanyEntity[]> {
         return this.companyRepository.find();
@@ -812,5 +830,33 @@ export class CompaniesService {
     processInput(inputValue: number | string) {
         if (inputValue == null || Number.isNaN(inputValue)) return null;
         return Number(inputValue);
+    }
+
+    async compareWithAI(companiesData: any, userId: string): Promise<any> {
+        let canUseTokens = await this.usersService.canUseTokens(userId);
+
+        if (!canUseTokens) {
+            throw new HttpException('Limite de tokens excedido.', 429);
+        }
+
+        const response = await this.openai.chat.completions.create({
+            model: process.env.OPEN_AI_MODEL,
+            messages: [
+                {
+                    role: 'system',
+                    content: this.prompts.getPrompts()['compare_assets']
+                },
+                {
+                    role: 'user',
+                    content: JSON.stringify(companiesData),
+                },
+            ],
+            max_tokens: 3000,
+            temperature: 0.5,
+        });
+
+        await this.usersService.addTokens(userId, response.usage.total_tokens ? response.usage.total_tokens : 2500);
+
+        return response.choices[0].message.content;
     }
 }

@@ -10,9 +10,13 @@ import { CompanyDataRecord, CompanyDataRecordSchema } from '../schemas/company-d
 import { StockDataRecord, StockDataRecordSchema } from '../schemas/stock-data-record.schema';
 import { HistoricalDividendYieldRecord, HistoricalDividendYieldRecordSchema } from '../schemas/historical-dividend-yield.schema';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/historical-quotes.schema';
+import { PromptsService } from '../utils/prompts.service';
+import { UsersModule } from 'users/users.module';
+import { JwtHelper } from 'utils/jwt.service';
 
 @Module({
   imports: [
+    UsersModule,
     MongooseModule.forFeature([
       { name: CompanyDataRecord.name, schema: CompanyDataRecordSchema },
       { name: HistoricalDividendYieldRecord.name, schema: HistoricalDividendYieldRecordSchema },
@@ -26,7 +30,7 @@ import { HistoricalQuotesRecord, HistoricalQuotesRecordSchema } from 'schemas/hi
     ]),
   ],
   controllers: [CompaniesController],
-  providers: [CompaniesService],
+  providers: [CompaniesService, PromptsService, JwtHelper],
   exports: [CompaniesService],
 })
 export class CompaniesModule { }
