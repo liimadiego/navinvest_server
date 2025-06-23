@@ -113,15 +113,19 @@ export class TickerService {
         const cliPath = process.env.CLI_PATH || '/var/www/navinvest_client';
         tickersResult.forEach(t => {
             if (t.asset_image_url == null) {
-                if (existsSync(`${cliPath}/public/assets/tickers/${t.ticker}.jpg`))
+                if (existsSync(`${cliPath}/public/assets/tickers/${t.ticker}.jpg`)) {
                     t.asset_image_url = `/assets/tickers/${t.ticker}.jpg`;
-                else
+                }
+                else if (existsSync(`${cliPath}/public/assets/tickers/${t.ticker}.svg`)) {
+                    t.asset_image_url = `/assets/tickers/${t.ticker}.svg`;
+                }
+                else {
                     t.asset_image_url = `/assets/tickers/default.svg`;
+                }
             }
         });
 
         return tickersResult;
-
     }
 
     async getTickersToSearchNews(limit = 0, testMode = false): Promise<TickersEntity[]> {
