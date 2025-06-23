@@ -382,6 +382,20 @@ export class TickerService {
         const tickerType = tickerData.asset_type;
         const tickerCurrency = tickerData.currency;
 
+        const cliPath = process.env.CLI_PATH || '/var/www/navinvest_client';
+
+        if (tickerData.asset_image_url == null) {
+            if (existsSync(`${cliPath}/public/assets/tickers/${tickerData.ticker}.jpg`)) {
+                tickerData.asset_image_url = `/assets/tickers/${tickerData.ticker}.jpg`;
+            }
+            else if (existsSync(`${cliPath}/public/assets/tickers/${tickerData.ticker}.svg`)) {
+                tickerData.asset_image_url = `/assets/tickers/${tickerData.ticker}.svg`;
+            }
+            else {
+                tickerData.asset_image_url = `/assets/tickers/default.svg`;
+            }
+        }
+
         if (tickerType === 'stock' && tickerCurrency === 'BRL') {
             const companyData = await this.companiesService.getBRCompanyByTicker(ticker);
             if (!companyData) {
@@ -389,6 +403,7 @@ export class TickerService {
             }
 
             const proftability = await this.getProftabilityByTicker(ticker);
+            companyData.tickerData.asset_image_url = tickerData.asset_image_url;
 
             return {
                 assetType: `br_${tickerType}`,
@@ -403,6 +418,7 @@ export class TickerService {
             if (!stockData) {
                 throw new Error('Company not found for the given ticker');
             }
+            stockData.tickerData.asset_image_url = tickerData.asset_image_url;
             return {
                 assetType: `us_${tickerType}`,
                 ...stockData,
@@ -416,6 +432,7 @@ export class TickerService {
                 throw new Error('Cripto not found');
             }
             const proftability = await this.getProftabilityByTicker(ticker);
+            criptoData.tickerData.asset_image_url = tickerData.asset_image_url;
 
             return {
                 assetType: tickerType,
@@ -431,6 +448,7 @@ export class TickerService {
             }
 
             const proftability = await this.getProftabilityByTicker(ticker);
+            fiiData.tickerData.asset_image_url = tickerData.asset_image_url;
 
             return {
                 assetType: tickerType,
@@ -445,6 +463,7 @@ export class TickerService {
                 throw new Error('BDR not found');
             }
             const proftability = await this.getProftabilityByTicker(ticker);
+            bdrData.tickerData.asset_image_url = tickerData.asset_image_url;
 
             return {
                 assetType: tickerType,
@@ -459,6 +478,7 @@ export class TickerService {
                 throw new Error('ETF not found');
             }
             const proftability = await this.getProftabilityByTicker(ticker);
+            etfData.tickerData.asset_image_url = tickerData.asset_image_url;
 
             return {
                 assetType: tickerType,
