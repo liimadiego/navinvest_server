@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { InvestmentPortfolioService } from './investment-portfolio.service';
 import { CreateInvestmentPortfolioDto } from './dto/create-investment-portfolio-dto';
 import { UpdateInvestmentPortfolioDto } from './dto/update-investment-portfolio-dto';
@@ -85,6 +85,25 @@ export class InvestmentPortfolioController {
   @Get('portfolio-data/:investmentPortfolioId')
   async getPortfolioDataByPortfolioId(
     @Req() request: Request,
+    @Param('investmentPortfolioId') investmentPortfolioId: string,
+    @Query('sector') sector?: string
+  ) {
+    const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
+
+    if (!investmentPortfolioId) {
+      throw new Error('Investment Portfolio ID is required.');
+    }
+
+    if (!sector) {
+      sector = null;
+    }
+
+    return await this.investmentPortfolioService.getPortfolioDataByPortfolioId(investmentPortfolioId, userId, sector);
+  }
+
+  @Get('get-sectors-available-from-portfolio/:investmentPortfolioId')
+  async getSectorsAvailableFromPortfolio(
+    @Req() request: Request,
     @Param('investmentPortfolioId') investmentPortfolioId: string
   ) {
     const userId = await this.investmentPortfolioService.getUserIdByHeaderRequest(request);
@@ -93,6 +112,6 @@ export class InvestmentPortfolioController {
       throw new Error('Investment Portfolio ID is required.');
     }
 
-    return await this.investmentPortfolioService.getPortfolioDataByPortfolioId(investmentPortfolioId, userId);
+    return await this.investmentPortfolioService.getSectorsAvailableFromPortfolio(investmentPortfolioId);
   }
 }

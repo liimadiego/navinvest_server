@@ -14,12 +14,15 @@ import { JwtService } from '@nestjs/jwt';
 import { HistoricalQuotesRecord, HistoricalQuotesRecordDocument } from '../schemas/historical-quotes.schema';
 import { HistoricalTreasuryQuotesRecord, HistoricalTreasuryQuotesRecordDocument } from '../schemas/historical-treasury-quotes.schema';
 import { HistoricalFundsQuotesRecord, HistoricalFundsQuotesRecordDocument } from '../schemas/historical-funds-quotes.schema';
+import { TickersEntity } from '../entities/tickers.entity';
 
 @Injectable()
 export class InvestmentPortfolioService {
     constructor(
         @InjectRepository(InvestmentPortfolioEntity)
         private readonly investmentPortfolioRepository: Repository<InvestmentPortfolioEntity>,
+        @InjectRepository(TickersEntity)
+        private readonly tickerRepository: Repository<TickersEntity>,
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
         @InjectModel(PortfolioDataRecord.name)
@@ -162,7 +165,7 @@ export class InvestmentPortfolioService {
         return investmentPortfolio;
     }
 
-    async getDateOfFirstTransactionByInvestmentPortfolioId(investmentPortfolioId: string) {
+    async getDateOfFirstTransactionByInvestmentPortfolioId(investmentPortfolioId: string, filterBySector: string = null) {
         const investmentPortfolio = await this.investmentPortfolioRepository.createQueryBuilder('investment_portfolio')
             .leftJoinAndSelect('investment_portfolio.transactions', 'transactions')
             .where('investment_portfolio.id = :investmentPortfolioId', { investmentPortfolioId })
@@ -170,6 +173,29 @@ export class InvestmentPortfolioService {
 
         if (!investmentPortfolio || !investmentPortfolio.transactions || investmentPortfolio.transactions.length === 0) {
             throw new Error('Portfólio de investimentos ou transações não encontrado.');
+        }
+
+        if (filterBySector) {
+            const filterPromises = investmentPortfolio.transactions.map(async transaction => {
+                if (!transaction.ticker) {
+                    return false;
+                }
+
+                const ticker = await this.tickerRepository.findOne({
+                    where: { id: transaction.ticker.id },
+                    relations: ['company', 'reit']
+                });
+
+                if (!ticker || (!ticker.company && !ticker.reit)) {
+                    return false;
+                }
+
+                const stringFilterBySector = ticker.company ? `${ticker.company.b3_sector} - ${ticker.company.b3_subsector}` : `${ticker.reit.b3Sector} - ${ticker.reit.b3Subsector}`;
+                return stringFilterBySector === filterBySector;
+            });
+
+            const filterResults = await Promise.all(filterPromises);
+            investmentPortfolio.transactions = investmentPortfolio.transactions.filter((_, index) => filterResults[index]);
         }
 
         const firstTransactionDate = investmentPortfolio.transactions.reduce((earliest, transaction) => {
@@ -180,7 +206,33 @@ export class InvestmentPortfolioService {
         return firstTransactionDate;
     }
 
-    async getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId: string, userId: string, last12Months: boolean = false) {
+    async getSectorsAvailableFromPortfolio(investmentPortfolioId: string) {
+        const investmentPortfolio = await this.getTransactionsByInvestmentPortfolioId(investmentPortfolioId);
+        if (!investmentPortfolio) {
+            throw new Error('Portfólio de investimentos não encontrado.');
+        }
+
+        const filteredTransactions = investmentPortfolio.transactions.filter(transaction => transaction.ticker);
+
+        const sectors = new Set<string>();
+        for (const transaction of filteredTransactions) {
+            const ticker = await this.tickerRepository.findOne({
+                where: { id: transaction.ticker.id },
+                relations: ['company', 'reit']
+            });
+            if (ticker) {
+                if (ticker.company && ticker.company.b3_sector && ticker.company.b3_subsector) {
+                    sectors.add(`${ticker.company.b3_sector} - ${ticker.company.b3_subsector}`);
+                } else if (ticker.reit && ticker.reit.b3Sector && ticker.reit.b3Subsector) {
+                    sectors.add(`${ticker.reit.b3Sector} - ${ticker.reit.b3Subsector}`);
+                }
+            }
+        }
+
+        return sectors.size > 0 ? Array.from(sectors) : null;
+    }
+
+    async getTotalAssetsByInvestmentPortfolioId(investmentPortfolioId: string, userId: string, last12Months: boolean = false, filterBySector: string = null) {
         try {
             const investmentPortfolio = await this.getTransactionsByInvestmentPortfolioId(investmentPortfolioId);
             if (userId != investmentPortfolio.user.id) {
@@ -188,106 +240,28 @@ export class InvestmentPortfolioService {
             }
             const firstTransactionDate = new Date(await this.getDateOfFirstTransactionByInvestmentPortfolioId(investmentPortfolioId));
 
-            const sumTransactionsTotal = async (
-                transactions: any[],
-                final_price: any = undefined
-            ) => {
-                let total = 0;
-
-                for (const transaction of transactions) {
-                    let originalFinalPrice = final_price;
-                    const amount = Number(transaction.amount);
-                    const quantity = Number(transaction.quantity);
-                    const price_per_unit = Number(transaction.price_per_unit);
-
-                    if (originalFinalPrice === undefined && transaction.ticker) {
-                        originalFinalPrice = Number(transaction.ticker.current_price);
+            if (filterBySector) {
+                const filterPromises = investmentPortfolio.transactions.map(async transaction => {
+                    if (!transaction.ticker) {
+                        return false;
                     }
 
-                    if (originalFinalPrice === undefined && transaction.treasury) {
-                        originalFinalPrice = Number(transaction.treasury.unit_price);
+                    const ticker = await this.tickerRepository.findOne({
+                        where: { id: transaction.ticker.id },
+                        relations: ['company', 'reit']
+                    });
+
+                    if (!ticker || (!ticker.company && !ticker.reit)) {
+                        return false;
                     }
 
-                    if (originalFinalPrice === undefined && transaction.fund) {
-                        const lastFundPrice = await this.portfolioTransactionsService.getLastFundPrice(transaction.fund.id);
-                        originalFinalPrice = (lastFundPrice ? Number(lastFundPrice.price) : 0).toFixed(2);
-                    }
+                    const stringFilterBySector = ticker.company ? `${ticker.company.b3_sector} - ${ticker.company.b3_subsector}` : `${ticker.reit.b3Sector} - ${ticker.reit.b3Subsector}`;
+                    return stringFilterBySector === filterBySector;
+                });
 
-                    if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY' && transaction.asset_type !== 'FUNDS') {
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= (quantity * price_per_unit);
-                        } else {
-                            total += (quantity * originalFinalPrice);
-                        }
-                    } else if (transaction.asset_type === 'FIXED_INCOME') {
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= amount;
-                        } else {
-                            total += amount;
-                        }
-                    } else if (transaction.asset_type === 'TREASURY') {
-                        const currentAmount = transaction.quantity * originalFinalPrice;
-
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= currentAmount;
-                        } else {
-                            total += currentAmount;
-                        }
-                    }
-                    else if (transaction.asset_type === 'FUNDS') {
-                        const currentAmount = transaction.quantity * originalFinalPrice;
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= currentAmount;
-                        } else {
-                            total += currentAmount;
-                        }
-                    }
-                }
-
-                return total;
-            };
-
-            const sumTransactionsTotalInvested = async (transactions: any[]) => {
-                let total = 0;
-
-                for (const transaction of transactions) {
-                    const amount = Number(transaction.amount);
-                    const quantity = Number(transaction.quantity);
-                    const price_per_unit = Number(transaction.price_per_unit);
-
-                    if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY' && transaction.asset_type !== 'FUNDS') {
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= (quantity * price_per_unit);
-                        } else {
-                            total += (quantity * price_per_unit);
-                        }
-                    } else if (transaction.asset_type === 'FIXED_INCOME') {
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= amount;
-                        } else {
-                            total += amount;
-                        }
-                    } else if (transaction.asset_type === 'TREASURY') {
-                        const currentAmount = transaction.quantity * transaction.treasury.unit_price;
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= currentAmount;
-                        } else {
-                            total += currentAmount;
-                        }
-                    } else if (transaction.asset_type === 'FUNDS') {
-                        const lastFundPrice = await this.portfolioTransactionsService.getLastFundPrice(transaction.fund.id);
-                        const lfp = (lastFundPrice ? Number(lastFundPrice.price) : 0).toFixed(2);
-                        const currentAmount = transaction.quantity * Number(lfp);
-                        if (transaction.transaction_type === 'SELL') {
-                            total -= currentAmount;
-                        } else {
-                            total += currentAmount;
-                        }
-                    }
-                }
-
-                return total;
-            };
+                const filterResults = await Promise.all(filterPromises);
+                investmentPortfolio.transactions = investmentPortfolio.transactions.filter((_, index) => filterResults[index]);
+            }
 
             const firstTransactionYear = firstTransactionDate.getFullYear();
             const firstTransactionMonth = firstTransactionDate.getMonth() + 1;
@@ -353,7 +327,7 @@ export class InvestmentPortfolioService {
                             const currentDate = new Date();
                             const isCurrentMonth = currentDate.getFullYear() === year && currentDate.getMonth() + 1 === month;
 
-                            const monthTotalAssets = await sumTransactionsTotal([transaction], isCurrentMonth ? undefined : monthQuotePrice);
+                            const monthTotalAssets = await this.sumTransactionsTotal([transaction], isCurrentMonth ? undefined : monthQuotePrice);
 
                             if (!totalAssets[`${month}-${year}`]) {
                                 totalAssets[`${month}-${year}`] = { month, year, totalAssets: 0, totalInvested: 0, currency: 'BRL' };
@@ -367,13 +341,14 @@ export class InvestmentPortfolioService {
                         }
                     }
                 }
+
                 for (const monthYear in totalAssets) {
                     const [month, year] = monthYear.split('-');
-                    const monthTotalInvested = await sumTransactionsTotalInvested(investmentPortfolio.transactions.filter(t => t.transaction_date.getTime() < Date.UTC(parseInt(year), parseInt(month), 1, 3)));
+                    const monthTotalInvested = await this.sumTransactionsTotalInvested(investmentPortfolio.transactions.filter(t => t.transaction_date.getTime() < Date.UTC(parseInt(year), parseInt(month), 1, 3)));
                     totalAssets[`${month}-${year}`].totalInvested = parseFloat((totalAssets[`${month}-${year}`].totalInvested + monthTotalInvested).toFixed(2));
                 }
             } else {
-                totalAssets = await sumTransactionsTotal(investmentPortfolio.transactions);
+                totalAssets = await this.sumTransactionsTotal(investmentPortfolio.transactions);
             }
 
             return {
@@ -387,7 +362,108 @@ export class InvestmentPortfolioService {
         }
     }
 
-    async getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId: string, userId: string, last12Months: boolean = false) {
+    async sumTransactionsTotal(
+        transactions: any[],
+        final_price: any = undefined
+    ) {
+        let total = 0;
+
+        for (const transaction of transactions) {
+            let originalFinalPrice = final_price;
+            const amount = Number(transaction.amount);
+            const quantity = Number(transaction.quantity);
+            const price_per_unit = Number(transaction.price_per_unit);
+
+            if (originalFinalPrice === undefined && transaction.ticker) {
+                originalFinalPrice = Number(transaction.ticker.current_price);
+            }
+
+            if (originalFinalPrice === undefined && transaction.treasury) {
+                originalFinalPrice = Number(transaction.treasury.unit_price);
+            }
+
+            if (originalFinalPrice === undefined && transaction.fund) {
+                const lastFundPrice = await this.portfolioTransactionsService.getLastFundPrice(transaction.fund.id);
+                originalFinalPrice = (lastFundPrice ? Number(lastFundPrice.price) : 0).toFixed(2);
+            }
+
+            if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY' && transaction.asset_type !== 'FUNDS') {
+                if (transaction.transaction_type === 'SELL') {
+                    total -= (quantity * price_per_unit);
+                } else {
+                    total += (quantity * originalFinalPrice);
+                }
+            } else if (transaction.asset_type === 'FIXED_INCOME') {
+                if (transaction.transaction_type === 'SELL') {
+                    total -= amount;
+                } else {
+                    total += amount;
+                }
+            } else if (transaction.asset_type === 'TREASURY') {
+                const currentAmount = transaction.quantity * originalFinalPrice;
+
+                if (transaction.transaction_type === 'SELL') {
+                    total -= currentAmount;
+                } else {
+                    total += currentAmount;
+                }
+            }
+            else if (transaction.asset_type === 'FUNDS') {
+                const currentAmount = transaction.quantity * originalFinalPrice;
+                if (transaction.transaction_type === 'SELL') {
+                    total -= currentAmount;
+                } else {
+                    total += currentAmount;
+                }
+            }
+        }
+
+        return total;
+    };
+
+    async sumTransactionsTotalInvested(transactions: any[]) {
+        let total = 0;
+
+        for (const transaction of transactions) {
+            const amount = Number(transaction.amount);
+            const quantity = Number(transaction.quantity);
+            const price_per_unit = Number(transaction.price_per_unit);
+
+            if (transaction.asset_type !== 'FIXED_INCOME' && transaction.asset_type !== 'TREASURY' && transaction.asset_type !== 'FUNDS') {
+                if (transaction.transaction_type === 'SELL') {
+                    total -= (quantity * price_per_unit);
+                } else {
+                    total += (quantity * price_per_unit);
+                }
+            } else if (transaction.asset_type === 'FIXED_INCOME') {
+                if (transaction.transaction_type === 'SELL') {
+                    total -= amount;
+                } else {
+                    total += amount;
+                }
+            } else if (transaction.asset_type === 'TREASURY') {
+                const currentAmount = transaction.quantity * transaction.treasury.unit_price;
+                if (transaction.transaction_type === 'SELL') {
+                    total -= currentAmount;
+                } else {
+                    total += currentAmount;
+                }
+            } else if (transaction.asset_type === 'FUNDS') {
+                const lastFundPrice = await this.portfolioTransactionsService.getLastFundPrice(transaction.fund.id);
+                const lfp = (lastFundPrice ? Number(lastFundPrice.price) : 0).toFixed(2);
+                const currentAmount = transaction.quantity * Number(lfp);
+                if (transaction.transaction_type === 'SELL') {
+                    total -= currentAmount;
+                } else {
+                    total += currentAmount;
+                }
+            }
+        }
+
+        return total;
+    };
+
+    async getTotalInvestedByInvestmentPortfolioId(investmentPortfolioId: string, userId: string, last12Months: boolean = false, filterBySector: string = null) {
         try {
             const investmentPortfolio = await this.getTransactionsByInvestmentPortfolioId(investmentPortfolioId);
             if (userId != investmentPortfolio.user.id) {
@@ -395,6 +471,29 @@ export class InvestmentPortfolioService {
             }
 
             let totalInvested = 0;
+
+            if (filterBySector) {
+                const filterPromises = investmentPortfolio.transactions.map(async transaction => {
+                    if (!transaction.ticker) {
+                        return false;
+                    }
+
+                    const ticker = await this.tickerRepository.findOne({
+                        where: { id: transaction.ticker.id },
+                        relations: ['company', 'reit']
+                    });
+
+                    if (!ticker || (!ticker.company && !ticker.reit)) {
+                        return false;
+                    }
+
+                    const stringFilterBySector = ticker.company ? `${ticker.company.b3_sector} - ${ticker.company.b3_subsector}` : `${ticker.reit.b3Sector} - ${ticker.reit.b3Subsector}`;
+                    return stringFilterBySector === filterBySector;
+                });
+
+                const filterResults = await Promise.all(filterPromises);
+                investmentPortfolio.transactions = investmentPortfolio.transactions.filter((_, index) => filterResults[index]);
+            }
 
             for (const transaction of investmentPortfolio.transactions) {
                 const amount = Number(transaction.amount);
@@ -497,13 +596,13 @@ export class InvestmentPortfolioService {
         }
     }
 
-    async getPortfolioDataByPortfolioId(portfolioId: string, userId: string) {
-        const { totalAssets } = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId, true);
+    async getPortfolioDataByPortfolioId(portfolioId: string, userId: string, filterBySector: string = null) {
+        const { totalAssets } = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId, true, filterBySector);
         const filteredData = typeof totalAssets === 'number' ? [] : totalAssets.reverse();
 
-        const currentTotalAssets = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId);
-        const currentTotalInvested = await this.getTotalInvestedByInvestmentPortfolioId(portfolioId, userId);
-        const portfolioDivision = await this.portfolioTransactionsService.getTransactions(portfolioId, false, false)
+        const currentTotalAssets = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId, false, filterBySector);
+        const currentTotalInvested = await this.getTotalInvestedByInvestmentPortfolioId(portfolioId, userId, false, filterBySector);
+        const portfolioDivision = await this.portfolioTransactionsService.getTransactions(portfolioId, false, false);
 
         return {
             portfolioId: portfolioId,
@@ -511,7 +610,7 @@ export class InvestmentPortfolioService {
             currentTotalAssets: currentTotalAssets.totalAssets,
             currentTotalInvested: currentTotalInvested.totalInvested,
             portfolioName: currentTotalAssets.portfolioName,
-            portfolioDivision: portfolioDivision,
+            portfolioDivision: filterBySector ? null : portfolioDivision,
         }
     }
 
@@ -570,8 +669,6 @@ export class InvestmentPortfolioService {
             annualPerformance: annualPerformance,
             userInvestorProfile: userInvestorProfileName,
         };
-
-        console.log('Portfolio data to AI:', portfolioDataToAI);
 
         return portfolioDataToAI;
     }
