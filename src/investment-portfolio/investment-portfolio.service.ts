@@ -600,6 +600,12 @@ export class InvestmentPortfolioService {
         const { totalAssets } = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId, true, filterBySector);
         const filteredData = typeof totalAssets === 'number' ? [] : totalAssets.reverse();
 
+        if (filterBySector) {
+            return {
+                historicalData: filteredData
+            }
+        }
+
         const currentTotalAssets = await this.getTotalAssetsByInvestmentPortfolioId(portfolioId, userId, false, filterBySector);
         const currentTotalInvested = await this.getTotalInvestedByInvestmentPortfolioId(portfolioId, userId, false, filterBySector);
         const portfolioDivision = await this.portfolioTransactionsService.getTransactions(portfolioId, false, false);
