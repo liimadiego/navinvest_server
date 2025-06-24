@@ -46,7 +46,7 @@ export class MailService {
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td>
-                                                <img src="https://navinvest.ai/logo/logo-single.png" width="38" style="display: block; margin-right: 8px;">
+                                                <img src="https://navinvest.ai/logo/logo-branco-single.png" width="38" style="display: block; margin-right: 8px;">
                                             </td>
                                             <td>
                                                 <h2 style="margin: 0; font-size: 22px; color: #ffffff; font-family: Arial, sans-serif;">Código de Verificação</h2>
@@ -127,7 +127,7 @@ export class MailService {
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td>
-                                                <img src="https://navinvest.ai/logo/logo-single.png" width="38" style="display: block; margin-right: 8px;">
+                                                <img src="https://navinvest.ai/logo/logo-branco-single.png" width="38" style="display: block; margin-right: 8px;">
                                             </td>
                                             <td>
                                                 <h2 style="margin: 0; font-size: 22px; color: #ffffff; font-family: Arial, sans-serif;">Navi Diário</h2>
