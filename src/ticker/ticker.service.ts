@@ -348,7 +348,11 @@ export class TickerService {
                 }
             },
             where: {
-                payable_date: Raw(alias => `EXTRACT(MONTH FROM ${alias}) = ${month} AND EXTRACT(YEAR FROM ${alias}) = ${year}`)
+                payable_date: Raw(alias => `EXTRACT(MONTH FROM ${alias}) = ${month} AND EXTRACT(YEAR FROM ${alias}) = ${year}`),
+                //currency do tickerInfo deve ser BRL
+                tickerInfo: {
+                    currency: 'BRL'
+                }
             },
             relations: ['reit', 'company', 'tickerInfo'],
             order: {

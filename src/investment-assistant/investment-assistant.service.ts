@@ -87,7 +87,7 @@ export class InvestmentAssistantService {
 
             const inputMessages: MessageHistoric[] = [
                 { role: 'system', content: this.getPrompt("ia_assistant_context") },
-                { role: 'system', content: `ID do portfólio caso for usar em alguma função: ${portfolioId}. \nCaso esteja vazio, é pelo fato de o usuário não ter selecionado ou criado nenhum portfólio ainda, explique a ele a necessidade de selecionar um portfólio antes de prosseguir.` },
+                { role: 'system', content: `ID do portfólio do usuário caso for usar em alguma função: ${portfolioId}. \nCaso esteja vazio, é pelo fato de o usuário não ter selecionado ou criado nenhum portfólio ainda, explique a ele a necessidade de selecionar um portfólio antes de prosseguir.` },
                 { role: 'system', content: `ID do usuário no sistema: ${userId}` },
                 ...messageHistoric.map(m => {
                     return {
