@@ -319,6 +319,8 @@ export class InvestmentAssistantService {
             await chatRecord.save();
         }
 
+        console.log('Chat record found or created:', chatRecord);
+
         let chatRecordObj: any = {};
         chatRecordObj = chatRecord.toObject();
 

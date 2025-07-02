@@ -46,12 +46,14 @@ export class InvestmentAssistantController {
     const userId = await this.investmentAssistantService.getUserIdByHeaderRequest(request);
 
     if (!userId) {
+      console.log('User not found in getChat method');
       throw new HttpException('User not found.', HttpStatus.UNAUTHORIZED);
     }
 
     const chat = await this.investmentAssistantService.getChatByUserId(userId);
 
     if (!chat) {
+      console.log('Chat not found for user:', userId);
       throw new HttpException('Chat não encontrado.', HttpStatus.NOT_FOUND);
     }
 
