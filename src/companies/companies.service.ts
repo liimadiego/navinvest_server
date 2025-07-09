@@ -120,14 +120,14 @@ export class CompaniesService {
                 return item.ticker === tickerData.ticker;
             });
 
-            const currentNetSales = companyDataObj.incomes[0].net_sales || 0;
-            const currentNetSales5Y = companyDataObj.incomes[4].net_sales || 0;
+            const currentNetSales = companyDataObj.incomes?.[0]?.net_sales || 0;
+            const currentNetSales5Y = companyDataObj.incomes?.[4]?.net_sales || 0;
 
-            const currentNetIncome = companyDataObj.incomes[0].net_income || 0;
-            const currentNetIncome5Y = companyDataObj.incomes[4].net_income || 0;
+            const currentNetIncome = companyDataObj.incomes?.[0]?.net_income || 0;
+            const currentNetIncome5Y = companyDataObj.incomes?.[4]?.net_income || 0;
 
-            const cagrNetSales5Y = ((currentNetSales / currentNetSales5Y) ** (1 / 5)) - 1;
-            const cagrNetIncome5Y = ((currentNetIncome / currentNetIncome5Y) ** (1 / 5)) - 1;
+            const cagrNetSales5Y = !currentNetSales5Y ? 0 : ((currentNetSales / currentNetSales5Y) ** (1 / 5)) - 1;
+            const cagrNetIncome5Y = !currentNetIncome5Y ? 0 : ((currentNetIncome / currentNetIncome5Y) ** (1 / 5)) - 1;
 
             if (historicalDividendYieldData) {
                 historicalDividendYieldObj = historicalDividendYieldData.toObject();
