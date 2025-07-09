@@ -460,7 +460,7 @@ export class CompaniesService {
                     priceEarningsValues[ticker] = companiesFormatted[ticker].market_ratios?.price_earnings;
                     priceToBookValues[ticker] = companiesFormatted[ticker].market_ratios?.price_to_book;
                     priceToSalesValues[ticker] = companiesFormatted[ticker].market_ratios?.price_to_sales;
-                    priceToAssetsValues[ticker] = companiesFormatted[ticker].market_ratios.price_to_assets;
+                    priceToAssetsValues[ticker] = companiesFormatted[ticker].market_ratios?.price_to_assets;
                     priceToCashFlowValues[ticker] = companiesFormatted[ticker].market_ratios?.price_to_cash_flow;
                     evEbitValues[ticker] = companiesFormatted[ticker].others?.EV_EBIT;
                     evEbitdaValues[ticker] = companiesFormatted[ticker].others?.EV_EBITDA;
