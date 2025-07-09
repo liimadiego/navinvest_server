@@ -9,15 +9,21 @@ export class CompaniesController {
 
   @Get('compare')
   async compareCompanies(@Query('tickers') tickers: string): Promise<any> {
-    let tickersArr: string[] = [];
+    try {
+      let tickersArr: string[] = [];
 
-    if (!tickers || tickers == '' || tickers.trim() === '') {
-      throw new BadRequestException('Tickers are required');
+      if (!tickers || tickers == '' || tickers.trim() === '') {
+        throw new BadRequestException('Tickers are required');
+      }
+
+      tickersArr = tickers.split(',');
+
+      return this.companiesService.compareCompanies(tickersArr);
+      
+    } catch (error) {
+      console.error('Error in compare controller:', error);
+      throw new Error(error.message || 'An error occurred while fetching company data');
     }
-
-    tickersArr = tickers.split(',');
-
-    return this.companiesService.compareCompanies(tickersArr);
   }
 
   @PremiumPlan()
