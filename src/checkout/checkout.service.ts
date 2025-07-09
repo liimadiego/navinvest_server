@@ -8,57 +8,62 @@ export class CheckoutService {
     constructor(private readonly usersService: UsersService) { }
 
     async createSubscription(userId: string, data: SubscriptionDataReq, user: UserEntity): Promise<any> {
-        const checkoutBaseUrl = process.env.CHECKOUT_BASE_URL;
+        try {
+            const checkoutBaseUrl = process.env.CHECKOUT_BASE_URL;
 
-        if (!checkoutBaseUrl) {
-            throw new Error('Checkout base URL is not defined');
-        }
-
-        const subscriptionData = this.handleData(data);
-
-        const response = await fetch(`${checkoutBaseUrl}/subscription/subscribe`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(subscriptionData),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to create subscription: ${errorData.message}`);
-        }
-
-        const res = await response.json();
-
-        await this.usersService.savePaymentSubscriptionId(userId, res.subscription.id, res.subscription.billingType === 'CREDIT_CARD');
-
-        if (!res.success) {
-            throw new Error(`Failed to create subscription: ${res.message}`);
-        }
-
-        if (res.subscription.billingType === 'PIX') {
-            return {
-                paymentId: res.payment.id,
-                success: true,
-                billingType: res.subscription.billingType,
-                qrCodeBase64: res.pix_info.qrCodeBase64,
-                copyPaste: res.pix_info.copyPaste,
-                expiresAt: res.pix_info.expires_at,
-            };
-        }
-
-        if (res.subscription.billingType === 'CREDIT_CARD' && res.payment.status === 'PENDING') {
-            const updatedUser = await this.usersService.makeUserPremium(userId, 'premium', subscriptionData.general.cycle_type, true);
-
-            if (!updatedUser) {
-                throw new Error('Failed to update user to premium status');
+            if (!checkoutBaseUrl) {
+                throw new Error('Checkout base URL is not defined');
             }
 
-            return { success: true };
-        }
+            const subscriptionData = this.handleData(data);
 
-        throw new Error(`Failed to create subscription: ${res.message}`);
+            const response = await fetch(`${checkoutBaseUrl}/subscription/subscribe`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(subscriptionData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to create subscription: ${errorData.message}`);
+            }
+
+            const res = await response.json();
+
+            await this.usersService.savePaymentSubscriptionId(userId, res.subscription.id, res.subscription.billingType === 'CREDIT_CARD');
+
+            if (!res.success) {
+                throw new Error(`Failed to create subscription: ${res.message}`);
+            }
+
+            if (res.subscription.billingType === 'PIX') {
+                return {
+                    paymentId: res.payment.id,
+                    success: true,
+                    billingType: res.subscription.billingType,
+                    qrCodeBase64: res.pix_info.qrCodeBase64,
+                    copyPaste: res.pix_info.copyPaste,
+                    expiresAt: res.pix_info.expires_at,
+                };
+            }
+
+            if (res.subscription.billingType === 'CREDIT_CARD' && res.payment.status === 'PENDING') {
+                const updatedUser = await this.usersService.makeUserPremium(userId, 'premium', subscriptionData.general.cycle_type, true);
+
+                if (!updatedUser) {
+                    throw new Error('Failed to update user to premium status');
+                }
+
+                return { success: true };
+            }
+
+            throw new Error(`Failed to create subscription: ${res.message}`);
+        } catch (error) {
+            console.error('Error creating subscription:', error);
+            throw new Error(`Failed to create subscription: ${error.message}`);
+        }
     }
 
     async updateSubscription(data: updateSubscription): Promise<any> {
