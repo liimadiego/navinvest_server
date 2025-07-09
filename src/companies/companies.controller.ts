@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, Req } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { JwtHelper } from 'utils/jwt.service';
+import { PremiumPlan } from 'decorators/plans.decorator';
 
 @Controller('companies')
 export class CompaniesController {
@@ -19,6 +20,7 @@ export class CompaniesController {
     return this.companiesService.compareCompanies(tickersArr);
   }
 
+  @PremiumPlan()
   @Post('compare-with-ai')
   async compareCompaniesWithAI(@Body() req: any, @Req() request: any): Promise<any> {
     const { companiesData } = req;
