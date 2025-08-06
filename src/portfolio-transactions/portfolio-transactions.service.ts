@@ -137,6 +137,56 @@ export class PortfolioTransactionsService {
         };
     }
 
+    async createTransactionFromWalletImportDataB3(b3PeriodLists: any, portfolioId: string): Promise<any> {
+        const portfolioExists = await this.investmentPortfolioRepository.exists({ where: { id: portfolioId } });
+        if (!portfolioExists) {
+            throw new NotFoundException(`Portfolio with ID ${portfolioId} not found`);
+        }
+
+        const transactions = [];
+        for (const period of b3PeriodLists) {
+            for (const assetTrading of period.assetTradingList) {
+                const tickerName = assetTrading.assetTradingObjectCode || assetTrading.tickerSymbol;
+
+                if (!tickerName) {
+                    console.log(`Failed to find ticker name for 'assetTrading':`, assetTrading, '\n ');
+                    throw new NotFoundException(`Failed to parse all B3 transactions.`);
+                }
+                
+                const ticker = await this.tickerRepository.findOne({ where: { ticker: tickerName } });
+                if (!ticker) {
+                    throw new NotFoundException(`Ticker with name ${tickerName} not found`);
+                }
+                const tickerId = ticker.id;
+
+                const transaction = {
+                    portfolio_id: portfolioId,
+                    asset_type: ticker.asset_type.toUpperCase(),
+                    transaction_type: assetTrading.side === "Compra" ? "BUY" : "SELL",
+                    amount: assetTrading.grossAmount,
+                    price_per_unit: assetTrading.priceValue,
+                    transaction_date: new Date(assetTrading.tradeDateTime+'-0300'),
+                    quantity: assetTrading.tradeQuantity,
+                    ticker_id: tickerId
+                };
+
+                console.log(`Processing ticker "${tickerName}":`, transaction);
+
+                transactions.push(transaction);
+            }
+        }
+
+        await Promise.all(transactions.map(async (transaction) => {
+            await this.createTransaction(transaction);
+            return transaction;
+        }));
+
+        return {
+            success: true,
+            message: 'Transações criadas com sucesso'
+        };
+    }
+
     async createTransaction(createDto: CreatePortfolioTransactionDto): Promise<any> {
         try {
             const portfolioExists = await this.investmentPortfolioRepository.exists({

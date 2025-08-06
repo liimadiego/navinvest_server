@@ -30,6 +30,7 @@ import { BdrsModule } from './bdrs/bdrs.module';
 import { EtfsModule } from './etfs/etfs.module';
 import { LanguagesService } from './utils/language.service';
 import { UserIdeasModule } from './user-ideas/user-ideas.module';
+import { B3ImportModule } from './b3-import/b3-import.module';
 
 @Module({
   controllers: [AppController],
@@ -63,6 +64,7 @@ import { UserIdeasModule } from './user-ideas/user-ideas.module';
     BdrsModule,
     EtfsModule,
     UserIdeasModule,
+    B3ImportModule,
   ],
 })
 export class AppModule { }
