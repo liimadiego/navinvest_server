@@ -12,7 +12,7 @@ export class B3ImportController {
   @Get('auth-token')
   async getAuthToken() {
     // Implement the logic to get the authentication token
-    return this.b3ImportService.getAuthToken();
+    return this.b3ImportService.getB3AuthToken();
   }
 
   @Get('user-transactions')
@@ -26,7 +26,7 @@ export class B3ImportController {
       throw new BadRequestException('Usuário não encontrado');
     }
 
-    const response = await this.b3ImportService.importUserTransactions(userId, portfolioId);
+    const response = await this.b3ImportService.importB3UserTransactions(userId, portfolioId);
 
     if (!response || !response.success) {
       throw new BadRequestException(response?.message || 'Erro ao processar o arquivo');

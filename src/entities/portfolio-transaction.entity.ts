@@ -61,5 +61,8 @@ export class PortfolioTransactionEntity {
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date;
+
+    @Column({ name: 'adjustment_description', type: 'varchar', length: 50 })
+    adjustment_description: string;
 }
 
