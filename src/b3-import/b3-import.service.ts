@@ -393,7 +393,7 @@ export class B3ImportService {
                             optionExerciseValue: 0,
                             tradeQuantity: assetsBalance[t.tickerSymbol].quantity,
                             priceValue: 0,
-                            grossAmount: t.operationValue,
+                            grossAmount: 0,
                             originalTotalAdjustmentValue: 0,
                             originalTradePriceValue: 0,
                             tradeDateTime: new Date(t._timestamp - 60e3*60*3).toISOString().slice(0, 19),
@@ -401,7 +401,7 @@ export class B3ImportService {
                             accountNumber: '',
                             _type: 'Adjustment',
                             _timestamp: t._timestamp,
-                            _adjustmentDescription: `Ajuste - ${t.movementType}`,
+                            _adjustmentDescription: `Ajuste - ${t.movementType} (R$ ${(t.operationValue*1).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
                             balance: { quantity: 0, cost: 0, avgPrice: 0 }
                         });
                         
@@ -424,7 +424,7 @@ export class B3ImportService {
                             accountNumber: '',
                             _type: 'Adjustment',
                             _timestamp: t._timestamp,
-                            _adjustmentDescription: `Ajuste - ${t.movementType}`,
+                            _adjustmentDescription: `Ajuste - ${t.movementType} (R$ ${(t.operationValue*1).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
                             balance: { ...assetsBalance[t.tickerSymbol] }
                         });
 

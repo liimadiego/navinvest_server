@@ -444,6 +444,7 @@ export class PortfolioTransactionsService {
                     asset_type: true,
                     country: true,
                 },
+                adjustment_description: true
             },
         });
 
