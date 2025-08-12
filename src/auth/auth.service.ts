@@ -173,13 +173,17 @@ export class AuthService {
 
         const userData = {
             id: user.id,
+            cpf: user.cpf,
             email: user.email,
             displayName: user.full_name,
             phone: user.phone_number,
             role: user.role,
             created_at: user.created_at,
             plan: user.plan,
-            plan_expiration: user.plan_expiration
+            plan_expiration: user.plan_expiration,
+            b3ImportLastTime: user.b3ImportLastTime,
+            b3SyncPortfolioId: user.b3SyncPortfolioId,
+            b3DailyImportsCounter: user.b3DailyImportsCounter,
         }
 
         return { user: userData };

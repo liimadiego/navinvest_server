@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TokenUsageEntity } from 'entities/token-usage.entity';
 import { PlanEntity } from 'entities/plan.entity';
+import { isValidCPF } from 'utils/cpf.utils';
 
 @Injectable()
 export class UsersService {
@@ -98,7 +99,7 @@ export class UsersService {
     async findById(id: string): Promise<UserEntity | null> {
         return this.userRepository.findOne({
             where: { id },
-            relations: ['plan']
+            relations: ['plan', 'portfolios']
         });
     }
 
@@ -117,6 +118,35 @@ export class UsersService {
                 created_at: 'DESC'
             }
         });
+    }
+
+    async setUserCpf(userId: string, cpf: string): Promise<UserEntity | any> {
+        const user = await this.userRepository.findOne({
+            where: { id: userId }
+        });
+        if (!user) {
+            return { error: 'User not found' };
+        }
+        if (user.cpf) {
+            return { error: 'User already has a CPF set' };
+        }
+
+        if (!isValidCPF(cpf)) {
+            return { error: 'Invalid CPF format' };
+        }
+
+        user.cpf = parseInt(cpf.replace(/\D/g, ''));
+
+        try {
+            await this.userRepository.save(user);
+        } catch (error) {
+            return { error: 'Failed to save user CPF' };
+        }
+        
+        return {
+            success: true,
+            message: 'CPF set successfully'
+        };
     }
 
     async userHasAccess(id: string, plansAllowed: string[]): Promise<boolean> {

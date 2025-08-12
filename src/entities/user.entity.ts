@@ -69,18 +69,21 @@ export class UserEntity {
     @Column({ type: 'int', default: 0, name: 'access_attempts' })
     accessAttempts: number;
 
-    @Column({ type: 'boolean', default: false, name: 'b3_import' })
-    b3Import: boolean;
-
-    @Column({ type: 'timestamp', name: 'b3_import_last_time', nullable: true })
-    b3ImportLastTime: Date | null;
-
-    @Column({ type: 'int', default: 0, name: 'cpf' })
+    @Column({ type: 'int', name: 'cpf', nullable: true })
     cpf: number;
 
     @ManyToOne(() => PlanEntity, (plan) => plan.users, { nullable: true })
     @JoinColumn({ name: 'plan_id' })
     plan: PlanEntity;
+
+    @Column({ type: 'timestamp', nullable: true, name: 'b3_import_last_time' })
+    b3ImportLastTime: Date | null;
+
+    @Column({ type: 'uuid', nullable: true, name: 'b3_sync_portfolio_id' })
+    b3SyncPortfolioId: string | null;
+
+    @Column({ type: 'int', nullable: true, name: 'b3_daily_imports_counter' })
+    b3DailyImportsCounter: number;
 
     @OneToMany(() => TokenUsageEntity, (tokenUsage) => tokenUsage.user, { cascade: true })
     tokenUsages: TokenUsageEntity[];

@@ -89,6 +89,61 @@ export class B3ImportService {
         return this.lastLoadObject.lastLoadedDate;
     }
 
+    async checkB3UserAuthorization (userId: string) {
+        const user = await this.usersService.findById(userId);
+        if (!user.cpf) {
+            // throw new Error('Usuário não possui CPF cadastrado'); 
+            return {
+                authorized: false
+            }
+        }
+        const userCpf = user.cpf;
+
+        const authTokenObj = await this.getB3AuthToken();
+        const authToken = authTokenObj.access_token;
+
+        const r = await fetch(
+            `https://investidor.b3.com.br:2443/api/authorization-investor/v1/authorizations/investors?documentNumber=${userCpf}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + authToken,
+                },
+                agent: httpsAgent
+            }
+        );
+
+        const text = await r.text();
+
+        if (r.status === 200) {
+            const { data } = JSON.parse(text);
+            const authorization = data.authorizedInvestors.find((a :any) => a.documentNumber === userCpf.toString());
+            return {
+                authorized: true,
+                authorization
+            }
+        } else if (r.status === 422) {
+            const { code, message } = JSON.parse(text);
+            if (code === '422.02' && message === 'Participante não autorizado acessar CPF/CNPJ.') {
+                return {
+                    authorized: false
+                }
+            }
+        }
+
+
+        let unexpectedResp = text;
+        try {
+            unexpectedResp = JSON.parse(text);
+        } catch (error) {
+            // Do nothing...
+        }
+
+        console.error(`[E] checkB3UserAuthorization(userCpf= ${userCpf}) > HTTP (${r.status}) ${r.statusText}: Unexpected response:`, unexpectedResp);
+        
+        throw new Error(`Failed to check B3 user (${userCpf}) authorization: HTTP (${r.status}) ${r.statusText}`);
+    }
+
     async getB3UserTradesPeriodLists (authToken: string, userCpf: number, startDate: string, endDate: string) {
         // console.log(`Getting B3 user trades period lists for user "${userCpf}" from "${startDate}" to "${endDate}"...`);
 
@@ -646,25 +701,54 @@ export class B3ImportService {
         return adjustedTransactions;
     }
 
-    async importB3UserTransactions (userId: string, portfolioId: string) {
+    async importB3UserTransactions (userId: string, portfolioId: string, fromStart: boolean = false) {
         const user = await this.usersService.findById(userId);
         if (!user.cpf) {
             throw new Error('Usuário não possui CPF cadastrado'); 
         }
 
-        const token = await this.getB3AuthToken();
+        if (!user.portfolios.some(p => p.id === portfolioId)) {
+            throw new Error('Usuário não possui a carteira informada');
+        }
 
-        const startDate = (user.b3ImportLastTime || new Date('2019-11-01T00:00:00-0300')).toISOString().split('T')[0];
-        // const endDate = new Date(Date.now() - (60e3*60*24) - (60e3*60*3)).toISOString().split('T')[0];
+        const token = await this.getB3AuthToken();
         const endDate = (await this.getB3LastLoadUpdate(token.access_token)).split('T')[0];
+
+        const alreadyImportedToday = (
+            user.b3ImportLastTime && 
+            user.b3ImportLastTime.getTime() === new Date(endDate + 'T23:59:59.999-0300').getTime()
+        );
+
+        const currentImportCounter = (fromStart && alreadyImportedToday) ? (user.b3DailyImportsCounter || 0) : 0;
+        if (currentImportCounter + 1 > 3) {
+            throw new Error('Usuário já atingiu o limite diário de importações da B3');
+        }
+
+        const minimumDate = new Date('2019-11-01T00:00:00-0300');
+        const startDate = (fromStart ? minimumDate : (user.b3ImportLastTime || minimumDate)).toISOString().split('T')[0];
+
+        if (startDate >= endDate) {
+            throw new Error(`Start date (${startDate}) is after or equal to end date (${endDate}). No transactions to import.`);
+        }
 
         const [ b3PeriodLists, b3EquitiesMovements ] = await Promise.all([
             this.getB3UserTradesPeriodLists(token.access_token, user.cpf, startDate, endDate),
             this.getB3UserEquitiesMovements(token.access_token, user.cpf, startDate, endDate)
         ]);
-
         const adjustedTransactions = this.adjustB3UserTransactions(user.cpf, b3PeriodLists, b3EquitiesMovements);
+        const b3ImportResponse = await this.portfolioTransactionsService.createTransactionFromWalletImportDataB3(adjustedTransactions, portfolioId);
+        if (!b3ImportResponse || !b3ImportResponse.success) {
+            throw new Error(b3ImportResponse?.message || 'Erro ao importar transações da B3');
+        }
 
-        return this.portfolioTransactionsService.createTransactionFromWalletImportDataB3(adjustedTransactions, portfolioId);
+        // Update user B3 varibles
+        const updatedUser = {
+            b3SyncPortfolioId: portfolioId,
+            b3DailyImportsCounter: fromStart ? currentImportCounter + 1 : 0,
+            b3ImportLastTime: new Date(endDate + 'T23:59:59.999-0300'),
+        };
+        await this.usersService.update(userId, updatedUser);
+
+        return { ...b3ImportResponse, updatedUser };
     }
 }
