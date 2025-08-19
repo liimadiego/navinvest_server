@@ -319,7 +319,7 @@ export class InvestmentAssistantService {
             await chatRecord.save();
         }
 
-        console.log('Chat record found or created:', chatRecord);
+        // console.log('Chat record found or created:', chatRecord); // MUITO CHATO !!! (dj boy)
 
         let chatRecordObj: any = {};
         chatRecordObj = chatRecord.toObject();
