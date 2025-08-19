@@ -233,7 +233,7 @@ export class B3ImportService {
 
         for (const period of b3PeriodLists) {
             if (!period?.assetTradingList?.length) {
-                console.log('wired period:', period);
+                console.log(`[W] B3 Import (User doc= ${userCpf}) > No asset trading found for period:`, period);
             }
 
             for (const assetTrading of period.assetTradingList) {
@@ -316,12 +316,36 @@ export class B3ImportService {
 
                         if (
                             t.movementType === 'Atualização' && 
-                            (!subscriptionReceipt) && 
-                            t.isinCode === t.baseIsinCode && 
-                            t.equitiesQuantity === assetsBalance[t.tickerSymbol].quantity
+                            (!subscriptionReceipt)
                         ) {
-                            // Can safely ignore this.
-                            continue;
+                            if (
+                                t.isinCode === t.baseIsinCode && 
+                                t.equitiesQuantity === assetsBalance[t.tickerSymbol].quantity
+                            ) {
+                                // Can safely ignore this.
+                                continue;
+                            }
+
+                            if (
+                                baseTickerBalance &&
+                                t.isinCode !== t.baseIsinCode && 
+                                baseTickerBalance.quantity === t.equitiesQuantity
+                            ) {
+                                // A ticker name update.
+                                
+                                // Update older transactions with the new ticker symbol.
+                                for (const adjTransaction of adjustedTransactions) {
+                                    if (adjTransaction.tickerSymbol === baseTicker) {
+                                        adjTransaction.tickerSymbol = t.tickerSymbol;
+                                    }
+                                }
+
+                                // Update the balance.
+                                assetsBalance[t.tickerSymbol] = baseTickerBalance;
+                                delete assetsBalance[baseTicker];
+
+                                continue;
+                            }
                         }
 
                         // Credita o 'isinCode/tickerSymbol' com o custo de aquisição do 'baseIsinCode'
